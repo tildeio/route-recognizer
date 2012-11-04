@@ -1,71 +1,71 @@
 module("Route Recognition");
 
 test("A simple route recognizes", function() {
-  var endpoint = {};
+  var handler = {};
   var router = new Router();
-  router.add([{ path: "/foo/bar", endpoint: endpoint }]);
+  router.add([{ path: "/foo/bar", handler: handler }]);
 
-  deepEqual(router.recognize("/foo/bar"), [{ endpoint: endpoint, params: {} }]);
+  deepEqual(router.recognize("/foo/bar"), [{ handler: handler, params: {} }]);
   equal(router.recognize("/foo/baz"), null);
 });
 
 test("A dynamic route recognizes", function() {
-  var endpoint = {};
+  var handler = {};
   var router = new Router();
-  router.add([{ path: "/foo/:bar", endpoint: endpoint }]);
+  router.add([{ path: "/foo/:bar", handler: handler }]);
 
-  deepEqual(router.recognize("/foo/bar"), [{ endpoint: endpoint, params: { bar: "bar" } }]);
-  deepEqual(router.recognize("/foo/1"), [{ endpoint: endpoint, params: { bar: "1" } }]);
+  deepEqual(router.recognize("/foo/bar"), [{ handler: handler, params: { bar: "bar" } }]);
+  deepEqual(router.recognize("/foo/1"), [{ handler: handler, params: { bar: "1" } }]);
   equal(router.recognize("/zoo/baz"), null);
 });
 
 test("Multiple routes recognize", function() {
-  var endpoint1 = { endpoint: 1 };
-  var endpoint2 = { endpoint: 2 };
+  var handler1 = { handler: 1 };
+  var handler2 = { handler: 2 };
   var router = new Router();
 
-  router.add([{ path: "/foo/:bar", endpoint: endpoint1 }]);
-  router.add([{ path: "/bar/:baz", endpoint: endpoint2 }]);
+  router.add([{ path: "/foo/:bar", handler: handler1 }]);
+  router.add([{ path: "/bar/:baz", handler: handler2 }]);
 
-  deepEqual(router.recognize("/foo/bar"), [{ endpoint: endpoint1, params: { bar: "bar" } }]);
-  deepEqual(router.recognize("/bar/1"), [{ endpoint: endpoint2, params: { baz: "1" } }]);
+  deepEqual(router.recognize("/foo/bar"), [{ handler: handler1, params: { bar: "bar" } }]);
+  deepEqual(router.recognize("/bar/1"), [{ handler: handler2, params: { baz: "1" } }]);
 });
 
 test("Overlapping routes recognize", function() {
-  var endpoint1 = { endpoint: 1 };
-  var endpoint2 = { endpoint: 2 };
+  var handler1 = { handler: 1 };
+  var handler2 = { handler: 2 };
   var router = new Router();
 
-  router.add([{ path: "/foo/:baz", endpoint: endpoint2 }]);
-  router.add([{ path: "/foo/bar/:bar", endpoint: endpoint1 }]);
+  router.add([{ path: "/foo/:baz", handler: handler2 }]);
+  router.add([{ path: "/foo/bar/:bar", handler: handler1 }]);
 
-  deepEqual(router.recognize("/foo/bar/1"), [{ endpoint: endpoint1, params: { bar: "1" } }]);
-  deepEqual(router.recognize("/foo/1"), [{ endpoint: endpoint2, params: { baz: "1" } }]);
+  deepEqual(router.recognize("/foo/bar/1"), [{ handler: handler1, params: { bar: "1" } }]);
+  deepEqual(router.recognize("/foo/1"), [{ handler: handler2, params: { baz: "1" } }]);
 });
 
 test("Nested routes recognize", function() {
-  var endpoint1 = { endpoint: 1 };
-  var endpoint2 = { endpoint: 2 };
+  var handler1 = { handler: 1 };
+  var handler2 = { handler: 2 };
 
   var router = new Router();
-  router.add([{ path: "/foo/:bar", endpoint: endpoint1 }, { path: "/baz/:bat", endpoint: endpoint2 }]);
+  router.add([{ path: "/foo/:bar", handler: handler1 }, { path: "/baz/:bat", handler: handler2 }]);
 
-  deepEqual(router.recognize("/foo/1/baz/2"), [{ endpoint: endpoint1, params: { bar: "1" } }, { endpoint: endpoint2, params: { bat: "2" } }]);
+  deepEqual(router.recognize("/foo/1/baz/2"), [{ handler: handler1, params: { bar: "1" } }, { handler: handler2, params: { bat: "2" } }]);
 });
 
 test("If there are multiple matches, the route with the most dynamic segments wins", function() {
-  var endpoint1 = { endpoint: 1 };
-  var endpoint2 = { endpoint: 2 };
-  var endpoint3 = { endpoint: 3 };
+  var handler1 = { handler: 1 };
+  var handler2 = { handler: 2 };
+  var handler3 = { handler: 3 };
 
   var router = new Router();
-  router.add([{ path: "/posts/new", endpoint: endpoint1 }]);
-  router.add([{ path: "/posts/:id", endpoint: endpoint2 }]);
-  router.add([{ path: "/posts/edit", endpoint: endpoint3 }]);
+  router.add([{ path: "/posts/new", handler: handler1 }]);
+  router.add([{ path: "/posts/:id", handler: handler2 }]);
+  router.add([{ path: "/posts/edit", handler: handler3 }]);
 
-  deepEqual(router.recognize("/posts/new"), [{ endpoint: endpoint1, params: {} }]);
-  deepEqual(router.recognize("/posts/1"), [{ endpoint: endpoint2, params: { id: "1" } }]);
-  deepEqual(router.recognize("/posts/edit"), [{ endpoint: endpoint3, params: {} }]);
+  deepEqual(router.recognize("/posts/new"), [{ handler: handler1, params: {} }]);
+  deepEqual(router.recognize("/posts/1"), [{ handler: handler2, params: { id: "1" } }]);
+  deepEqual(router.recognize("/posts/edit"), [{ handler: handler3, params: {} }]);
 });
 
 var router;
@@ -74,10 +74,10 @@ module("Route Generation", {
   setup: function() {
     router = new Router();
 
-    router.add([{ path: "/posts/:id", endpoint: {} }], { as: "post" });
-    router.add([{ path: "/posts", endpoint: {} }], { as: "posts" });
-    router.add([{ path: "/posts/new", endpoint: {} }], { as: "new_post" });
-    router.add([{ path: "/posts/:id/edit", endpoint: {} }], { as: "edit_post" });
+    router.add([{ path: "/posts/:id", handler: {} }], { as: "post" });
+    router.add([{ path: "/posts", handler: {} }], { as: "posts" });
+    router.add([{ path: "/posts/new", handler: {} }], { as: "new_post" });
+    router.add([{ path: "/posts/:id/edit", handler: {} }], { as: "edit_post" });
   }
 });
 
