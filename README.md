@@ -3,7 +3,7 @@
 `route-recognizer` is a lightweight JavaScript library that can be used
 as the recognizer for a more comprehensive router system.
 
-In keeping with the Unix philosophy, is a modular library that does one
+In keeping with the Unix philosophy, it is a modular library that does one
 thing and does it well.
 
 # Usage
