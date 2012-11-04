@@ -1,4 +1,4 @@
-module("Routing");
+module("Route Recognition");
 
 test("A simple route recognizes", function() {
   var endpoint = {};
@@ -66,4 +66,30 @@ test("If there are multiple matches, the route with the most dynamic segments wi
   deepEqual(router.recognize("/posts/new"), [{ endpoint: endpoint1, params: {} }]);
   deepEqual(router.recognize("/posts/1"), [{ endpoint: endpoint2, params: { id: "1" } }]);
   deepEqual(router.recognize("/posts/edit"), [{ endpoint: endpoint3, params: {} }]);
+});
+
+var router;
+
+module("Route Generation", {
+  setup: function() {
+    router = new Router();
+
+    router.add([{ path: "/posts/:id", endpoint: {} }], { as: "post" });
+    router.add([{ path: "/posts", endpoint: {} }], { as: "posts" });
+    router.add([{ path: "/posts/new", endpoint: {} }], { as: "new_post" });
+    router.add([{ path: "/posts/:id/edit", endpoint: {} }], { as: "edit_post" });
+  }
+});
+
+test("Generation works", function() {
+  equal( router.generate("post", { id: 1 }), "/posts/1" );
+  equal( router.generate("posts"), "/posts" );
+  equal( router.generate("new_post"), "/posts/new" );
+  equal( router.generate("edit_post", { id: 1 }), "/posts/1/edit" );
+});
+
+test("Generating an invalid named route raises", function() {
+  raises(function() {
+    route.generate("nope");
+  });
 });
