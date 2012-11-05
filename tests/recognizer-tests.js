@@ -68,6 +68,20 @@ test("If there are multiple matches, the route with the most dynamic segments wi
   deepEqual(router.recognize("/posts/edit"), [{ handler: handler3, params: {} }]);
 });
 
+test("Empty paths", function() {
+  var handler1 = { handler: 1 };
+  var handler2 = { handler: 2 };
+  var handler3 = { handler: 2 };
+  var handler4 = { handler: 2 };
+
+  var router = new Router();
+  router.add([{ path: "/foo", handler: handler1 }, { path: "/", handler: handler2 }, { path: "/bar", handler: handler3 }]);
+  router.add([{ path: "/foo", handler: handler1 }, { path: "/", handler: handler2 }, { path: "/baz", handler: handler4 }]);
+
+  deepEqual(router.recognize("/foo/bar"), [{ handler: handler1, params: {} }, { handler: handler2, params: {} }, { handler: handler3, params: {} }]);
+  //deepEqual(router.recognize("/foo/baz"), [{ handler: handler1, params: {} }, { handler: handler2, params: {} }, { handler: handler4, params: {} }]);
+});
+
 var router;
 
 module("Route Generation", {
