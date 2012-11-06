@@ -66,6 +66,7 @@ test("supports deeply nested handlers", function() {
   matchesRoute("/posts/new", [{ handler: "posts", params: {} }, { handler: "newPost", params: {} }]);
   matchesRoute("/posts/1/index", [{ handler: "posts", params: {} }, { handler: "showPost", params: { id: "1" } }, { handler: "postIndex", params: {} }]);
   matchesRoute("/posts/1/comments", [{ handler: "posts", params: {} }, { handler: "showPost", params: { id: "1" } }, { handler: "postComments", params: {} }]);
+  matchesRoute("/posts/ne/comments", [{ handler: "posts", params: {} }, { handler: "showPost", params: { id: "ne" } }, { handler: "postComments", params: {} }]);
   matchesRoute("/posts/edit", [{ handler: "posts", params: {} }, { handler: "editPost", params: {} }]);
 });
 

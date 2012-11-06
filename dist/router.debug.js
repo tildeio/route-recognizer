@@ -174,11 +174,11 @@ State.prototype = {
 
   // Find a list of child states matching the next character
   match: function(char) {
-    // DEBUG "Processing `" + char + "`:"
+    debug("Processing `" + char + "`:");
     var nextStates = this.nextStates,
         child, charSpec, chars;
 
-    // DEBUG "  " + debugState(this)
+    debug("  " + debugState(this));
     var returned = [];
 
     for (var i=0, l=nextStates.length; i<l; i++) {
@@ -196,7 +196,6 @@ State.prototype = {
     return returned;
   }
 
-  /** IF DEBUG
   , debug: function() {
     var charSpec = this.charSpec,
         debug = "[",
@@ -210,10 +209,8 @@ State.prototype = {
 
     return debug;
   }
-  END IF **/
 };
 
-/** IF DEBUG
 function debug(log) {
   console.log(log);
 }
@@ -224,7 +221,6 @@ function debugState(state) {
     return "( " + n.debug() + " <then> " + n.nextStates.map(function(s) { return s.debug() }).join(" or ") + " )";
   }).join(", ")
 }
-END IF **/
 
 // This is a somewhat naive strategy, but should work in a lot of cases
 // A better strategy would properly resolve /posts/:id/new and /posts/edit/:id
@@ -342,7 +338,7 @@ Router.prototype = {
   recognize: function(path) {
     var states = [ this.rootState ];
 
-    // DEBUG GROUP path
+console.group(path);
 
     if (path.charAt(0) !== "/") { path = "/" + path; }
 
@@ -351,7 +347,7 @@ Router.prototype = {
       if (!states.length) { break; }
     }
 
-    // END DEBUG GROUP
+console.groupEnd();
 
     var solutions = [];
     for (var i=0, l=states.length; i<l; i++) {
@@ -366,6 +362,94 @@ Router.prototype = {
       return handler(state, path);
     }
   }
+};
+
+})(window);
+(function(exports) {
+
+function Target(path, matcher) {
+  this.path = path;
+  this.matcher = matcher;
+}
+
+Target.prototype = {
+  to: function(target, callback) {
+    this.matcher.add(this.path, target);
+
+    if (callback) {
+      this.matcher.addChild(this.path, callback)
+    }
+  }
+}
+
+function Matcher() {
+  this.routes = {};
+  this.children = {};
+}
+
+Matcher.prototype = {
+  add: function(path, handler) {
+    this.routes[path] = handler;
+  },
+
+  addChild: function(path, callback) {
+    var matcher = new Matcher();
+    this.children[path] = matcher;
+    callback(generateMatch(path, matcher));
+  }
+}
+
+function generateMatch(startingPath, matcher) {
+  return function(path, nestedCallback) {
+    var fullPath = startingPath + path;
+
+    if (nestedCallback) {
+      nestedCallback(generateMatch(fullPath, matcher));
+    } else {
+      return new Target(startingPath + path, matcher);
+    }
+  }
+}
+
+function addRoute(routeArray, path, handler) {
+  var len = 0;
+  for (var i=0, l=routeArray.length; i<l; i++) {
+    len += routeArray[i].path.length;
+  }
+
+  path = path.substr(len);
+  routeArray.push({ path: path, handler: handler });
+}
+
+function eachRoute(baseRoute, matcher, callback, binding) {
+  var routes = matcher.routes;
+
+  for (var path in routes) {
+    if (routes.hasOwnProperty(path)) {
+      var routeArray = baseRoute.slice();
+      addRoute(routeArray, path, routes[path]);
+
+      if (matcher.children[path]) {
+        eachRoute(routeArray, matcher.children[path], callback, binding);
+      } else {
+        callback.call(binding, routeArray);
+      }
+    }
+  }
+}
+
+exports.Router.prototype.map = function(callback) {
+  var matcher = new Matcher();
+
+  function match(path, nestedCallback) {
+    return new Target(path, matcher);
+  }
+
+  callback(generateMatch("", matcher));
+
+  eachRoute([], matcher, function(route) {
+    this.add(route);
+  }, this);
 };
 
 })(window);

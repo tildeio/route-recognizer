@@ -79,7 +79,7 @@ test("Empty paths", function() {
   router.add([{ path: "/foo", handler: handler1 }, { path: "/", handler: handler2 }, { path: "/baz", handler: handler4 }]);
 
   deepEqual(router.recognize("/foo/bar"), [{ handler: handler1, params: {} }, { handler: handler2, params: {} }, { handler: handler3, params: {} }]);
-  //deepEqual(router.recognize("/foo/baz"), [{ handler: handler1, params: {} }, { handler: handler2, params: {} }, { handler: handler4, params: {} }]);
+  deepEqual(router.recognize("/foo/baz"), [{ handler: handler1, params: {} }, { handler: handler2, params: {} }, { handler: handler4, params: {} }]);
 });
 
 var router;
