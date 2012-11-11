@@ -1,7 +1,8 @@
 # About
 
-`route-recognizer` is a lightweight JavaScript library that can be used
-as the recognizer for a more comprehensive router system.
+`route-recognizer` is a lightweight JavaScript library (under 2k!) that
+can be used as the recognizer for a more comprehensive router system
+(such as [`router.js`](https://github.com/tildeio/router.js)).
 
 In keeping with the Unix philosophy, it is a modular library that does one
 thing and does it well.
