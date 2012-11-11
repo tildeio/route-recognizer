@@ -12,25 +12,25 @@ def replace_debug(file)
   content
 end
 
-file "dist/router.debug.js" => ["dist", "lib/router.js", "lib/route-recognizer.js"] do
+file "dist/route-recognizer.debug.js" => ["dist", "lib/dsl.js", "lib/route-recognizer.js"] do
   recognizer = replace_debug("lib/route-recognizer.js")
-  router = replace_debug("lib/router.js")
+  dsl = replace_debug("lib/dsl.js")
 
-  File.open("dist/router.debug.js", "w") do |file|
+  File.open("dist/route-recognizer.debug.js", "w") do |file|
     file.puts recognizer
-    file.puts router
+    file.puts dsl
   end
 end
 
-file "dist/router.js" => ["dist", "lib/router.js", "lib/route-recognizer.js"] do
-  File.open("dist/router.js", "w") do |file|
+file "dist/route-recognizer.js" => ["dist", "lib/dsl.js", "lib/route-recognizer.js"] do
+  File.open("dist/route-recognizer.js", "w") do |file|
     file.puts File.read("lib/route-recognizer.js")
-    file.puts File.read("lib/router.js");
+    file.puts File.read("lib/dsl.js");
   end
 end
 
-task :debug => "dist/router.debug.js"
-task :build => "dist/router.js"
+task :debug => "dist/route-recognizer.debug.js"
+task :build => "dist/route-recognizer.js"
 
 task :release => [:debug, :build]
 

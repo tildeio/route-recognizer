@@ -2,7 +2,7 @@ var router;
 
 module("The match DSL", {
   setup: function() {
-    router = new Router();
+    router = new RouteRecognizer();
   }
 });
 
