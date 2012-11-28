@@ -171,11 +171,11 @@ State.prototype = {
 
   // Find a list of child states matching the next character
   match: function(char) {
-    // DEBUG "Processing `" + char + "`:"
+    debug("Processing `" + char + "`:");
     var nextStates = this.nextStates,
         child, charSpec, chars;
 
-    // DEBUG "  " + debugState(this)
+    debug("  " + debugState(this));
     var returned = [];
 
     for (var i=0, l=nextStates.length; i<l; i++) {
@@ -193,7 +193,6 @@ State.prototype = {
     return returned;
   }
 
-  /** IF DEBUG
   , debug: function() {
     var charSpec = this.charSpec,
         debug = "[",
@@ -207,10 +206,8 @@ State.prototype = {
 
     return debug;
   }
-  END IF **/
 };
 
-/** IF DEBUG
 function debug(log) {
   console.log(log);
 }
@@ -221,7 +218,6 @@ function debugState(state) {
     return "( " + n.debug() + " <then> " + n.nextStates.map(function(s) { return s.debug() }).join(" or ") + " )";
   }).join(", ")
 }
-END IF **/
 
 // This is a somewhat naive strategy, but should work in a lot of cases
 // A better strategy would properly resolve /posts/:id/new and /posts/edit/:id
@@ -357,7 +353,7 @@ RouteRecognizer.prototype = {
   recognize: function(path) {
     var states = [ this.rootState ];
 
-    // DEBUG GROUP path
+console.group(path);
 
     if (path.charAt(0) !== "/") { path = "/" + path; }
 
@@ -366,7 +362,7 @@ RouteRecognizer.prototype = {
       if (!states.length) { break; }
     }
 
-    // END DEBUG GROUP
+console.groupEnd();
 
     var solutions = [];
     for (var i=0, l=states.length; i<l; i++) {

@@ -40,7 +40,7 @@ def file_task(type)
     recognizer = replace_debug("lib/route-recognizer.js")
     dsl = replace_debug("lib/dsl.js")
 
-    open "dist/route-recognizer.js", "w" do |file|
+    open debug_filename, "w" do |file|
       converter = JsModuleTranspiler::Compiler.new("#{recognizer}\n#{dsl}", "route-recognizer", into: "RouteRecognizer")
       file.puts converter.send("to_#{type}")
     end
@@ -60,7 +60,6 @@ end
 file_task "globals"
 file_task "amd"
 file_task "cjs"
-
 
 task :debug => ["dist/route-recognizer.debug.js", "dist/route-recognizer.amd.debug.js", "dist/route-recognizer.cjs.debug.js"]
 task :build => ["dist/route-recognizer.js", "dist/route-recognizer.amd.js", "dist/route-recognizer.cjs.js"]
