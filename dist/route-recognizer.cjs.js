@@ -1,5 +1,4 @@
-(function(exports) {
-
+"use strict";
 var specials = [
   '/', '.', '*', '+', '?', '|',
   '(', ')', '[', ']', '{', '}', '\\'
@@ -86,10 +85,6 @@ function parse(route, names, types) {
   // also normalize.
   if (route.charAt(0) === "/") { route = route.substr(1); }
 
-  if (route === "") {
-    return [ new EpsilonSegment() ];
-  }
-
   var segments = route.split("/"), results = [];
 
   for (var i=0, l=segments.length; i<l; i++) {
@@ -103,6 +98,8 @@ function parse(route, names, types) {
       results.push(new StarSegment(match[1]));
       names.push(match[1]);
       types.stars++;
+    } else if(segment === "") {
+      results.push(new EpsilonSegment());
     } else {
       results.push(new StaticSegment(segment));
       types.statics++;
@@ -280,12 +277,13 @@ function addSegment(currentState, segment) {
 
 // The main interface
 
-var Router = exports.Router = function() {
+var RouteRecognizer = function() {
   this.rootState = new State();
   this.names = {};
 };
 
-Router.prototype = {
+
+RouteRecognizer.prototype = {
   add: function(routes, options) {
     var currentState = this.rootState, regex = "^",
         types = { statics: 0, dynamics: 0, stars: 0 },
@@ -320,17 +318,34 @@ Router.prototype = {
     currentState.types = types;
 
     if (name = options && options.as) {
-      this.names[name] = allSegments;
+      this.names[name] = {
+        segments: allSegments,
+        handlers: handlers
+      }
     }
   },
 
-  generate: function(name, params) {
-    var segments = this.names[name], output = "";
+  handlersFor: function(name) {
+    var route = this.names[name], result = [];
+    if (!route) { throw new Error("There is no route named " + name); }
 
-    if (!segments) { throw new Error("There is no route named " + name); }
+    for (var i=0, l=route.handlers.length; i<l; i++) {
+      result.push(route.handlers[i]);
+    }
+
+    return result;
+  },
+
+  generate: function(name, params) {
+    var route = this.names[name], output = "";
+    if (!route) { throw new Error("There is no route named " + name); }
+
+    segments = route.segments;
 
     for (var i=0, l=segments.length; i<l; i++) {
       var segment = segments[i];
+
+      if (segment instanceof EpsilonSegment) { continue; }
 
       output += "/";
       output += segment.generate(params);
@@ -367,9 +382,6 @@ Router.prototype = {
     }
   }
 };
-
-})(window);
-(function(exports) {
 
 function Target(path, matcher) {
   this.path = path;
@@ -442,7 +454,7 @@ function eachRoute(baseRoute, matcher, callback, binding) {
   }
 }
 
-exports.Router.prototype.map = function(callback) {
+RouteRecognizer.prototype.map = function(callback, addRouteCallback) {
   var matcher = new Matcher();
 
   function match(path, nestedCallback) {
@@ -452,8 +464,8 @@ exports.Router.prototype.map = function(callback) {
   callback(generateMatch("", matcher));
 
   eachRoute([], matcher, function(route) {
-    this.add(route);
+    if (addRouteCallback) { addRouteCallback(this, route); }
+    else { this.add(route); }
   }, this);
 };
-
-})(window);
+module.exports = RouteRecognizer;
