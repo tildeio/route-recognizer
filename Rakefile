@@ -29,7 +29,7 @@ def file_task(type)
     dsl = File.read("lib/dsl.js")
 
     open filename, "w" do |file|
-      converter = JsModuleTranspiler::Compiler.new("#{recognizer}\n#{dsl}", "route-recognizer", into: "RouteRecognizer")
+      converter = JsModuleTranspiler::Compiler.new("#{recognizer}\n#{dsl}", "route-recognizer")
       file.puts converter.send("to_#{type}")
     end
   end
@@ -41,7 +41,7 @@ def file_task(type)
     dsl = replace_debug("lib/dsl.js")
 
     open debug_filename, "w" do |file|
-      converter = JsModuleTranspiler::Compiler.new("#{recognizer}\n#{dsl}", "route-recognizer", into: "RouteRecognizer")
+      converter = JsModuleTranspiler::Compiler.new("#{recognizer}\n#{dsl}", "route-recognizer")
       file.puts converter.send("to_#{type}")
     end
   end

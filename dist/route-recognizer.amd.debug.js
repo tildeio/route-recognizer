@@ -246,7 +246,7 @@ define("route-recognizer",
       return nextStates;
     }
 
-    function handler(state, path) {
+    function findHandler(state, path) {
       var handlers = state.handlers, regex = state.regex;
       var captures = path.match(regex), currentCapture = 1;
       var result = [];
@@ -320,7 +320,7 @@ define("route-recognizer",
           this.names[name] = {
             segments: allSegments,
             handlers: handlers
-          }
+          };
         }
       },
 
@@ -354,13 +354,13 @@ define("route-recognizer",
       },
 
       recognize: function(path) {
-        var states = [ this.rootState ];
+        var states = [ this.rootState ], i, l;
 
     console.group(path);
 
         if (path.charAt(0) !== "/") { path = "/" + path; }
 
-        for (var i=0, l=path.length; i<l; i++) {
+        for (i=0, l=path.length; i<l; i++) {
           states = recognizeChar(states, path.charAt(i));
           if (!states.length) { break; }
         }
@@ -368,7 +368,7 @@ define("route-recognizer",
     console.groupEnd();
 
         var solutions = [];
-        for (var i=0, l=states.length; i<l; i++) {
+        for (i=0, l=states.length; i<l; i++) {
           if (states[i].handlers) { solutions.push(states[i]); }
         }
 
@@ -377,7 +377,7 @@ define("route-recognizer",
         var state = solutions[0];
 
         if (state && state.handlers) {
-          return handler(state, path);
+          return findHandler(state, path);
         }
       }
     };
@@ -392,10 +392,10 @@ define("route-recognizer",
         this.matcher.add(this.path, target);
 
         if (callback) {
-          this.matcher.addChild(this.path, callback)
+          this.matcher.addChild(this.path, callback);
         }
       }
-    }
+    };
 
     function Matcher() {
       this.routes = {};
@@ -412,7 +412,7 @@ define("route-recognizer",
         this.children[path] = matcher;
         callback(generateMatch(path, matcher));
       }
-    }
+    };
 
     function generateMatch(startingPath, matcher) {
       return function(path, nestedCallback) {
@@ -423,7 +423,7 @@ define("route-recognizer",
         } else {
           return new Target(startingPath + path, matcher);
         }
-      }
+      };
     }
 
     function addRoute(routeArray, path, handler) {
