@@ -87,3 +87,11 @@ test("supports index-style routes", function() {
   matchesRoute("/posts/1/comments", [{ handler: "posts", params: {} }, { handler: "showPost", params: { id: "1" } }, { handler: "postComments", params: {} }]);
   matchesRoute("/posts/edit", [{ handler: "posts", params: {} }, { handler: "editPost", params: {} }]);
 });
+
+test("supports single `/` routes", function() {
+  router.map(function(match) {
+    match("/").to("posts");
+  });
+
+  matchesRoute("/", [{ handler: "posts", params: {} }]);
+});

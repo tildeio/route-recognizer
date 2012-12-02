@@ -286,6 +286,8 @@
           types = { statics: 0, dynamics: 0, stars: 0 },
           handlers = [], allSegments = [], name;
 
+      var isEmpty = true;
+
       for (var i=0, l=routes.length; i<l; i++) {
         var route = routes[i], names = [];
 
@@ -298,6 +300,8 @@
 
           if (segment instanceof EpsilonSegment) { continue; }
 
+          isEmpty = false;
+
           // Add a "/" for the new segment
           currentState = currentState.put({ validChars: "/" });
           regex += "/";
@@ -308,6 +312,11 @@
         }
 
         handlers.push({ handler: route.handler, names: names });
+      }
+
+      if (isEmpty) {
+        currentState = currentState.put({ validChars: "/" });
+        regex += "/";
       }
 
       currentState.handlers = handlers;

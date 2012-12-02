@@ -9,6 +9,14 @@ test("A simple route recognizes", function() {
   equal(router.recognize("/foo/baz"), null);
 });
 
+test("A `/` route recognizes", function() {
+  var handler = {};
+  var router = new RouteRecognizer();
+  router.add([{ path: "/", handler: handler }]);
+
+  deepEqual(router.recognize("/"), [{ handler: handler, params: {} }]);
+});
+
 test("A dynamic route recognizes", function() {
   var handler = {};
   var router = new RouteRecognizer();
@@ -29,6 +37,15 @@ test("Multiple routes recognize", function() {
 
   deepEqual(router.recognize("/foo/bar"), [{ handler: handler1, params: { bar: "bar" } }]);
   deepEqual(router.recognize("/bar/1"), [{ handler: handler2, params: { baz: "1" } }]);
+});
+
+test("Multiple `/` routes recognize", function() {
+  var handler1 = { handler: 1 };
+  var handler2 = { handler: 2 };
+  var router = new RouteRecognizer();
+
+  router.add([{ path: "/", handler: handler1 }, { path: "/", handler: handler2 }]);
+  deepEqual(router.recognize("/"), [{ handler: handler1, params: {} }, { handler: handler2, params: {} }]);
 });
 
 test("Overlapping routes recognize", function() {
