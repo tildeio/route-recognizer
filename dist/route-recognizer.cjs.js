@@ -259,7 +259,7 @@ function findHandler(state, path) {
       params[names[j]] = captures[currentCapture++];
     }
 
-    result.push({ handler: handler.handler, params: params });
+    result.push({ handler: handler.handler, params: params, isDynamic: !!names.length });
   }
 
   return result;
