@@ -5,7 +5,7 @@ test("A simple route recognizes", function() {
   var router = new RouteRecognizer();
   router.add([{ path: "/foo/bar", handler: handler }]);
 
-  deepEqual(router.recognize("/foo/bar"), [{ handler: handler, params: {} }]);
+  deepEqual(router.recognize("/foo/bar"), [{ handler: handler, params: {}, isDynamic: false }]);
   equal(router.recognize("/foo/baz"), null);
 });
 
@@ -14,7 +14,7 @@ test("A `/` route recognizes", function() {
   var router = new RouteRecognizer();
   router.add([{ path: "/", handler: handler }]);
 
-  deepEqual(router.recognize("/"), [{ handler: handler, params: {} }]);
+  deepEqual(router.recognize("/"), [{ handler: handler, params: {}, isDynamic: false }]);
 });
 
 test("A dynamic route recognizes", function() {
@@ -22,8 +22,8 @@ test("A dynamic route recognizes", function() {
   var router = new RouteRecognizer();
   router.add([{ path: "/foo/:bar", handler: handler }]);
 
-  deepEqual(router.recognize("/foo/bar"), [{ handler: handler, params: { bar: "bar" } }]);
-  deepEqual(router.recognize("/foo/1"), [{ handler: handler, params: { bar: "1" } }]);
+  deepEqual(router.recognize("/foo/bar"), [{ handler: handler, params: { bar: "bar" }, isDynamic: true }]);
+  deepEqual(router.recognize("/foo/1"), [{ handler: handler, params: { bar: "1" }, isDynamic: true }]);
   equal(router.recognize("/zoo/baz"), null);
 });
 
@@ -35,8 +35,8 @@ test("Multiple routes recognize", function() {
   router.add([{ path: "/foo/:bar", handler: handler1 }]);
   router.add([{ path: "/bar/:baz", handler: handler2 }]);
 
-  deepEqual(router.recognize("/foo/bar"), [{ handler: handler1, params: { bar: "bar" } }]);
-  deepEqual(router.recognize("/bar/1"), [{ handler: handler2, params: { baz: "1" } }]);
+  deepEqual(router.recognize("/foo/bar"), [{ handler: handler1, params: { bar: "bar" }, isDynamic: true }]);
+  deepEqual(router.recognize("/bar/1"), [{ handler: handler2, params: { baz: "1" }, isDynamic: true }]);
 });
 
 test("Multiple `/` routes recognize", function() {
@@ -45,7 +45,7 @@ test("Multiple `/` routes recognize", function() {
   var router = new RouteRecognizer();
 
   router.add([{ path: "/", handler: handler1 }, { path: "/", handler: handler2 }]);
-  deepEqual(router.recognize("/"), [{ handler: handler1, params: {} }, { handler: handler2, params: {} }]);
+  deepEqual(router.recognize("/"), [{ handler: handler1, params: {}, isDynamic: false }, { handler: handler2, params: {}, isDynamic: false }]);
 });
 
 test("Overlapping routes recognize", function() {
@@ -56,8 +56,8 @@ test("Overlapping routes recognize", function() {
   router.add([{ path: "/foo/:baz", handler: handler2 }]);
   router.add([{ path: "/foo/bar/:bar", handler: handler1 }]);
 
-  deepEqual(router.recognize("/foo/bar/1"), [{ handler: handler1, params: { bar: "1" } }]);
-  deepEqual(router.recognize("/foo/1"), [{ handler: handler2, params: { baz: "1" } }]);
+  deepEqual(router.recognize("/foo/bar/1"), [{ handler: handler1, params: { bar: "1" }, isDynamic: true }]);
+  deepEqual(router.recognize("/foo/1"), [{ handler: handler2, params: { baz: "1" }, isDynamic: true }]);
 });
 
 test("Nested routes recognize", function() {
@@ -67,7 +67,7 @@ test("Nested routes recognize", function() {
   var router = new RouteRecognizer();
   router.add([{ path: "/foo/:bar", handler: handler1 }, { path: "/baz/:bat", handler: handler2 }]);
 
-  deepEqual(router.recognize("/foo/1/baz/2"), [{ handler: handler1, params: { bar: "1" } }, { handler: handler2, params: { bat: "2" } }]);
+  deepEqual(router.recognize("/foo/1/baz/2"), [{ handler: handler1, params: { bar: "1" }, isDynamic: true }, { handler: handler2, params: { bat: "2" }, isDynamic: true }]);
 });
 
 test("If there are multiple matches, the route with the most dynamic segments wins", function() {
@@ -80,9 +80,9 @@ test("If there are multiple matches, the route with the most dynamic segments wi
   router.add([{ path: "/posts/:id", handler: handler2 }]);
   router.add([{ path: "/posts/edit", handler: handler3 }]);
 
-  deepEqual(router.recognize("/posts/new"), [{ handler: handler1, params: {} }]);
-  deepEqual(router.recognize("/posts/1"), [{ handler: handler2, params: { id: "1" } }]);
-  deepEqual(router.recognize("/posts/edit"), [{ handler: handler3, params: {} }]);
+  deepEqual(router.recognize("/posts/new"), [{ handler: handler1, params: {}, isDynamic: false }]);
+  deepEqual(router.recognize("/posts/1"), [{ handler: handler2, params: { id: "1" }, isDynamic: true }]);
+  deepEqual(router.recognize("/posts/edit"), [{ handler: handler3, params: {}, isDynamic: false }]);
 });
 
 test("Empty paths", function() {
@@ -95,8 +95,8 @@ test("Empty paths", function() {
   router.add([{ path: "/foo", handler: handler1 }, { path: "/", handler: handler2 }, { path: "/bar", handler: handler3 }]);
   router.add([{ path: "/foo", handler: handler1 }, { path: "/", handler: handler2 }, { path: "/baz", handler: handler4 }]);
 
-  deepEqual(router.recognize("/foo/bar"), [{ handler: handler1, params: {} }, { handler: handler2, params: {} }, { handler: handler3, params: {} }]);
-  deepEqual(router.recognize("/foo/baz"), [{ handler: handler1, params: {} }, { handler: handler2, params: {} }, { handler: handler4, params: {} }]);
+  deepEqual(router.recognize("/foo/bar"), [{ handler: handler1, params: {}, isDynamic: false }, { handler: handler2, params: {}, isDynamic: false }, { handler: handler3, params: {}, isDynamic: false }]);
+  deepEqual(router.recognize("/foo/baz"), [{ handler: handler1, params: {}, isDynamic: false }, { handler: handler2, params: {}, isDynamic: false }, { handler: handler4, params: {}, isDynamic: false }]);
 });
 
 var router, handlers;
@@ -107,6 +107,7 @@ module("Route Generation", {
 
     handlers = [ {}, {}, {}, {} ];
 
+    router.add([{ path: "/", handler: {} }], { as: "index" });
     router.add([{ path: "/posts/:id", handler: handlers[0] }], { as: "post" });
     router.add([{ path: "/posts", handler: handlers[1] }], { as: "posts" });
     router.add([{ path: "/posts", handler: handlers[1] }, { path: "/", handler: handlers[4] }], { as: "postIndex" });
@@ -116,6 +117,7 @@ module("Route Generation", {
 });
 
 test("Generation works", function() {
+  equal( router.generate("index"), "/" );
   equal( router.generate("post", { id: 1 }), "/posts/1" );
   equal( router.generate("posts"), "/posts" );
   equal( router.generate("new_post"), "/posts/new" );

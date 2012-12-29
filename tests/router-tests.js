@@ -18,9 +18,9 @@ test("supports multiple calls to match", function() {
     match("/posts/edit").to("editPost");
   });
 
-  matchesRoute("/posts/new", [{ handler: "newPost", params: {} }]);
-  matchesRoute("/posts/1", [{ handler: "showPost", params: { id: "1" } }]);
-  matchesRoute("/posts/edit", [{ handler: "editPost", params: {} }]);
+  matchesRoute("/posts/new", [{ handler: "newPost", params: {}, isDynamic: false }]);
+  matchesRoute("/posts/1", [{ handler: "showPost", params: { id: "1" }, isDynamic: true }]);
+  matchesRoute("/posts/edit", [{ handler: "editPost", params: {}, isDynamic: false }]);
 });
 
 test("supports nested match", function() {
@@ -32,9 +32,9 @@ test("supports nested match", function() {
     });
   });
 
-  matchesRoute("/posts/new", [{ handler: "newPost", params: {} }]);
-  matchesRoute("/posts/1", [{ handler: "showPost", params: { id: "1" } }]);
-  matchesRoute("/posts/edit", [{ handler: "editPost", params: {} }]);
+  matchesRoute("/posts/new", [{ handler: "newPost", params: {}, isDynamic: false }]);
+  matchesRoute("/posts/1", [{ handler: "showPost", params: { id: "1" }, isDynamic: true }]);
+  matchesRoute("/posts/edit", [{ handler: "editPost", params: {}, isDynamic: false }]);
 });
 
 test("supports nested handlers", function() {
@@ -46,9 +46,9 @@ test("supports nested handlers", function() {
     });
   });
 
-  matchesRoute("/posts/new", [{ handler: "posts", params: {} }, { handler: "newPost", params: {} }]);
-  matchesRoute("/posts/1", [{ handler: "posts", params: {} }, { handler: "showPost", params: { id: "1" } }]);
-  matchesRoute("/posts/edit", [{ handler: "posts", params: {} }, { handler: "editPost", params: {} }]);
+  matchesRoute("/posts/new", [{ handler: "posts", params: {}, isDynamic: false }, { handler: "newPost", params: {}, isDynamic: false }]);
+  matchesRoute("/posts/1", [{ handler: "posts", params: {}, isDynamic: false }, { handler: "showPost", params: { id: "1" }, isDynamic: true }]);
+  matchesRoute("/posts/edit", [{ handler: "posts", params: {}, isDynamic: false }, { handler: "editPost", params: {}, isDynamic: false }]);
 });
 
 test("supports deeply nested handlers", function() {
@@ -63,11 +63,11 @@ test("supports deeply nested handlers", function() {
     });
   });
 
-  matchesRoute("/posts/new", [{ handler: "posts", params: {} }, { handler: "newPost", params: {} }]);
-  matchesRoute("/posts/1/index", [{ handler: "posts", params: {} }, { handler: "showPost", params: { id: "1" } }, { handler: "postIndex", params: {} }]);
-  matchesRoute("/posts/1/comments", [{ handler: "posts", params: {} }, { handler: "showPost", params: { id: "1" } }, { handler: "postComments", params: {} }]);
-  matchesRoute("/posts/ne/comments", [{ handler: "posts", params: {} }, { handler: "showPost", params: { id: "ne" } }, { handler: "postComments", params: {} }]);
-  matchesRoute("/posts/edit", [{ handler: "posts", params: {} }, { handler: "editPost", params: {} }]);
+  matchesRoute("/posts/new", [{ handler: "posts", params: {}, isDynamic: false }, { handler: "newPost", params: {}, isDynamic: false }]);
+  matchesRoute("/posts/1/index", [{ handler: "posts", params: {}, isDynamic: false }, { handler: "showPost", params: { id: "1" }, isDynamic: true }, { handler: "postIndex", params: {}, isDynamic: false }]);
+  matchesRoute("/posts/1/comments", [{ handler: "posts", params: {}, isDynamic: false }, { handler: "showPost", params: { id: "1" }, isDynamic: true }, { handler: "postComments", params: {}, isDynamic: false }]);
+  matchesRoute("/posts/ne/comments", [{ handler: "posts", params: {}, isDynamic: false }, { handler: "showPost", params: { id: "ne" }, isDynamic: true }, { handler: "postComments", params: {}, isDynamic: false }]);
+  matchesRoute("/posts/edit", [{ handler: "posts", params: {}, isDynamic: false }, { handler: "editPost", params: {}, isDynamic: false }]);
 });
 
 test("supports index-style routes", function() {
@@ -82,10 +82,10 @@ test("supports index-style routes", function() {
     });
   });
 
-  matchesRoute("/posts/new", [{ handler: "posts", params: {} }, { handler: "newPost", params: {} }]);
-  matchesRoute("/posts/1", [{ handler: "posts", params: {} }, { handler: "showPost", params: { id: "1" } }, { handler: "postIndex", params: {} }]);
-  matchesRoute("/posts/1/comments", [{ handler: "posts", params: {} }, { handler: "showPost", params: { id: "1" } }, { handler: "postComments", params: {} }]);
-  matchesRoute("/posts/edit", [{ handler: "posts", params: {} }, { handler: "editPost", params: {} }]);
+  matchesRoute("/posts/new", [{ handler: "posts", params: {}, isDynamic: false }, { handler: "newPost", params: {}, isDynamic: false }]);
+  matchesRoute("/posts/1", [{ handler: "posts", params: {}, isDynamic: false }, { handler: "showPost", params: { id: "1" }, isDynamic: true }, { handler: "postIndex", params: {}, isDynamic: false }]);
+  matchesRoute("/posts/1/comments", [{ handler: "posts", params: {}, isDynamic: false }, { handler: "showPost", params: { id: "1" }, isDynamic: true }, { handler: "postComments", params: {}, isDynamic: false }]);
+  matchesRoute("/posts/edit", [{ handler: "posts", params: {}, isDynamic: false }, { handler: "editPost", params: {}, isDynamic: false }]);
 });
 
 test("supports single `/` routes", function() {
@@ -93,5 +93,5 @@ test("supports single `/` routes", function() {
     match("/").to("posts");
   });
 
-  matchesRoute("/", [{ handler: "posts", params: {} }]);
+  matchesRoute("/", [{ handler: "posts", params: {}, isDynamic: false }]);
 });
