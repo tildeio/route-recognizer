@@ -184,9 +184,9 @@
 
         charSpec = child.charSpec;
 
-        if (chars = charSpec.validChars) {
+        if (typeof (chars = charSpec.validChars) !== 'undefined') {
           if (chars.indexOf(char) !== -1) { returned.push(child); }
-        } else if (chars = charSpec.invalidChars) {
+        } else if (typeof (chars = charSpec.invalidChars) !== 'undefined') {
           if (chars.indexOf(char) === -1) { returned.push(child); }
         }
       }

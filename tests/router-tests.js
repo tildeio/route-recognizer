@@ -95,3 +95,15 @@ test("supports single `/` routes", function() {
 
   matchesRoute("/", [{ handler: "posts", params: {}, isDynamic: false }]);
 });
+
+test("supports star routes", function() {
+  router.map(function(match) {
+    match("/").to("posts");
+    match("/*everything").to("404");
+  });
+
+  //randomly generated strings
+  ['w6PCXxJn20PCSievuP', 'v2y0gaByxHjHYJw0pVT1TeqbEJLllVq-3', 'DFCR4rm7XMbT6CPZq-d8AU7k', 'd3vYEg1AoYaPlM9QbOAxEK6u/H_S-PYH1aYtt'].forEach(function(r) {
+	  matchesRoute("/" + r, [{ handler: "404", params: {everything: r}, isDynamic: true}]);
+  });
+});
