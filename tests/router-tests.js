@@ -95,3 +95,13 @@ test("supports single `/` routes", function() {
 
   matchesRoute("/", [{ handler: "posts", params: {}, isDynamic: false }]);
 });
+
+test("supports star routes", function() {
+  router.map(function(match) {
+    match("/").to("posts");
+    match("/*everything").to("404");
+  });
+
+  var rand = String(Math.random()).substr(2);
+  matchesRoute("/" + rand, [{ handler: "404", params: {everything: rand}, isDynamic: true}]);
+});
