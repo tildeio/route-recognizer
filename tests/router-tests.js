@@ -102,6 +102,8 @@ test("supports star routes", function() {
     match("/*everything").to("404");
   });
 
-  var rand = String(Math.random()).substr(2);
-  matchesRoute("/" + rand, [{ handler: "404", params: {everything: rand}, isDynamic: true}]);
+  //randomly generated strings
+  ['w6PCXxJn20PCSievuP', 'v2y0gaByxHjHYJw0pVT1TeqbEJLllVq-3', 'DFCR4rm7XMbT6CPZq-d8AU7k', 'd3vYEg1AoYaPlM9QbOAxEK6u/H_S-PYH1aYtt'].forEach(function(r) {
+	  matchesRoute("/" + r, [{ handler: "404", params: {everything: r}, isDynamic: true}]);
+  });
 });
