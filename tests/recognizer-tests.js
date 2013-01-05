@@ -153,3 +153,13 @@ test("Getting the handlers for a named route", function() {
   deepEqual(router.handlersFor("new_post"), [ { handler: handlers[2], names: [] } ]);
   deepEqual(router.handlersFor("edit_post"), [ { handler: handlers[3], names: ['id'] } ]);
 });
+
+test("Recognizes a route with trailing slash", function() {
+  var handler = {};
+  var router = new RouteRecognizer();
+  router.add([{ path: "/foo", handler: handler }]);
+  router.add([{ path: "/foo/:bar", handler: handler }]);
+
+  deepEqual(router.recognize("/foo/"), [{ handler: handler, params: {}, isDynamic: false }]);
+  deepEqual(router.recognize("/foo/1/"), [{ handler: handler, params: { bar: "1" }, isDynamic: true }]);
+});

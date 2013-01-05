@@ -367,6 +367,7 @@ RouteRecognizer.prototype = {
 console.group(path);
 
     if (path.charAt(0) !== "/") { path = "/" + path; }
+    if (path.length > 1 && path.charAt(path.length - 1) == "/") { path = path.slice(0, path.length - 1) }
 
     for (i=0, l=path.length; i<l; i++) {
       states = recognizeChar(states, path.charAt(i));
