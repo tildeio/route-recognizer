@@ -60,6 +60,14 @@ test("Overlapping routes recognize", function() {
   deepEqual(router.recognize("/foo/1"), [{ handler: handler2, params: { baz: "1" }, isDynamic: true }]);
 });
 
+test("Routes with trailing `/` recognize", function() {
+  var handler = {};
+  var router = new RouteRecognizer();
+
+  router.add([{ path: "/foo/bar", handler: handler }]);
+  deepEqual(router.recognize("/foo/bar/"), [{ handler: handler, params: {}, isDynamic: false }]);
+});
+
 test("Nested routes recognize", function() {
   var handler1 = { handler: 1 };
   var handler2 = { handler: 2 };
