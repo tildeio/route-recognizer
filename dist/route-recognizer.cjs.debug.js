@@ -369,6 +369,7 @@ console.group(path);
     var pathLen = path.length;
 
     if (path.charAt(0) !== "/") { path = "/" + path; }
+    if (path.length > 1 && path.charAt(path.length - 1) == "/") { path = path.slice(0, path.length - 1) }
 
     if (pathLen > 1 && path.charAt(pathLen - 1) === "/") {
       path = path.substr(0, pathLen - 1);
