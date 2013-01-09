@@ -107,3 +107,51 @@ test("supports star routes", function() {
 	  matchesRoute("/" + r, [{ handler: "404", params: {everything: r}, isDynamic: true}]);
   });
 });
+
+test("calls a delegate whenever a new context is entered", function() {
+  var passedArguments = [];
+
+  router.delegate = {
+    contextEntered: function(name, match) {
+      ok(match instanceof Function, "The match is a function");
+      match("/").to("index");
+      passedArguments.push(name);
+    }
+  };
+
+  router.map(function(match) {
+    match("/").to("application", function(match) {
+      match("/posts").to("posts", function(match) {
+        match("/:post_id").to("post");
+      });
+    });
+  });
+
+  deepEqual(passedArguments, ["application", "posts"], "The entered contexts were passed to contextEntered");
+
+  matchesRoute("/posts", [{ handler: "application", params: {}, isDynamic: false }, { handler: "posts", params: {}, isDynamic: false }, { handler: "index", params: {}, isDynamic: false }]);
+});
+
+test("delegate can change added routes", function() {
+  router.delegate = {
+    willAddRoute: function(context, route) {
+      return context + "." + route;
+    },
+
+    // Test that both delegates work together
+    contextEntered: function(name, match) {
+      match("/").to("index");
+    }
+  };
+
+  router.map(function(match) {
+    match("/").to("application", function(match) {
+      match("/posts").to("posts", function(match) {
+        match("/:post_id").to("post");
+      });
+    });
+  });
+
+  matchesRoute("/posts", [{ handler: "application", params: {}, isDynamic: false }, { handler: "posts", params: {}, isDynamic: false }, { handler: "posts.index", params: {}, isDynamic: false }]);
+  matchesRoute("/posts/1", [{ handler: "application", params: {}, isDynamic: false }, { handler: "posts", params: {}, isDynamic: false }, { handler: "posts.post", params: { post_id: "1" }, isDynamic: true }]);
+});
