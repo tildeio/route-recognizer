@@ -23,22 +23,6 @@ test("supports multiple calls to match", function() {
   matchesRoute("/posts/edit", [{ handler: "editPost", params: {}, isDynamic: false }]);
 });
 
-test("checks whether a route exists", function() {
-  router.map(function(match) {
-    match("/").to("index", function(match) {
-      match("/home").to("home");
-    });
-    match("/posts/new").to("newPost");
-    match("/posts/:id").to("showPost");
-    match("/posts/edit").to("editPost");
-  });
-
-  equal(router.hasRoute('newPost'), true);
-  equal(router.hasRoute('home'), true);
-  equal(router.hasRouter('zomg'), false);
-  equal(router.hasRouter('index'), false);
-});
-
 test("supports nested match", function() {
   router.map(function(match) {
     match("/posts", function(match) {
@@ -51,6 +35,16 @@ test("supports nested match", function() {
   matchesRoute("/posts/new", [{ handler: "newPost", params: {}, isDynamic: false }]);
   matchesRoute("/posts/1", [{ handler: "showPost", params: { id: "1" }, isDynamic: true }]);
   matchesRoute("/posts/edit", [{ handler: "editPost", params: {}, isDynamic: false }]);
+});
+
+test("not passing a function with `match` as a parameter raises", function() {
+  raises(function() {
+    router.map(function(match) {
+      match("/posts").to("posts", function() {
+
+      });
+    });
+  });
 });
 
 test("supports nested handlers", function() {

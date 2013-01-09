@@ -421,6 +421,7 @@ Target.prototype = {
     this.matcher.add(this.path, target);
 
     if (callback) {
+      if (callback.length === 0) { throw new Error("You must have an argument in the function passed to `to`"); }
       this.matcher.addChild(this.path, target, callback, this.delegate);
     }
   }

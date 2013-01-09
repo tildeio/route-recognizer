@@ -73,9 +73,12 @@ test("Nested routes recognize", function() {
   var handler2 = { handler: 2 };
 
   var router = new RouteRecognizer();
-  router.add([{ path: "/foo/:bar", handler: handler1 }, { path: "/baz/:bat", handler: handler2 }]);
+  router.add([{ path: "/foo/:bar", handler: handler1 }, { path: "/baz/:bat", handler: handler2 }], { as: 'foo' });
 
   deepEqual(router.recognize("/foo/1/baz/2"), [{ handler: handler1, params: { bar: "1" }, isDynamic: true }, { handler: handler2, params: { bat: "2" }, isDynamic: true }]);
+
+  equal(router.hasRoute('foo'), true);
+  equal(router.hasRoute('bar'), false);
 });
 
 test("If there are multiple matches, the route with the most dynamic segments wins", function() {
