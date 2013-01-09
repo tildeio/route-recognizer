@@ -23,6 +23,22 @@ test("supports multiple calls to match", function() {
   matchesRoute("/posts/edit", [{ handler: "editPost", params: {}, isDynamic: false }]);
 });
 
+test("checks whether a route exists", function() {
+  router.map(function(match) {
+    match("/").to("index", function(match) {
+      match("/home").to("home");
+    });
+    match("/posts/new").to("newPost");
+    match("/posts/:id").to("showPost");
+    match("/posts/edit").to("editPost");
+  });
+
+  equal(router.hasRoute('newPost'), true);
+  equal(router.hasRoute('home'), true);
+  equal(router.hasRouter('zomg'), false);
+  equal(router.hasRouter('index'), false);
+});
+
 test("supports nested match", function() {
   router.map(function(match) {
     match("/posts", function(match) {
