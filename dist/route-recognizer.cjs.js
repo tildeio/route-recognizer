@@ -345,6 +345,10 @@ RouteRecognizer.prototype = {
     return result;
   },
 
+  hasRoute: function(name) {
+    return !!this.names[name];
+  },
+
   generate: function(name, params) {
     var route = this.names[name], output = "";
     if (!route) { throw new Error("There is no route named " + name); }
