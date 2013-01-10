@@ -145,6 +145,8 @@ test("calls a delegate whenever a new context is entered", function() {
 test("delegate can change added routes", function() {
   router.delegate = {
     willAddRoute: function(context, route) {
+      if (!context) { return route; }
+      context = context.split('.').slice(-1)[0];
       return context + "." + route;
     },
 
@@ -162,6 +164,6 @@ test("delegate can change added routes", function() {
     });
   });
 
-  matchesRoute("/posts", [{ handler: "application", params: {}, isDynamic: false }, { handler: "posts", params: {}, isDynamic: false }, { handler: "posts.index", params: {}, isDynamic: false }]);
-  matchesRoute("/posts/1", [{ handler: "application", params: {}, isDynamic: false }, { handler: "posts", params: {}, isDynamic: false }, { handler: "posts.post", params: { post_id: "1" }, isDynamic: true }]);
+  matchesRoute("/posts", [{ handler: "application", params: {}, isDynamic: false }, { handler: "application.posts", params: {}, isDynamic: false }, { handler: "posts.index", params: {}, isDynamic: false }]);
+  matchesRoute("/posts/1", [{ handler: "application", params: {}, isDynamic: false }, { handler: "application.posts", params: {}, isDynamic: false }, { handler: "posts.post", params: { post_id: "1" }, isDynamic: true }]);
 });
