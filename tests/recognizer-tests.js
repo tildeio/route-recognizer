@@ -126,6 +126,15 @@ test("Repeated empty segments don't confuse the recognizer", function() {
   deepEqual(router.recognize("foo"), [{ handler: handler1, params: {}, isDynamic: false }, { handler: handler2, params: {}, isDynamic: false }, { handler: handler4, params: {}, isDynamic: false }]);
 });
 
+// BUG - https://github.com/emberjs/ember.js/issues/2559
+test("Dynamic routes without leading `/` and single length param are recognized", function() {
+  var handler = {};
+  var router = new RouteRecognizer();
+
+  router.add([{ path: "/foo/:id", handler: handler }]);
+  deepEqual(router.recognize("foo/1"), [{ handler: handler, params: { id: '1' }, isDynamic: true }]);
+});
+
 var router, handlers;
 
 module("Route Generation", {
