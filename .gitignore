@@ -1,2 +1,6 @@
 /dist/*.debug.*
 /.bundle
+
+.bundle/
+bundle
+bin/
