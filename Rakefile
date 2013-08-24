@@ -14,6 +14,7 @@ end
 
 require "bundler/setup"
 require "js_module_transpiler"
+require "qunit-cli-runner"
 
 directory "dist"
 
@@ -66,12 +67,16 @@ task :build => ["dist/route-recognizer.js", "dist/route-recognizer.amd.js", "dis
 
 task :release => [:debug, :build]
 
-task :test, :debug do |task, args|
+task :browser_test, :debug do |task, args|
   if args["debug"]
     sh "open tests/index.debug.html"
   else
     sh "open tests/index.html"
   end
 end
+task :browser_test => :release
 
+QunitCliRunner::Task.new('test')
 task :test => :release
+
+task :default => :test
