@@ -15,6 +15,7 @@ end
 require "bundler/setup"
 require "js_module_transpiler"
 require "qunit-cli-runner"
+require "jshintrb/jshinttask"
 
 directory "dist"
 
@@ -76,7 +77,73 @@ task :browser_test, :debug do |task, args|
 end
 task :browser_test => :release
 
-QunitCliRunner::Task.new('test')
-task :test => :release
+Jshintrb::JshintTask.new :jshint do |t|
+  t.js_files = ['dist/route-recognizer.js', 'tests/recognizer-tests.js', 'tests/router-tests.js']
+  t.options = {
+    "predef" => [
+      "QUnit",
+      "define",
+      "console",
+      "RSVP",
+      "Router",
+      "RouteRecognizer",
+      "require",
+      "requireModule",
+      "equal",
+      "notEqual",
+      "notStrictEqual",
+      "test",
+      "asyncTest",
+      "testBoth",
+      "testWithDefault",
+      "raises",
+      "throws",
+      "deepEqual",
+      "start",
+      "stop",
+      "ok",
+      "strictEqual",
+      "module",
+      "expect",
+      "minispade",
+      "expectAssertion",
+      "window",
+      "location",
+      "document",
+      "XMLSerializer",
+      "setTimeout",
+      "clearTimeout",
+      "setInterval",
+      "clearInterval"
+    ],
+    "node" => false,
+    "browser" => false,
+    "boss" => true,
+    "curly" => false,
+    "debug" => false,
+    "devel" => false,
+    "eqeqeq" => true,
+    "evil" => true,
+    "forin" => false,
+    "immed" => false,
+    "laxbreak" => false,
+    "newcap" => true,
+    "noarg" => true,
+    "noempty" => false,
+    "nonew" => false,
+    "nomen" => false,
+    "onevar" => false,
+    "plusplus" => false,
+    "regexp" => false,
+    "undef" => true,
+    "sub" => true,
+    "strict" => false,
+    "white" => false,
+    "eqnull" => true,
+  }
+end
+
+QunitCliRunner::Task.new('qunit')
+task :test => [:release, :qunit, :jshint]
 
 task :default => :test

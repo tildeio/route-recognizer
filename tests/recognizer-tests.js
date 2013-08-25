@@ -163,8 +163,8 @@ test("Generation works", function() {
 
 test("Generating an invalid named route raises", function() {
   raises(function() {
-    route.generate("nope");
-  });
+    router.generate("nope");
+  }, /There is no route named nope/);
 });
 
 test("Getting the handlers for a named route", function() {
