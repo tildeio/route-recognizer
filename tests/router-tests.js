@@ -23,6 +23,18 @@ test("supports multiple calls to match", function() {
   matchesRoute("/posts/edit", [{ handler: "editPost", params: {}, isDynamic: false }]);
 });
 
+test("supports multiple calls to match with query params", function() {
+  router.map(function(match) {
+    match("/posts/new").to("newPost").withQueryParams('foo', 'bar');
+    match("/posts/:id").to("showPost").withQueryParams('baz', 'qux');
+    match("/posts/edit").to("editPost").withQueryParams('a', 'b');
+  });
+
+  matchesRoute("/posts/new?foo=1&bar=2", [{ handler: "newPost", params: {}, isDynamic: false, queryParams: {foo: '1', bar: '2'} }]);
+  matchesRoute("/posts/1?baz=3", [{ handler: "showPost", params: { id: "1" }, isDynamic: true, queryParams: {baz: '3'} }]);
+  matchesRoute("/posts/edit", [{ handler: "editPost", params: {}, isDynamic: false, queryParams: {} }]);
+});
+
 test("supports nested match", function() {
   router.map(function(match) {
     match("/posts", function(match) {
@@ -35,6 +47,52 @@ test("supports nested match", function() {
   matchesRoute("/posts/new", [{ handler: "newPost", params: {}, isDynamic: false }]);
   matchesRoute("/posts/1", [{ handler: "showPost", params: { id: "1" }, isDynamic: true }]);
   matchesRoute("/posts/edit", [{ handler: "editPost", params: {}, isDynamic: false }]);
+});
+
+test("supports nested match with query params", function() {
+  router.map(function(match) {
+    match("/posts", function(match) {
+      match("/new").to("newPost").withQueryParams('foo', 'bar');
+      match("/:id").to("showPost").withQueryParams('baz', 'qux');
+      match("/edit").to("editPost").withQueryParams('a', 'b');
+    });
+  });
+
+  matchesRoute("/posts/new?foo=1&bar=2", [{ handler: "newPost", params: {}, isDynamic: false, queryParams: {foo: '1', bar: '2'} }]);
+  matchesRoute("/posts/1?baz=3", [{ handler: "showPost", params: { id: "1" }, isDynamic: true, queryParams: {baz: '3'} }]);
+  matchesRoute("/posts/edit", [{ handler: "editPost", params: {}, isDynamic: false, queryParams: {} }]);
+});
+
+test("checks query params are provided in the right format", function() {
+  raises(function() {
+    router.map(function(match) {
+      match("/posts/new").to("newPost").withQueryParams();
+    });
+   }, /you must provide arguments to the withQueryParams method/);
+
+  var badFormatRegex = /you should call withQueryParams with a list of strings, e\.g\. withQueryParams\("foo", "bar"\)/;
+
+  raises(function() {
+    router.map(function(match) {
+      match("/posts/new").to("newPost").withQueryParams(['foo', 'bar']);
+    });
+   }, badFormatRegex);
+
+
+  raises(function() {
+    router.map(function(match) {
+      match("/posts/new").to("newPost").withQueryParams({foo: 'bar'});
+    });
+   }, badFormatRegex);
+
+
+  // raises(function() {
+  //   router.map(function(match) {
+  //     match("/posts").to("posts", function() {
+
+  //     });
+  //   });
+  // });
 });
 
 test("not passing a function with `match` as a parameter raises", function() {
