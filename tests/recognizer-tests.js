@@ -124,6 +124,18 @@ test("Overlapping routes recognize", function() {
   deepEqual(router.recognize("/foo/1"), [{ handler: handler2, params: { baz: "1" }, isDynamic: true }]);
 });
 
+test("Overlapping star routes recognize", function() {
+  var handler1 = { handler: 1 };
+  var handler2 = { handler: 2 };
+  var router = new RouteRecognizer();
+
+  router.add([{ path: "/foo/*bar", handler: handler2 }]);
+  router.add([{ path: "/*foo", handler: handler1 }]);
+
+  deepEqual(router.recognize("/foo/1"), [{ handler: handler2, params: { bar: "1" }, isDynamic: true }]);
+  deepEqual(router.recognize("/1"), [{ handler: handler1, params: { foo: "1" }, isDynamic: true }]);
+});
+
 test("Routes with trailing `/` recognize", function() {
   var handler = {};
   var router = new RouteRecognizer();
