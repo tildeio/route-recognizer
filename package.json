@@ -1,0 +1,13 @@
+{
+  "name": "route-recognizer",
+  "version": "0.0.0",
+  "description": "A dummy package.json file for installing node_modules",
+  "author": "",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tildeio/route-recognizer.git"
+  },
+  "devDependencies": {
+    "es6-module-transpiler": "~0.3.2"
+  }
+}

@@ -13,7 +13,7 @@ def replace_debug(file)
 end
 
 require "bundler/setup"
-require "js_module_transpiler"
+require File.expand_path("../tasks/support/js_module_transpiler", __FILE__)
 require "qunit-cli-runner"
 require "jshintrb/jshinttask"
 
@@ -31,7 +31,7 @@ def file_task(type)
     dsl = File.read("lib/dsl.js")
 
     open filename, "w" do |file|
-      converter = JsModuleTranspiler::Compiler.new("#{recognizer}\n#{dsl}", "route-recognizer")
+      converter = JsModuleTranspiler::Compiler.new("#{recognizer}\n#{dsl}", "route-recognizer", imports: {"__nothing" => "__nothing"})
       file.puts converter.send("to_#{type}")
     end
   end
@@ -43,7 +43,7 @@ def file_task(type)
     dsl = replace_debug("lib/dsl.js")
 
     open debug_filename, "w" do |file|
-      converter = JsModuleTranspiler::Compiler.new("#{recognizer}\n#{dsl}", "route-recognizer")
+      converter = JsModuleTranspiler::Compiler.new("#{recognizer}\n#{dsl}", "route-recognizer", imports: {"__nothing" => "__nothing"})
       file.puts converter.send("to_#{type}")
     end
   end

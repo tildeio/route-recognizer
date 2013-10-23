@@ -469,6 +469,8 @@ RouteRecognizer.prototype = {
   }
 };
 
+exports['default'] = RouteRecognizer;
+
 function Target(path, matcher, delegate) {
   this.path = path;
   this.matcher = matcher;
@@ -586,4 +588,3 @@ RouteRecognizer.prototype.map = function(callback, addRouteCallback) {
     else { this.add(route); }
   }, this);
 };
-module.exports = RouteRecognizer;
