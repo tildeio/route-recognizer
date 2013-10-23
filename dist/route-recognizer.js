@@ -1,4 +1,4 @@
-(function(exports) {
+(function(__exports__) {
   "use strict";
   var specials = [
     '/', '.', '*', '+', '?', '|',
@@ -470,6 +470,8 @@
     }
   };
 
+  __exports__.RouteRecognizer = RouteRecognizer;
+
   function Target(path, matcher, delegate) {
     this.path = path;
     this.matcher = matcher;
@@ -587,5 +589,4 @@
       else { this.add(route); }
     }, this);
   };
-  exports.RouteRecognizer = RouteRecognizer;
 })(window);
