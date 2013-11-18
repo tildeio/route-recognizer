@@ -7,6 +7,7 @@
     "type": "git",
     "url": "https://github.com/tildeio/route-recognizer.git"
   },
+  "main": "dist/route-recognizer.cjs.js",
   "devDependencies": {
     "es6-module-transpiler": "~0.3.2"
   }
