@@ -1,5 +1,12 @@
 var router;
 
+function resultsMatch(results, array, queryParams) {
+  deepEqual(results.slice(), array);
+  if (queryParams) {
+    deepEqual(queryParams, results.queryParams);
+  }
+}
+
 module("The match DSL", {
   setup: function() {
     router = new RouteRecognizer();
@@ -8,7 +15,7 @@ module("The match DSL", {
 
 var matchesRoute = function(path, expected) {
   var actual = router.recognize(path);
-  deepEqual(actual, expected);
+  resultsMatch(actual, expected);
 };
 
 test("supports multiple calls to match", function() {
@@ -25,14 +32,14 @@ test("supports multiple calls to match", function() {
 
 test("supports multiple calls to match with query params", function() {
   router.map(function(match) {
-    match("/posts/new").to("newPost").withQueryParams('foo', 'bar');
-    match("/posts/:id").to("showPost").withQueryParams('baz', 'qux');
-    match("/posts/edit").to("editPost").withQueryParams('a', 'b');
+    match("/posts/new").to("newPost");
+    match("/posts/:id").to("showPost");
+    match("/posts/edit").to("editPost");
   });
 
-  matchesRoute("/posts/new?foo=1&bar=2", [{ handler: "newPost", params: {}, isDynamic: false, queryParams: {foo: '1', bar: '2'} }]);
-  matchesRoute("/posts/1?baz=3", [{ handler: "showPost", params: { id: "1" }, isDynamic: true, queryParams: {baz: '3'} }]);
-  matchesRoute("/posts/edit", [{ handler: "editPost", params: {}, isDynamic: false, queryParams: {} }]);
+  matchesRoute("/posts/new?foo=1&bar=2", [{ handler: "newPost", params: {}, isDynamic: false }], {foo: '1', bar: '2'});
+  matchesRoute("/posts/1?baz=3", [{ handler: "showPost", params: { id: "1" }, isDynamic: true }], {baz: '3'});
+  matchesRoute("/posts/edit", [{ handler: "editPost", params: {}, isDynamic: false }], {});
 });
 
 test("supports nested match", function() {
@@ -52,47 +59,15 @@ test("supports nested match", function() {
 test("supports nested match with query params", function() {
   router.map(function(match) {
     match("/posts", function(match) {
-      match("/new").to("newPost").withQueryParams('foo', 'bar');
-      match("/:id").to("showPost").withQueryParams('baz', 'qux');
-      match("/edit").to("editPost").withQueryParams('a', 'b');
+      match("/new").to("newPost");
+      match("/:id").to("showPost");
+      match("/edit").to("editPost");
     });
   });
 
-  matchesRoute("/posts/new?foo=1&bar=2", [{ handler: "newPost", params: {}, isDynamic: false, queryParams: {foo: '1', bar: '2'} }]);
-  matchesRoute("/posts/1?baz=3", [{ handler: "showPost", params: { id: "1" }, isDynamic: true, queryParams: {baz: '3'} }]);
-  matchesRoute("/posts/edit", [{ handler: "editPost", params: {}, isDynamic: false, queryParams: {} }]);
-});
-
-test("checks query params are provided in the right format", function() {
-  raises(function() {
-    router.map(function(match) {
-      match("/posts/new").to("newPost").withQueryParams();
-    });
-   }, /you must provide arguments to the withQueryParams method/);
-
-  var badFormatRegex = /you should call withQueryParams with a list of strings, e\.g\. withQueryParams\("foo", "bar"\)/;
-
-  raises(function() {
-    router.map(function(match) {
-      match("/posts/new").to("newPost").withQueryParams(['foo', 'bar']);
-    });
-   }, badFormatRegex);
-
-
-  raises(function() {
-    router.map(function(match) {
-      match("/posts/new").to("newPost").withQueryParams({foo: 'bar'});
-    });
-   }, badFormatRegex);
-
-
-  // raises(function() {
-  //   router.map(function(match) {
-  //     match("/posts").to("posts", function() {
-
-  //     });
-  //   });
-  // });
+  matchesRoute("/posts/new?foo=1&bar=2", [{ handler: "newPost", params: {}, isDynamic: false }], {foo: '1', bar: '2'});
+  matchesRoute("/posts/1?baz=3", [{ handler: "showPost", params: { id: "1" }, isDynamic: true }], {baz: '3'});
+  matchesRoute("/posts/edit", [{ handler: "editPost", params: {}, isDynamic: false }], {});
 });
 
 test("not passing a function with `match` as a parameter raises", function() {
