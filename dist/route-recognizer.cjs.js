@@ -247,31 +247,36 @@ function recognizeChar(states, ch) {
   return nextStates;
 }
 
+var oCreate = Object.create || function(proto) {
+  function F() {}
+  F.prototype = proto;
+  return new F();
+};
+
+function RecognizeResults(queryParams) {
+  this.queryParams = queryParams || {};
+}
+RecognizeResults.prototype = oCreate({
+  splice: Array.prototype.splice,
+  slice:  Array.prototype.slice,
+  push:   Array.prototype.push,
+  length: 0,
+  queryParams: null
+});
+
 function findHandler(state, path, queryParams) {
   var handlers = state.handlers, regex = state.regex;
   var captures = path.match(regex), currentCapture = 1;
-  var result = [];
+  var result = new RecognizeResults(queryParams);
 
   for (var i=0, l=handlers.length; i<l; i++) {
-    var handler = handlers[i], names = handler.names, params = {},
-      watchedQueryParams = handler.queryParams || [],
-      activeQueryParams = {},
-      j, m;
+    var handler = handlers[i], names = handler.names, params = {};
 
-    for (j=0, m=names.length; j<m; j++) {
+    for (var j=0, m=names.length; j<m; j++) {
       params[names[j]] = captures[currentCapture++];
     }
-    for (j=0, m=watchedQueryParams.length; j < m; j++) {
-      var key = watchedQueryParams[j];
-      if(queryParams[key]){
-        activeQueryParams[key] = queryParams[key];
-      }
-    }
-    var currentResult = { handler: handler.handler, params: params, isDynamic: !!names.length };
-    if(watchedQueryParams && watchedQueryParams.length > 0) {
-      currentResult.queryParams = activeQueryParams;
-    }
-    result.push(currentResult);
+
+    result.push({ handler: handler.handler, params: params, isDynamic: !!names.length });
   }
 
   return result;
@@ -327,9 +332,6 @@ RouteRecognizer.prototype = {
       }
 
       var handler = { handler: route.handler, names: names };
-      if(route.queryParams) {
-        handler.queryParams = route.queryParams;
-      }
       handlers.push(handler);
     }
 
@@ -390,20 +392,14 @@ RouteRecognizer.prototype = {
   },
 
   generateQueryString: function(params, handlers) {
-    var pairs = [], allowedParams = [];
-    for(var i=0; i < handlers.length; i++) {
-      var currentParamList = handlers[i].queryParams;
-      if(currentParamList) {
-        allowedParams.push.apply(allowedParams, currentParamList);
-      }
-    }
+    var pairs = [];
     for(var key in params) {
       if (params.hasOwnProperty(key)) {
-        if(allowedParams.indexOf(key) === -1) {
-          throw 'Query param "' + key + '" is not specified as a valid param for this route';
-        }
         var value = params[key];
-        var pair = encodeURIComponent(key);
+        if (value === false || value == null) {
+          continue;
+        }
+        var pair = key;
         if(value !== true) {
           pair += "=" + encodeURIComponent(value);
         }
@@ -469,7 +465,7 @@ RouteRecognizer.prototype = {
   }
 };
 
-exports['default'] = RouteRecognizer;
+exports["default"] = RouteRecognizer;
 
 function Target(path, matcher, delegate) {
   this.path = path;
@@ -492,34 +488,18 @@ Target.prototype = {
       this.matcher.addChild(this.path, target, callback, this.delegate);
     }
     return this;
-  },
-
-  withQueryParams: function() {
-    if (arguments.length === 0) { throw new Error("you must provide arguments to the withQueryParams method"); }
-    for (var i = 0; i < arguments.length; i++) {
-      if (typeof arguments[i] !== "string") {
-        throw new Error('you should call withQueryParams with a list of strings, e.g. withQueryParams("foo", "bar")');
-      }
-    }
-    var queryParams = [].slice.call(arguments);
-    this.matcher.addQueryParams(this.path, queryParams);
   }
 };
 
 function Matcher(target) {
   this.routes = {};
   this.children = {};
-  this.queryParams = {};
   this.target = target;
 }
 
 Matcher.prototype = {
   add: function(path, handler) {
     this.routes[path] = handler;
-  },
-
-  addQueryParams: function(path, params) {
-    this.queryParams[path] = params;
   },
 
   addChild: function(path, target, callback, delegate) {
@@ -548,7 +528,7 @@ function generateMatch(startingPath, matcher, delegate) {
   };
 }
 
-function addRoute(routeArray, path, handler, queryParams) {
+function addRoute(routeArray, path, handler) {
   var len = 0;
   for (var i=0, l=routeArray.length; i<l; i++) {
     len += routeArray[i].path.length;
@@ -556,18 +536,16 @@ function addRoute(routeArray, path, handler, queryParams) {
 
   path = path.substr(len);
   var route = { path: path, handler: handler };
-  if(queryParams) { route.queryParams = queryParams; }
   routeArray.push(route);
 }
 
 function eachRoute(baseRoute, matcher, callback, binding) {
   var routes = matcher.routes;
-  var queryParams = matcher.queryParams;
 
   for (var path in routes) {
     if (routes.hasOwnProperty(path)) {
       var routeArray = baseRoute.slice();
-      addRoute(routeArray, path, routes[path], queryParams[path]);
+      addRoute(routeArray, path, routes[path]);
 
       if (matcher.children[path]) {
         eachRoute(routeArray, matcher.children[path], callback, binding);
