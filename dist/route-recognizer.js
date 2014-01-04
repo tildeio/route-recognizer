@@ -418,7 +418,14 @@
       for(var i=0; i < pairs.length; i++) {
         var pair      = pairs[i].split('='),
             key       = decodeURIComponent(pair[0]),
-            value     = pair[1] ? decodeURIComponent(pair[1]) : true;
+            value;
+
+        if (pair.length === 1) {
+          value = true;
+        } else {
+          value = pair[1] ? decodeURIComponent(pair[1]) : '';
+        }
+
         queryParams[key] = value;
       }
       return queryParams;
