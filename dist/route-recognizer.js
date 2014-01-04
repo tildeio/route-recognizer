@@ -401,10 +401,18 @@
             continue;
           }
           var pair = key;
-          if(value !== true) {
-            pair += "=" + encodeURIComponent(value);
+          if (Array.isArray(value)) {
+            for (var i = 0, l = value.length; i < l; i++) {
+              var arrayPair = key + '[]' + '=' + encodeURIComponent(value[i]);
+              pairs.push(arrayPair);
+            }
           }
-          pairs.push(pair);
+          else if (value !== true) {
+            pair += "=" + encodeURIComponent(value);
+            pairs.push(pair);
+          } else {
+            pairs.push(pair);
+          }
         }
       }
 
@@ -418,15 +426,28 @@
       for(var i=0; i < pairs.length; i++) {
         var pair      = pairs[i].split('='),
             key       = decodeURIComponent(pair[0]),
+            keyLength = key.length,
+            isArray = false,
             value;
-
         if (pair.length === 1) {
           value = true;
         } else {
+          //Handle arrays
+          if (keyLength > 2 && key.slice(keyLength -2) === '[]') {
+            isArray = true;
+            key = key.slice(0, keyLength - 2);
+            if(!queryParams[key]) {
+              queryParams[key] = [];
+            }
+          }
           value = pair[1] ? decodeURIComponent(pair[1]) : '';
         }
-
-        queryParams[key] = value;
+        if (isArray) {
+          queryParams[key].push(value);
+        } else {
+          queryParams[key] = value;
+        }
+        
       }
       return queryParams;
     },
