@@ -118,6 +118,26 @@ test("Multiple routes with overlapping query params recognize", function() {
   deepEqual(router.recognize("/bar?a=1&c=3").queryParams, {a: "1", c: "3"});
 });
 
+test("Deserialize query param array", function() {
+  var handler = {};
+  var router = new RouteRecognizer();
+  router.add([{ path: "/foo/bar", handler: handler }]);
+
+  var p = router.recognize("/foo/bar?foo[]=1&foo[]=2").queryParams;
+  ok(Array.isArray(p.foo), "foo is an Array");
+  deepEqual(p, {foo: ["1","2"]});
+});
+
+test("Array query params do not conflict with controller namespaced query params", function() {
+  var handler = {};
+  var router = new RouteRecognizer();
+  router.add([{ path: "/foo/bar", handler: handler }]);
+
+  var p = router.recognize("/foo/bar?foo[bar][]=1&foo[bar][]=2&baz=barf").queryParams;
+  ok(Array.isArray(p['foo[bar]']), "foo[bar] is an Array");
+  deepEqual(p, {'foo[bar]': ["1","2"], 'baz': 'barf'});
+});
+
 
 test("Multiple `/` routes recognize", function() {
   var handler1 = { handler: 1 };
@@ -295,6 +315,14 @@ test("Generation works with query params", function() {
   equal( router.generate("index", {queryParams: {filter: 'date', sort: null}}), "/?filter=date" );
   equal( router.generate("index", {queryParams: {filter: 'date', sort: undefined}}), "/?filter=date" );
   equal( router.generate("index", {queryParams: {filter: 'date', sort: 0}}), "/?filter=date&sort=0" );
+});
+
+test("Generation works with array query params", function() {
+  equal( router.generate("index", {queryParams: {foo: [1,2,3]}}), "/?foo[]=1&foo[]=2&foo[]=3" );
+});
+
+test("Generation works with controller namespaced array query params", function() {
+  equal( router.generate("posts", {queryParams: {'foo[bar]': [1,2,3]}}), "/posts?foo[bar][]=1&foo[bar][]=2&foo[bar][]=3" );
 });
 
 test("Empty query params don't have an extra question mark", function() {
