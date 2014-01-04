@@ -25,13 +25,22 @@ test("A simple route with query params recognizes", function() {
   resultsMatch(router.recognize("/foo/bar?other=something"), [{ handler: handler, params: {}, isDynamic: false }]);
 });
 
-test("Query params without value are boolean", function() {
+test("Query params without =value are boolean", function() {
   var handler = {};
   var router = new RouteRecognizer();
   router.add([{ path: "/foo/bar", handler: handler }]);
 
   deepEqual(router.recognize("/foo/bar?show").queryParams, {show: true});
   deepEqual(router.recognize("/foo/bar?show&other=something").queryParams, {show: true, other: 'something' });
+});
+
+test("Query params with = and without value are empty string", function() {
+  var handler = {};
+  var router = new RouteRecognizer();
+  router.add([{ path: "/foo/bar", handler: handler }]);
+
+  deepEqual(router.recognize("/foo/bar?search=").queryParams, {search: ''});
+  deepEqual(router.recognize("/foo/bar?search=&other=something").queryParams, {search: '', other: 'something' });
 });
 
 test("A simple route with multiple query params recognizes", function() {
