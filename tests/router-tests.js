@@ -151,6 +151,40 @@ test("supports star routes", function() {
   });
 });
 
+test("star route does not swallow trailing `/`", function() {
+  var r;
+  
+  router.map(function(match) {
+    match("/").to("posts");
+    match("/*everything").to("glob");
+  });
+
+  r = "folder1/folder2/folder3/";
+  matchesRoute("/" + r, [{ handler: "glob", params: {everything: r}, isDynamic: true}]);
+});
+
+test("support star route before other segment", function() {
+  router.map(function(match) {
+    match("/*everything/:extra").to("glob");
+  });
+
+  ["folder1/folder2/folder3//the-extra-stuff/", "folder1/folder2/folder3//the-extra-stuff"].forEach(function(r) {
+    matchesRoute("/" + r, [{ handler: "glob", params: {everything: "folder1/folder2/folder3/", extra: "the-extra-stuff"}, isDynamic: true}]);  
+  });
+});
+
+test("support nested star route", function() {
+  router.map(function(match) {
+    match("/*everything").to("glob", function(match){
+      match("/:extra").to("extra");
+    });
+  });
+
+  ["folder1/folder2/folder3//the-extra-stuff/", "folder1/folder2/folder3//the-extra-stuff"].forEach(function(r) {
+    matchesRoute("/" + r, [{ handler: "glob", params: {everything: "folder1/folder2/folder3/"}, isDynamic: true}, { handler: "extra", params: {extra: "the-extra-stuff"}, isDynamic: true}]);
+  });
+});
+
 test("calls a delegate whenever a new context is entered", function() {
   var passedArguments = [];
 
