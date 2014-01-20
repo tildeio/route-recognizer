@@ -172,6 +172,19 @@ test("Overlapping star routes recognize", function() {
   resultsMatch(router.recognize("/1"), [{ handler: handler1, params: { foo: "1" }, isDynamic: true }]);
 });
 
+test("Prefers single dynamic segments over stars", function() {
+  var handler1 = { handler: 1 };
+  var handler2 = { handler: 2 };
+  var router = new RouteRecognizer();
+
+  router.add([{ path: "/foo/*star", handler: handler1 }]);
+  router.add([{ path: "/foo/*star/:dynamic", handler: handler2 }]);
+
+  resultsMatch(router.recognize("/foo/1"), [{ handler: handler1, params: { star: "1" }, isDynamic: true }]);
+  resultsMatch(router.recognize("/foo/suffix"), [{ handler: handler1, params: { star: "suffix" }, isDynamic: true }]);
+  resultsMatch(router.recognize("/foo/bar/suffix"), [{ handler: handler2, params: { star: "bar", dynamic: "suffix" }, isDynamic: true }]);
+});
+
 test("Routes with trailing `/` recognize", function() {
   var handler = {};
   var router = new RouteRecognizer();
