@@ -7,6 +7,10 @@
 
   var escapeRegex = new RegExp('(\\' + specials.join('|\\') + ')', 'g');
 
+  function isArray(test) {
+    return Object.prototype.toString.call(test) === "[object Array]";
+  }
+
   // A Segment represents a segment in the original route description.
   // Each Segment type provides an `eachChar` and `regex` method.
   //
@@ -401,7 +405,7 @@
             continue;
           }
           var pair = key;
-          if (Array.isArray(value)) {
+          if (isArray(value)) {
             for (var i = 0, l = value.length; i < l; i++) {
               var arrayPair = key + '[]' + '=' + encodeURIComponent(value[i]);
               pairs.push(arrayPair);
