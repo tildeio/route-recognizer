@@ -96,3 +96,9 @@ result3 === [{ handler: newPost, params: {} }];
 
 As you can see, this has the expected result. Explicit
 static paths match more closely than dynamic paths.
+
+This is also true when comparing star segments and other
+dynamic segments. The recognizer will prefer fewer star
+segments and prefer using them for less of the match (and,
+consequently, using dynamic and static segments for more
+of the match).
