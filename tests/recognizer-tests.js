@@ -317,10 +317,10 @@ test("Generation works with query params", function() {
   equal( router.generate("posts", {queryParams: {sort: 'title'}}), "/posts?sort=title");
   equal( router.generate("edit_post", { id: 1, queryParams: {format: 'markdown'} }), "/posts/1/edit?format=markdown" );
   equal( router.generate("edit_post", { id: 1, queryParams: {editor: 'ace'} }), "/posts/1/edit?editor=ace" );
-  equal( router.generate("edit_post", { id: 1, queryParams: {format: 'markdown', editor: 'ace'} }),"/posts/1/edit?format=markdown&editor=ace" );
-  equal( router.generate("edit_post", { id: 1, queryParams: {format: 'markdown', editor: 'ace'} }),"/posts/1/edit?format=markdown&editor=ace" );
-  equal( router.generate("edit_post", { id: 1, queryParams: {format: true, editor: 'ace'} }),"/posts/1/edit?format&editor=ace" );
-  equal( router.generate("edit_post", { id: 1, queryParams: {format: 'markdown', editor: true} }),"/posts/1/edit?format=markdown&editor" );
+  equal( router.generate("edit_post", { id: 1, queryParams: {format: 'markdown', editor: 'ace'} }),"/posts/1/edit?editor=ace&format=markdown" );
+  equal( router.generate("edit_post", { id: 1, queryParams: {format: 'markdown', editor: 'ace'} }),"/posts/1/edit?editor=ace&format=markdown" );
+  equal( router.generate("edit_post", { id: 1, queryParams: {format: true, editor: 'ace'} }),"/posts/1/edit?editor=ace&format" );
+  equal( router.generate("edit_post", { id: 1, queryParams: {format: 'markdown', editor: true} }),"/posts/1/edit?editor&format=markdown" );
   equal( router.generate("foo", { bar: 9, bat: 10, queryParams: {a: 1} }),"/foo/9/baz/10?a=1" );
   equal( router.generate("foo", { bar: 9, bat: 10, queryParams: {b: 2} }),"/foo/9/baz/10?b=2" );
   equal( router.generate("foo", { bar: 9, bat: 10, queryParams: {a: 1, b: 2} }),"/foo/9/baz/10?a=1&b=2" );
