@@ -16,6 +16,16 @@ test("A simple route recognizes", function() {
   equal(router.recognize("/foo/baz"), null);
 });
 
+test("A unicode route recognizes", function() {
+  var handler = {};
+  var router = new RouteRecognizer();
+  router.add([{ path: "/uniçø∂∑/ʇɥƃᴉɹlɐ", handler: handler }]);
+
+  var encoded = encodeURI("/uniçø∂∑/ʇɥƃᴉɹlɐ");
+  resultsMatch(router.recognize(encoded), [{ handler: handler, params: {}, isDynamic: false }]);
+  equal(router.recognize("/uniçø∂∑"), null);
+});
+
 test("A simple route with query params recognizes", function() {
   var handler = {};
   var router = new RouteRecognizer();
