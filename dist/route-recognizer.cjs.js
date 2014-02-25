@@ -421,7 +421,7 @@ RouteRecognizer.prototype = {
     for (var i = 0, len = keys.length; i < len; i++) {
       key = keys[i];
       var value = params[key];
-      if (value === false || value == null) {
+      if (value == null) {
         continue;
       }
       var pair = key;
@@ -430,11 +430,8 @@ RouteRecognizer.prototype = {
           var arrayPair = key + '[]' + '=' + encodeURIComponent(value[j]);
           pairs.push(arrayPair);
         }
-      }
-      else if (value !== true) {
-        pair += "=" + encodeURIComponent(value);
-        pairs.push(pair);
       } else {
+        pair += "=" + encodeURIComponent(value);
         pairs.push(pair);
       }
     }
@@ -453,7 +450,7 @@ RouteRecognizer.prototype = {
           isArray = false,
           value;
       if (pair.length === 1) {
-        value = true;
+        value = 'true';
       } else {
         //Handle arrays
         if (keyLength > 2 && key.slice(keyLength -2) === '[]') {
@@ -468,9 +465,8 @@ RouteRecognizer.prototype = {
       if (isArray) {
         queryParams[key].push(value);
       } else {
-        queryParams[key] = value;
+        queryParams[key] = decodeURIComponent(value);
       }
-
     }
     return queryParams;
   },
