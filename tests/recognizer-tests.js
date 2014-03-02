@@ -35,13 +35,22 @@ test("A simple route with query params recognizes", function() {
   resultsMatch(router.recognize("/foo/bar?other=something"), [{ handler: handler, params: {}, isDynamic: false }]);
 });
 
-test("Query params without =value are boolean", function() {
+test("False query params = 'false'", function() {
   var handler = {};
   var router = new RouteRecognizer();
   router.add([{ path: "/foo/bar", handler: handler }]);
 
-  deepEqual(router.recognize("/foo/bar?show").queryParams, {show: true});
-  deepEqual(router.recognize("/foo/bar?show&other=something").queryParams, {show: true, other: 'something' });
+  deepEqual(router.recognize("/foo/bar?show=false").queryParams, {show: 'false'});
+  deepEqual(router.recognize("/foo/bar?show=false&other=something").queryParams, {show: 'false', other: 'something' });
+});
+
+test("True query params = 'true'", function() {
+  var handler = {};
+  var router = new RouteRecognizer();
+  router.add([{ path: "/foo/bar", handler: handler }]);
+
+  deepEqual(router.recognize("/foo/bar?show=true").queryParams, {show: 'true'});
+  deepEqual(router.recognize("/foo/bar?show=true&other=something").queryParams, {show: 'true', other: 'something' });
 });
 
 test("Query params with = and without value are empty string", function() {
@@ -323,18 +332,18 @@ test("Generation works", function() {
 
 test("Generation works with query params", function() {
   equal( router.generate("index", {queryParams: {filter: 'date'}}), "/?filter=date" );
-  equal( router.generate("index", {queryParams: {filter: true}}), "/?filter" );
+  equal( router.generate("index", {queryParams: {filter: true}}), "/?filter=true" );
   equal( router.generate("posts", {queryParams: {sort: 'title'}}), "/posts?sort=title");
   equal( router.generate("edit_post", { id: 1, queryParams: {format: 'markdown'} }), "/posts/1/edit?format=markdown" );
   equal( router.generate("edit_post", { id: 1, queryParams: {editor: 'ace'} }), "/posts/1/edit?editor=ace" );
   equal( router.generate("edit_post", { id: 1, queryParams: {format: 'markdown', editor: 'ace'} }),"/posts/1/edit?editor=ace&format=markdown" );
   equal( router.generate("edit_post", { id: 1, queryParams: {format: 'markdown', editor: 'ace'} }),"/posts/1/edit?editor=ace&format=markdown" );
-  equal( router.generate("edit_post", { id: 1, queryParams: {format: true, editor: 'ace'} }),"/posts/1/edit?editor=ace&format" );
-  equal( router.generate("edit_post", { id: 1, queryParams: {format: 'markdown', editor: true} }),"/posts/1/edit?editor&format=markdown" );
+  equal( router.generate("edit_post", { id: 1, queryParams: {format: true, editor: 'ace'} }),"/posts/1/edit?editor=ace&format=true" );
+  equal( router.generate("edit_post", { id: 1, queryParams: {format: 'markdown', editor: true} }),"/posts/1/edit?editor=true&format=markdown" );
   equal( router.generate("foo", { bar: 9, bat: 10, queryParams: {a: 1} }),"/foo/9/baz/10?a=1" );
   equal( router.generate("foo", { bar: 9, bat: 10, queryParams: {b: 2} }),"/foo/9/baz/10?b=2" );
   equal( router.generate("foo", { bar: 9, bat: 10, queryParams: {a: 1, b: 2} }),"/foo/9/baz/10?a=1&b=2" );
-  equal( router.generate("index", {queryParams: {filter: 'date', sort: false}}), "/?filter=date" );
+  equal( router.generate("index", {queryParams: {filter: 'date', sort: false}}), "/?filter=date&sort=false" );
   equal( router.generate("index", {queryParams: {filter: 'date', sort: null}}), "/?filter=date" );
   equal( router.generate("index", {queryParams: {filter: 'date', sort: undefined}}), "/?filter=date" );
   equal( router.generate("index", {queryParams: {filter: 'date', sort: 0}}), "/?filter=date&sort=0" );
@@ -353,7 +362,6 @@ test("Empty query params don't have an extra question mark", function() {
   equal( router.generate("index", {queryParams: null}), "/" );
   equal( router.generate("posts", {queryParams: {}}), "/posts");
   equal( router.generate("posts", {queryParams: null}), "/posts");
-  equal( router.generate("posts", {queryParams: { foo: false } }), "/posts");
   equal( router.generate("posts", {queryParams: { foo: null } }), "/posts");
   equal( router.generate("posts", {queryParams: { foo: undefined } }), "/posts");
 });
