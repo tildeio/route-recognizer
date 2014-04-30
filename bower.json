@@ -1,6 +1,6 @@
 {
   "name": "route-recognizer",
-  "version": "0.0.0",
+  "version": "0.1.1",
   "homepage": "https://github.com/tildeio/route-recognizer",
   "authors": [
     "Yehuda Katz <wycats@gmail.com>"
