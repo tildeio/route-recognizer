@@ -13,7 +13,7 @@ thing and does it well.
 Create a new router:
 
 ```javascript
-var router = new Router();
+var router = new RouteRecognizer();
 ```
 
 Add a simple new route description:
