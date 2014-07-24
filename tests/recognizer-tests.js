@@ -53,6 +53,15 @@ test("True query params = 'true'", function() {
   deepEqual(router.recognize("/foo/bar?show=true&other=something").queryParams, {show: 'true', other: 'something' });
 });
 
+test("Query params without '='", function() {
+    var handler = {};
+    var router = new RouteRecognizer();
+    router.add([{ path: "/foo/bar", handler: handler }]);
+
+    deepEqual(router.recognize("/foo/bar?show").queryParams, {show: 'true'});
+    deepEqual(router.recognize("/foo/bar?show&hide").queryParams, {show: 'true', hide: 'true'});
+});
+
 test("Query params with = and without value are empty string", function() {
   var handler = {};
   var router = new RouteRecognizer();
@@ -377,4 +386,10 @@ test("Getting the handlers for a named route", function() {
   deepEqual(router.handlersFor("posts"), [ { handler: handlers[1], names: [] } ]);
   deepEqual(router.handlersFor("new_post"), [ { handler: handlers[2], names: [] } ]);
   deepEqual(router.handlersFor("edit_post"), [ { handler: handlers[3], names: ['id'] } ]);
+});
+
+test("Getting a handler for an invalid named route raises", function() {
+    raises(function() {
+        router.handlersFor("nope");
+    }, /There is no route named nope/);
 });
