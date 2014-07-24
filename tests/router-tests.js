@@ -234,3 +234,24 @@ test("delegate can change added routes", function() {
   matchesRoute("/posts", [{ handler: "application", params: {}, isDynamic: false }, { handler: "application.posts", params: {}, isDynamic: false }, { handler: "posts.index", params: {}, isDynamic: false }]);
   matchesRoute("/posts/1", [{ handler: "application", params: {}, isDynamic: false }, { handler: "application.posts", params: {}, isDynamic: false }, { handler: "posts.post", params: { post_id: "1" }, isDynamic: true }]);
 });
+
+test("supports add-route callback", function() {
+
+  var called = false;
+
+  router.map(function(match) {
+    match("/posts/new").to("newPost");
+  }, function (router, route) {
+    router.add(route);
+  });
+
+  router.map(function(match) {
+    match("/posts/edit").to("showPost");
+  }, function () {
+    called = true;
+  });
+
+  matchesRoute("/posts/new", [{ handler: "newPost", params: {}, isDynamic: false }]);
+  ok(called, "The add-route callback was called.");
+});
+
