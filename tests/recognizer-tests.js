@@ -330,6 +330,11 @@ test("Generation works", function() {
   equal( router.generate("postIndex"), "/posts" );
 });
 
+test("Parsing and generation results into the same input string", function() {
+  var query = "filter%20data=date";
+  equal(router.generateQueryString(router.parseQueryString(query)), '?' + query);
+});
+
 test("Generation works with query params", function() {
   equal( router.generate("index", {queryParams: {filter: 'date'}}), "/?filter=date" );
   equal( router.generate("index", {queryParams: {filter: true}}), "/?filter=true" );
