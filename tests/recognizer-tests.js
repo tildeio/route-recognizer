@@ -387,3 +387,9 @@ test("Getting the handlers for a named route", function() {
   deepEqual(router.handlersFor("new_post"), [ { handler: handlers[2], names: [] } ]);
   deepEqual(router.handlersFor("edit_post"), [ { handler: handlers[3], names: ['id'] } ]);
 });
+
+test("Getting a handler for an invalid named route raises", function() {
+    raises(function() {
+        router.handlersFor("nope");
+    }, /There is no route named nope/);
+});
