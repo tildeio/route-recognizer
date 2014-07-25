@@ -1,3 +1,5 @@
+/* globals RouteRecognizer,QUnit */
+
 module("Route Recognition");
 
 function resultsMatch(results, array, queryParams) {
@@ -381,7 +383,7 @@ test("Empty query params don't have an extra question mark", function() {
 });
 
 test("Generating an invalid named route raises", function() {
-  raises(function() {
+  QUnit.throws(function() {
     router.generate("nope");
   }, /There is no route named nope/);
 });
@@ -394,7 +396,7 @@ test("Getting the handlers for a named route", function() {
 });
 
 test("Getting a handler for an invalid named route raises", function() {
-    raises(function() {
+    QUnit.throws(function() {
         router.handlersFor("nope");
     }, /There is no route named nope/);
 });

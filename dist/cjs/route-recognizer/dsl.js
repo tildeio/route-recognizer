@@ -1,3 +1,4 @@
+"use strict";
 function Target(path, matcher, delegate) {
   this.path = path;
   this.matcher = matcher;
@@ -87,7 +88,7 @@ function eachRoute(baseRoute, matcher, callback, binding) {
   }
 }
 
-RouteRecognizer.prototype.map = function(callback, addRouteCallback) {
+exports["default"] = function(callback, addRouteCallback) {
   var matcher = new Matcher();
 
   callback(generateMatch("", matcher, this.delegate));
@@ -96,4 +97,4 @@ RouteRecognizer.prototype.map = function(callback, addRouteCallback) {
     if (addRouteCallback) { addRouteCallback(this, route); }
     else { this.add(route); }
   }, this);
-};
+}

@@ -23,5 +23,9 @@
     "bower_components",
     "test",
     "tests"
-  ]
+  ],
+  "devDependencies": {
+    "qunit": "~1.14.0",
+    "loader.js": "stefanpenner/loader.js#7f79173fd5c61dc256af9aa01c56d50ebfec10fe"
+  }
 }
