@@ -102,3 +102,36 @@ dynamic segments. The recognizer will prefer fewer star
 segments and prefer using them for less of the match (and,
 consequently, using dynamic and static segments for more
 of the match).
+
+# Building / Running Tests
+
+This project uses Ember CLI and Broccoli for building and testing.
+
+## Getting Started
+
+Run the following commands to get going:
+
+```bash
+npm install
+bower install
+```
+
+The above assumes that you have `bower` installed globally (you can install
+via `npm install -g bower` if you do not).
+
+## Running Tests
+
+Run the following:
+
+```
+npm start
+```
+
+At this point you can navigate to the url specified in the Testem UI (usually
+http://localhost:7357/). As you change the project the tests will rerun.
+
+## Building
+
+```
+npm run build
+```
