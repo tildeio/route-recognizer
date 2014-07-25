@@ -14,12 +14,12 @@
         "ok",
         "strictEqual",
         "module",
-        "expect",
+        "expect"
     ],
 
     "node" : false,
     "browser" : true,
-
+    "esnext": true,
     "boss" : true,
     "curly": false,
     "debug": false,

@@ -1,4 +1,6 @@
-/dist/*.debug.*
+tmp/
+bower_components/
+dist/
 /.bundle
 
 .bundle/

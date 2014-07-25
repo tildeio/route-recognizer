@@ -1,3 +1,5 @@
+/* globals RouteRecognizer,QUnit */
+
 var router;
 
 function resultsMatch(results, array, queryParams) {
@@ -71,7 +73,7 @@ test("supports nested match with query params", function() {
 });
 
 test("not passing a function with `match` as a parameter raises", function() {
-  raises(function() {
+  QUnit.throws(function() {
     router.map(function(match) {
       match("/posts").to("posts", function() {
 
