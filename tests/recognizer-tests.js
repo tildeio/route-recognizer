@@ -84,6 +84,14 @@ test("A simple route with multiple query params recognizes", function() {
   deepEqual(router.recognize("/foo/bar?other=something").queryParams, { other: 'something' });
 });
 
+test("A simple route with query params with encoding recognizes", function() {
+  var handler = {};
+  var router = new RouteRecognizer();
+  router.add([{ path: "/foo/bar", handler: handler}]);
+
+  deepEqual(router.recognize("/foo/bar?other=something%20100%25").queryParams, { other: 'something 100%' });
+});
+
 
 test("A `/` route recognizes", function() {
   var handler = {};
