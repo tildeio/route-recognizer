@@ -8,16 +8,14 @@
     "url": "https://github.com/tildeio/route-recognizer.git"
   },
   "devDependencies": {
-    "ember-cli": "0.0.40",
-    "broccoli-static-compiler": "~0.1.4",
-    "es6-module-transpiler": "~0.4.0",
-    "broccoli-es6-module-transpiler": "~0.1.1",
-    "broccoli-concat": "0.0.7",
-    "broccoli-merge-trees": "~0.1.4",
-    "broccoli-file-creator": "~0.1.0",
-    "broccoli-jshint": "~0.5.1"
+    "broccoli-compile-modules": "^1.1.0",
+    "broccoli-concat": "0.0.12",
+    "broccoli-funnel": "^0.1.6",
+    "broccoli-jshint": "~0.5.1",
+    "broccoli-merge-trees": "^0.2.1",
+    "ember-cli": "0.0.40"
   },
-  "main": "dist/route-recognizer.cjs.js",
+  "main": "dist/route-recognizer.js",
   "bugs": {
     "url": "https://github.com/tildeio/route-recognizer/issues"
   },

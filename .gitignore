@@ -7,3 +7,4 @@ dist/
 bundle
 bin/
 /node_modules
+/dist/tests

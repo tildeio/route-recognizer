@@ -1,155 +1,113 @@
-(function(global) {
-var define, requireModule, require, requirejs;
-
 (function() {
-
-  var _isArray;
-  if (!Array.isArray) {
-    _isArray = function (x) {
-      return Object.prototype.toString.call(x) === "[object Array]";
-    };
-  } else {
-    _isArray = Array.isArray;
-  }
-
-  var registry = {}, seen = {};
-  var FAILED = false;
-
-  var uuid = 0;
-
-  function tryFinally(tryable, finalizer) {
-    try {
-      return tryable();
-    } finally {
-      finalizer();
-    }
-  }
-
-
-  function Module(name, deps, callback, exports) {
-    var defaultDeps = ['require', 'exports', 'module'];
-
-    this.id       = uuid++;
-    this.name     = name;
-    this.deps     = !deps.length && callback.length ? defaultDeps : deps;
-    this.exports  = exports || { };
-    this.callback = callback;
-    this.state    = undefined;
-  }
-
-  define = function(name, deps, callback) {
-    if (!_isArray(deps)) {
-      callback = deps;
-      deps     =  [];
-    }
-
-    registry[name] = new Module(name, deps, callback);
-  };
-
-  define.amd = {};
-
-  function reify(mod, name, seen) {
-    var deps = mod.deps;
-    var length = deps.length;
-    var reified = new Array(length);
-    var dep;
-    // TODO: new Module
-    // TODO: seen refactor
-    var module = { };
-
-    for (var i = 0, l = length; i < l; i++) {
-      dep = deps[i];
-      if (dep === 'exports') {
-        module.exports = reified[i] = seen;
-      } else if (dep === 'require') {
-        reified[i] = require;
-      } else if (dep === 'module') {
-        mod.exports = seen;
-        module = reified[i] = mod;
-      } else {
-        reified[i] = require(resolve(dep, name));
-      }
-    }
-
-    return {
-      deps: reified,
-      module: module
-    };
-  }
-
-  requirejs = require = requireModule = function(name) {
-    var mod = registry[name];
-    if (!mod) {
-      throw new Error('Could not find module ' + name);
-    }
-
-    if (mod.state !== FAILED &&
-        seen.hasOwnProperty(name)) {
-      return seen[name];
-    }
-
-    var reified;
-    var module;
-    var loaded = false;
-
-    seen[name] = { }; // placeholder for run-time cycles
-
-    tryFinally(function() {
-      reified = reify(mod, name, seen[name]);
-      module = mod.callback.apply(this, reified.deps);
-      loaded = true;
-    }, function() {
-      if (!loaded) {
-        mod.state = FAILED;
-      }
-    });
-
-    if (module === undefined && reified.module.exports) {
-      return (seen[name] = reified.module.exports);
-    } else {
-      return (seen[name] = module);
-    }
-  };
-
-  function resolve(child, name) {
-    if (child.charAt(0) !== '.') { return child; }
-
-    var parts = child.split('/');
-    var nameParts = name.split('/');
-    var parentBase = nameParts.slice(0, -1);
-
-    for (var i = 0, l = parts.length; i < l; i++) {
-      var part = parts[i];
-
-      if (part === '..') { parentBase.pop(); }
-      else if (part === '.') { continue; }
-      else { parentBase.push(part); }
-    }
-
-    return parentBase.join('/');
-  }
-
-  requirejs.entries = requirejs._eak_seen = registry;
-  requirejs.clear = function(){
-    requirejs.entries = requirejs._eak_seen = registry = {};
-    seen = state = {};
-  };
-})();
-
-define("route-recognizer",
-  ["route-recognizer/dsl","exports"],
-  function(__dependency1__, __exports__) {
     "use strict";
-    var map = __dependency1__["default"];
+    function $$route$recognizer$dsl$$Target(path, matcher, delegate) {
+      this.path = path;
+      this.matcher = matcher;
+      this.delegate = delegate;
+    }
 
-    var specials = [
+    $$route$recognizer$dsl$$Target.prototype = {
+      to: function(target, callback) {
+        var delegate = this.delegate;
+
+        if (delegate && delegate.willAddRoute) {
+          target = delegate.willAddRoute(this.matcher.target, target);
+        }
+
+        this.matcher.add(this.path, target);
+
+        if (callback) {
+          if (callback.length === 0) { throw new Error("You must have an argument in the function passed to `to`"); }
+          this.matcher.addChild(this.path, target, callback, this.delegate);
+        }
+        return this;
+      }
+    };
+
+    function $$route$recognizer$dsl$$Matcher(target) {
+      this.routes = {};
+      this.children = {};
+      this.target = target;
+    }
+
+    $$route$recognizer$dsl$$Matcher.prototype = {
+      add: function(path, handler) {
+        this.routes[path] = handler;
+      },
+
+      addChild: function(path, target, callback, delegate) {
+        var matcher = new $$route$recognizer$dsl$$Matcher(target);
+        this.children[path] = matcher;
+
+        var match = $$route$recognizer$dsl$$generateMatch(path, matcher, delegate);
+
+        if (delegate && delegate.contextEntered) {
+          delegate.contextEntered(target, match);
+        }
+
+        callback(match);
+      }
+    };
+
+    function $$route$recognizer$dsl$$generateMatch(startingPath, matcher, delegate) {
+      return function(path, nestedCallback) {
+        var fullPath = startingPath + path;
+
+        if (nestedCallback) {
+          nestedCallback($$route$recognizer$dsl$$generateMatch(fullPath, matcher, delegate));
+        } else {
+          return new $$route$recognizer$dsl$$Target(startingPath + path, matcher, delegate);
+        }
+      };
+    }
+
+    function $$route$recognizer$dsl$$addRoute(routeArray, path, handler) {
+      var len = 0;
+      for (var i=0, l=routeArray.length; i<l; i++) {
+        len += routeArray[i].path.length;
+      }
+
+      path = path.substr(len);
+      var route = { path: path, handler: handler };
+      routeArray.push(route);
+    }
+
+    function $$route$recognizer$dsl$$eachRoute(baseRoute, matcher, callback, binding) {
+      var routes = matcher.routes;
+
+      for (var path in routes) {
+        if (routes.hasOwnProperty(path)) {
+          var routeArray = baseRoute.slice();
+          $$route$recognizer$dsl$$addRoute(routeArray, path, routes[path]);
+
+          if (matcher.children[path]) {
+            $$route$recognizer$dsl$$eachRoute(routeArray, matcher.children[path], callback, binding);
+          } else {
+            callback.call(binding, routeArray);
+          }
+        }
+      }
+    }
+
+    var $$route$recognizer$dsl$$default = function(callback, addRouteCallback) {
+      var matcher = new $$route$recognizer$dsl$$Matcher();
+
+      callback($$route$recognizer$dsl$$generateMatch("", matcher, this.delegate));
+
+      $$route$recognizer$dsl$$eachRoute([], matcher, function(route) {
+        if (addRouteCallback) { addRouteCallback(this, route); }
+        else { this.add(route); }
+      }, this);
+    };
+
+    var $$route$recognizer$$specials = [
       '/', '.', '*', '+', '?', '|',
       '(', ')', '[', ']', '{', '}', '\\'
     ];
 
-    var escapeRegex = new RegExp('(\\' + specials.join('|\\') + ')', 'g');
+    var $$route$recognizer$$escapeRegex = new RegExp('(\\' + $$route$recognizer$$specials.join('|\\') + ')', 'g');
 
-    function isArray(test) {
+    function $$route$recognizer$$isArray(test) {
       return Object.prototype.toString.call(test) === "[object Array]";
     }
 
@@ -170,8 +128,8 @@ define("route-recognizer",
     // * `invalidChars`: a String with a list of all invalid characters
     // * `repeat`: true if the character specification can repeat
 
-    function StaticSegment(string) { this.string = string; }
-    StaticSegment.prototype = {
+    function $$route$recognizer$$StaticSegment(string) { this.string = string; }
+    $$route$recognizer$$StaticSegment.prototype = {
       eachChar: function(callback) {
         var string = this.string, ch;
 
@@ -182,7 +140,7 @@ define("route-recognizer",
       },
 
       regex: function() {
-        return this.string.replace(escapeRegex, '\\$1');
+        return this.string.replace($$route$recognizer$$escapeRegex, '\\$1');
       },
 
       generate: function() {
@@ -190,8 +148,8 @@ define("route-recognizer",
       }
     };
 
-    function DynamicSegment(name) { this.name = name; }
-    DynamicSegment.prototype = {
+    function $$route$recognizer$$DynamicSegment(name) { this.name = name; }
+    $$route$recognizer$$DynamicSegment.prototype = {
       eachChar: function(callback) {
         callback({ invalidChars: "/", repeat: true });
       },
@@ -205,8 +163,8 @@ define("route-recognizer",
       }
     };
 
-    function StarSegment(name) { this.name = name; }
-    StarSegment.prototype = {
+    function $$route$recognizer$$StarSegment(name) { this.name = name; }
+    $$route$recognizer$$StarSegment.prototype = {
       eachChar: function(callback) {
         callback({ invalidChars: "", repeat: true });
       },
@@ -220,14 +178,14 @@ define("route-recognizer",
       }
     };
 
-    function EpsilonSegment() {}
-    EpsilonSegment.prototype = {
+    function $$route$recognizer$$EpsilonSegment() {}
+    $$route$recognizer$$EpsilonSegment.prototype = {
       eachChar: function() {},
       regex: function() { return ""; },
       generate: function() { return ""; }
     };
 
-    function parse(route, names, types) {
+    function $$route$recognizer$$parse(route, names, types) {
       // normalize route as not starting with a "/". Recognition will
       // also normalize.
       if (route.charAt(0) === "/") { route = route.substr(1); }
@@ -238,17 +196,17 @@ define("route-recognizer",
         var segment = segments[i], match;
 
         if (match = segment.match(/^:([^\/]+)$/)) {
-          results.push(new DynamicSegment(match[1]));
+          results.push(new $$route$recognizer$$DynamicSegment(match[1]));
           names.push(match[1]);
           types.dynamics++;
         } else if (match = segment.match(/^\*([^\/]+)$/)) {
-          results.push(new StarSegment(match[1]));
+          results.push(new $$route$recognizer$$StarSegment(match[1]));
           names.push(match[1]);
           types.stars++;
         } else if(segment === "") {
-          results.push(new EpsilonSegment());
+          results.push(new $$route$recognizer$$EpsilonSegment());
         } else {
-          results.push(new StaticSegment(segment));
+          results.push(new $$route$recognizer$$StaticSegment(segment));
           types.statics++;
         }
       }
@@ -273,12 +231,12 @@ define("route-recognizer",
     // comparing a character specification against a character. A more efficient
     // implementation would use a hash of keys pointing at one or more next states.
 
-    function State(charSpec) {
+    function $$route$recognizer$$State(charSpec) {
       this.charSpec = charSpec;
       this.nextStates = [];
     }
 
-    State.prototype = {
+    $$route$recognizer$$State.prototype = {
       get: function(charSpec) {
         var nextStates = this.nextStates;
 
@@ -300,7 +258,7 @@ define("route-recognizer",
         if (state = this.get(charSpec)) { return state; }
 
         // Make a new state for the character spec
-        state = new State(charSpec);
+        state = new $$route$recognizer$$State(charSpec);
 
         // Insert the new state as a child of the current state
         this.nextStates.push(state);
@@ -380,7 +338,7 @@ define("route-recognizer",
     //  * prefers using stars for less of the match to more, then
     //  * prefers fewer dynamic segments to more, then
     //  * prefers more static segments to more
-    function sortSolutions(states) {
+    function $$route$recognizer$$sortSolutions(states) {
       return states.sort(function(a, b) {
         if (a.types.stars !== b.types.stars) { return a.types.stars - b.types.stars; }
 
@@ -396,7 +354,7 @@ define("route-recognizer",
       });
     }
 
-    function recognizeChar(states, ch) {
+    function $$route$recognizer$$recognizeChar(states, ch) {
       var nextStates = [];
 
       for (var i=0, l=states.length; i<l; i++) {
@@ -408,16 +366,16 @@ define("route-recognizer",
       return nextStates;
     }
 
-    var oCreate = Object.create || function(proto) {
+    var $$route$recognizer$$oCreate = Object.create || function(proto) {
       function F() {}
       F.prototype = proto;
       return new F();
     };
 
-    function RecognizeResults(queryParams) {
+    function $$route$recognizer$$RecognizeResults(queryParams) {
       this.queryParams = queryParams || {};
     }
-    RecognizeResults.prototype = oCreate({
+    $$route$recognizer$$RecognizeResults.prototype = $$route$recognizer$$oCreate({
       splice: Array.prototype.splice,
       slice:  Array.prototype.slice,
       push:   Array.prototype.push,
@@ -425,10 +383,10 @@ define("route-recognizer",
       queryParams: null
     });
 
-    function findHandler(state, path, queryParams) {
+    function $$route$recognizer$$findHandler(state, path, queryParams) {
       var handlers = state.handlers, regex = state.regex;
       var captures = path.match(regex), currentCapture = 1;
-      var result = new RecognizeResults(queryParams);
+      var result = new $$route$recognizer$$RecognizeResults(queryParams);
 
       for (var i=0, l=handlers.length; i<l; i++) {
         var handler = handlers[i], names = handler.names, params = {};
@@ -443,7 +401,7 @@ define("route-recognizer",
       return result;
     }
 
-    function addSegment(currentState, segment) {
+    function $$route$recognizer$$addSegment(currentState, segment) {
       segment.eachChar(function(ch) {
         var state;
 
@@ -455,13 +413,13 @@ define("route-recognizer",
 
     // The main interface
 
-    var RouteRecognizer = function() {
-      this.rootState = new State();
+    var $$route$recognizer$$RouteRecognizer = function() {
+      this.rootState = new $$route$recognizer$$State();
       this.names = {};
     };
 
 
-    RouteRecognizer.prototype = {
+    $$route$recognizer$$RouteRecognizer.prototype = {
       add: function(routes, options) {
         var currentState = this.rootState, regex = "^",
             types = { statics: 0, dynamics: 0, stars: 0 },
@@ -472,14 +430,14 @@ define("route-recognizer",
         for (var i=0, l=routes.length; i<l; i++) {
           var route = routes[i], names = [];
 
-          var segments = parse(route.path, names, types);
+          var segments = $$route$recognizer$$parse(route.path, names, types);
 
           allSegments = allSegments.concat(segments);
 
           for (var j=0, m=segments.length; j<m; j++) {
             var segment = segments[j];
 
-            if (segment instanceof EpsilonSegment) { continue; }
+            if (segment instanceof $$route$recognizer$$EpsilonSegment) { continue; }
 
             isEmpty = false;
 
@@ -488,7 +446,7 @@ define("route-recognizer",
             regex += "/";
 
             // Add a representation of the segment to the NFA and regex
-            currentState = addSegment(currentState, segment);
+            currentState = $$route$recognizer$$addSegment(currentState, segment);
             regex += segment.regex();
           }
 
@@ -537,7 +495,7 @@ define("route-recognizer",
         for (var i=0, l=segments.length; i<l; i++) {
           var segment = segments[i];
 
-          if (segment instanceof EpsilonSegment) { continue; }
+          if (segment instanceof $$route$recognizer$$EpsilonSegment) { continue; }
 
           output += "/";
           output += segment.generate(params);
@@ -568,7 +526,7 @@ define("route-recognizer",
             continue;
           }
           var pair = encodeURIComponent(key);
-          if (isArray(value)) {
+          if ($$route$recognizer$$isArray(value)) {
             for (var j = 0, l = value.length; j < l; j++) {
               var arrayPair = key + '[]' + '=' + encodeURIComponent(value[j]);
               pairs.push(arrayPair);
@@ -619,14 +577,14 @@ define("route-recognizer",
             pathLen, i, l, queryStart, queryParams = {},
             isSlashDropped = false;
 
-        path = decodeURI(path);
-
         queryStart = path.indexOf('?');
         if (queryStart !== -1) {
           var queryString = path.substr(queryStart + 1, path.length);
           path = path.substr(0, queryStart);
           queryParams = this.parseQueryString(queryString);
         }
+
+        path = decodeURI(path);
 
         // DEBUG GROUP path
 
@@ -639,7 +597,7 @@ define("route-recognizer",
         }
 
         for (i=0, l=path.length; i<l; i++) {
-          states = recognizeChar(states, path.charAt(i));
+          states = $$route$recognizer$$recognizeChar(states, path.charAt(i));
           if (!states.length) { break; }
         }
 
@@ -650,7 +608,7 @@ define("route-recognizer",
           if (states[i].handlers) { solutions.push(states[i]); }
         }
 
-        states = sortSolutions(solutions);
+        states = $$route$recognizer$$sortSolutions(solutions);
 
         var state = solutions[0];
 
@@ -660,119 +618,23 @@ define("route-recognizer",
           if (isSlashDropped && state.regex.source.slice(-5) === "(.+)$") {
             path = path + "/";
           }
-          return findHandler(state, path, queryParams);
+          return $$route$recognizer$$findHandler(state, path, queryParams);
         }
       }
     };
 
-    RouteRecognizer.prototype.map = map;
+    $$route$recognizer$$RouteRecognizer.prototype.map = $$route$recognizer$dsl$$default;
 
-    __exports__["default"] = RouteRecognizer;
-  });
-define("route-recognizer/dsl",
-  ["exports"],
-  function(__exports__) {
-    "use strict";
-    function Target(path, matcher, delegate) {
-      this.path = path;
-      this.matcher = matcher;
-      this.delegate = delegate;
+    var $$route$recognizer$$default = $$route$recognizer$$RouteRecognizer;
+
+    /* global define:true module:true window: true */
+    if (typeof define === 'function' && define['amd']) {
+      define(function() { return $$route$recognizer$$default; });
+    } else if (typeof module !== 'undefined' && module['exports']) {
+      module['exports'] = $$route$recognizer$$default;
+    } else if (typeof this !== 'undefined') {
+      this['RouteRecoginizer'] = $$route$recognizer$$default;
     }
+}).call(this);
 
-    Target.prototype = {
-      to: function(target, callback) {
-        var delegate = this.delegate;
-
-        if (delegate && delegate.willAddRoute) {
-          target = delegate.willAddRoute(this.matcher.target, target);
-        }
-
-        this.matcher.add(this.path, target);
-
-        if (callback) {
-          if (callback.length === 0) { throw new Error("You must have an argument in the function passed to `to`"); }
-          this.matcher.addChild(this.path, target, callback, this.delegate);
-        }
-        return this;
-      }
-    };
-
-    function Matcher(target) {
-      this.routes = {};
-      this.children = {};
-      this.target = target;
-    }
-
-    Matcher.prototype = {
-      add: function(path, handler) {
-        this.routes[path] = handler;
-      },
-
-      addChild: function(path, target, callback, delegate) {
-        var matcher = new Matcher(target);
-        this.children[path] = matcher;
-
-        var match = generateMatch(path, matcher, delegate);
-
-        if (delegate && delegate.contextEntered) {
-          delegate.contextEntered(target, match);
-        }
-
-        callback(match);
-      }
-    };
-
-    function generateMatch(startingPath, matcher, delegate) {
-      return function(path, nestedCallback) {
-        var fullPath = startingPath + path;
-
-        if (nestedCallback) {
-          nestedCallback(generateMatch(fullPath, matcher, delegate));
-        } else {
-          return new Target(startingPath + path, matcher, delegate);
-        }
-      };
-    }
-
-    function addRoute(routeArray, path, handler) {
-      var len = 0;
-      for (var i=0, l=routeArray.length; i<l; i++) {
-        len += routeArray[i].path.length;
-      }
-
-      path = path.substr(len);
-      var route = { path: path, handler: handler };
-      routeArray.push(route);
-    }
-
-    function eachRoute(baseRoute, matcher, callback, binding) {
-      var routes = matcher.routes;
-
-      for (var path in routes) {
-        if (routes.hasOwnProperty(path)) {
-          var routeArray = baseRoute.slice();
-          addRoute(routeArray, path, routes[path]);
-
-          if (matcher.children[path]) {
-            eachRoute(routeArray, matcher.children[path], callback, binding);
-          } else {
-            callback.call(binding, routeArray);
-          }
-        }
-      }
-    }
-
-    __exports__["default"] = function(callback, addRouteCallback) {
-      var matcher = new Matcher();
-
-      callback(generateMatch("", matcher, this.delegate));
-
-      eachRoute([], matcher, function(route) {
-        if (addRouteCallback) { addRouteCallback(this, route); }
-        else { this.add(route); }
-      }, this);
-    }
-  });
-
-global.RouteRecognizer = require("route-recognizer")["default"];
-})(window);
+//# sourceMappingURL=route-recognizer.js.map

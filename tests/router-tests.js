@@ -1,5 +1,7 @@
 /* globals RouteRecognizer,QUnit */
 
+import RouteRecognizer from 'route-recognizer';
+
 var router;
 
 function resultsMatch(results, array, queryParams) {
