@@ -1,4 +1,6 @@
-/* globals RouteRecognizer,QUnit */
+/* globals QUnit */
+
+import RouteRecognizer from 'route-recognizer';
 
 module("Route Recognition");
 

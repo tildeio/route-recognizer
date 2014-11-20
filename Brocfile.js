@@ -1,67 +1,72 @@
-var pickFiles = require('broccoli-static-compiler');
-var transpileES6 = require('broccoli-es6-module-transpiler');
+var compileModules = require('broccoli-compile-modules');
+var jsHint = require('broccoli-jshint');
+var Funnel = require('broccoli-funnel');
 var mergeTrees = require('broccoli-merge-trees');
 var concat = require('broccoli-concat');
-var writeFile = require('broccoli-file-creator');
-var jshint = require('broccoli-jshint');
 
-var libTree = pickFiles('lib', {
-  srcDir: '/',
+/**
+ * Builds the consumable lib
+ * @param  {Tree} libTree
+ * @return {Array}
+ */
+function buildDistLib (libTree) {
+  return compileModules( libTree, {
+    inputFiles: ['route-recognizer.umd.js'],
+    output: '/route-recognizer.js'
+  });
+}
+
+/**
+ * Builds the test suite including jsHint
+ * and Qunit harness.
+ * @param  {Tree} libTree
+ * @return {Tree}
+ */
+function buildTestSuite (libTree) {
+  var destination = '/tests';
+
+  var jsHintLib = jsHint(libTree);
+
+  var testTree = new Funnel( 'tests', {
+    files: ['recognizer-tests.js', 'router-tests.js'],
+    destDir: destination
+  });
+
+  var jsHintTests = jsHint(testTree);
+
+  var allTestFiles = mergeTrees([libTree, testTree]);
+
+  var testBundle = compileModules(allTestFiles, {
+    inputFiles: ['route-recognizer.js', 'tests/*.js'],
+    formatter: 'bundle',
+    output: '/tests/route-recognizer-test-bundle.js'
+  });
+
+  var tests = mergeTrees([jsHintLib, jsHintTests, testBundle]);
+
+  tests = concat(tests, {
+    inputFiles: ['**/*.js'],
+    outputFile: '/tests/route-recognizer-test-bundle.js'
+  });
+
+  var testHarness = new Funnel( 'tests', {
+    files: ['index.html'],
+    destDir: destination
+  });
+
+  var qunit = new Funnel('bower_components/qunit/qunit', {
+    files: ['qunit.js', 'qunit.css'],
+    destDir: destination
+  });
+
+  return mergeTrees([tests, testHarness, qunit]);
+}
+
+var lib = new Funnel( 'lib', {
   destDir: '/'
 });
 
-var jsHintLib = jshint(libTree);
+var testSuite = buildTestSuite(lib);
+var distLibs  = buildDistLib(lib);
 
-var libTreeAMD = transpileES6(libTree, {
-  moduleName: true
-});
-
-var libTreeCJS = transpileES6(libTree, {
-  type: 'cjs'
-});
-
-libTreeCJS = pickFiles(libTreeCJS, {
-  srcDir: '/',
-  destDir: '/cjs'
-});
-
-libTreeAMD = concat(libTreeAMD, {
-  wrapInEval: false,
-  inputFiles: ['**/*.js'],
-  outputFile: '/route-recognizer.amd.js'
-});
-
-var iifeStart = writeFile('iife-start', '(function(global) {');
-var iifeStop  = writeFile('iife-stop', '\nglobal.RouteRecognizer = require("route-recognizer")["default"];\n})(window);');
-
-var loader = pickFiles('bower_components/loader.js', {
-  srcDir: '/',
-  destDir: '/',
-  files: ['loader.js']
-});
-
-var libTreeGlobal = concat(mergeTrees([loader, iifeStart, iifeStop, libTreeAMD]), {
-  wrapInEval: false,
-  inputFiles: ['iife-start', 'loader.js', 'route-recognizer.amd.js', 'iife-stop'],
-  outputFile: '/route-recognizer.js'
-});
-
-var qunitFiles = pickFiles('bower_components/qunit/qunit', {
-  srcDir: '/',
-  destDir: '/qunit'
-});
-
-var testFiles = pickFiles('tests', {
-  srcDir: '/',
-  destDir: '/'
-});
-
-var jsHintTest = jshint(testFiles);
-
-var tests = concat(mergeTrees([jsHintLib, jsHintTest, testFiles], {overwrite: true}), {
-  wrapInEval: false,
-  inputFiles: ['**/*.js'],
-  outputFile: '/tests.js'
-});
-
-module.exports = mergeTrees([qunitFiles, testFiles, libTreeAMD, libTreeCJS, libTreeGlobal, tests]);
+module.exports = mergeTrees([distLibs, testSuite]);
