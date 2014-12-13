@@ -1,6 +1,6 @@
 {
   "name": "route-recognizer",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "A lightweight JavaScript library that matches paths against registered routes.",
   "author": "Yehuda Katz",
   "repository": {
@@ -12,6 +12,7 @@
     "broccoli-concat": "0.0.12",
     "broccoli-funnel": "^0.1.6",
     "broccoli-jshint": "~0.5.1",
+    "broccoli-replace": "~0.1.6",
     "broccoli-merge-trees": "^0.2.1",
     "ember-cli": "0.0.40"
   },
