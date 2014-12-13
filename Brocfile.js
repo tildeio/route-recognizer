@@ -3,6 +3,7 @@ var jsHint = require('broccoli-jshint');
 var Funnel = require('broccoli-funnel');
 var mergeTrees = require('broccoli-merge-trees');
 var concat = require('broccoli-concat');
+var replace = require('broccoli-replace');
 
 /**
  * Builds the consumable lib
@@ -64,6 +65,15 @@ function buildTestSuite (libTree) {
 
 var lib = new Funnel( 'lib', {
   destDir: '/'
+});
+
+var version = require('./package.json').version;
+
+lib = replace(lib, {
+  files: [ '**/*.js' ],
+  patterns: [
+    { match: /VERSION_STRING_PLACEHOLDER/g, replacement: version }
+  ]
 });
 
 var testSuite = buildTestSuite(lib);

@@ -625,6 +625,8 @@
 
     $$route$recognizer$$RouteRecognizer.prototype.map = $$route$recognizer$dsl$$default;
 
+    $$route$recognizer$$RouteRecognizer.VERSION = '0.1.2';
+
     var $$route$recognizer$$default = $$route$recognizer$$RouteRecognizer;
 
     /* global define:true module:true window: true */
