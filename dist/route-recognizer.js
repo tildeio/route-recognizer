@@ -625,7 +625,7 @@
 
     $$route$recognizer$$RouteRecognizer.prototype.map = $$route$recognizer$dsl$$default;
 
-    $$route$recognizer$$RouteRecognizer.VERSION = '0.1.2';
+    $$route$recognizer$$RouteRecognizer.VERSION = '0.1.3';
 
     var $$route$recognizer$$default = $$route$recognizer$$RouteRecognizer;
 
@@ -635,7 +635,7 @@
     } else if (typeof module !== 'undefined' && module['exports']) {
       module['exports'] = $$route$recognizer$$default;
     } else if (typeof this !== 'undefined') {
-      this['RouteRecoginizer'] = $$route$recognizer$$default;
+      this['RouteRecognizer'] = $$route$recognizer$$default;
     }
 }).call(this);
 
