@@ -14,7 +14,7 @@
     "broccoli-jshint": "~0.5.1",
     "broccoli-replace": "~0.1.6",
     "broccoli-merge-trees": "^0.2.1",
-    "ember-cli": "0.0.40"
+    "ember-cli": "0.1.7"
   },
   "main": "dist/route-recognizer.js",
   "bugs": {
