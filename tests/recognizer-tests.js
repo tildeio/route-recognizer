@@ -94,6 +94,14 @@ test("A simple route with query params with encoding recognizes", function() {
   deepEqual(router.recognize("/foo/bar?other=something%20100%25").queryParams, { other: 'something 100%' });
 });
 
+test("A route with query params with pluses for spaces instead of %20 recognizes", function() {
+  var handler = {};
+  var router = new RouteRecognizer();
+  router.add([{ path: "/foo/bar", handler: handler}]);
+
+  deepEqual(router.recognize("/foo/bar?++one+two=three+four+five++").queryParams, { '  one two': 'three four five  ' });
+});
+
 
 test("A `/` route recognizes", function() {
   var handler = {};
