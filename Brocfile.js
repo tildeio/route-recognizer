@@ -11,10 +11,17 @@ var replace = require('broccoli-replace');
  * @return {Array}
  */
 function buildDistLib (libTree) {
-  return compileModules( libTree, {
+  var compiledModules = compileModules( libTree, {
     inputFiles: ['route-recognizer.umd.js'],
     output: '/route-recognizer.js'
   });
+
+  var es6Modules = new Funnel( libTree, {
+    exclude: ['*.umd.js'],
+    destDir: '/es6'
+  });
+
+  return mergeTrees([es6Modules, compiledModules]);
 }
 
 /**
