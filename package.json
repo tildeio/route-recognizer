@@ -1,6 +1,6 @@
 {
   "name": "route-recognizer",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "A lightweight JavaScript library that matches paths against registered routes.",
   "author": "Yehuda Katz",
   "repository": {
