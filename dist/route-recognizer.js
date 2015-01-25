@@ -411,6 +411,12 @@
       return currentState;
     }
 
+    function $$route$recognizer$$decodeQueryParamPart(part) {
+      // http://www.w3.org/TR/html401/interact/forms.html#h-17.13.4.1
+      part = part.replace(/\+/gm, '%20');
+      return decodeURIComponent(part);
+    }
+
     // The main interface
 
     var $$route$recognizer$$RouteRecognizer = function() {
@@ -546,7 +552,7 @@
         var pairs = queryString.split("&"), queryParams = {};
         for(var i=0; i < pairs.length; i++) {
           var pair      = pairs[i].split('='),
-              key       = decodeURIComponent(pair[0]),
+              key       = $$route$recognizer$$decodeQueryParamPart(pair[0]),
               keyLength = key.length,
               isArray = false,
               value;
@@ -561,7 +567,7 @@
                 queryParams[key] = [];
               }
             }
-            value = pair[1] ? decodeURIComponent(pair[1]) : '';
+            value = pair[1] ? $$route$recognizer$$decodeQueryParamPart(pair[1]) : '';
           }
           if (isArray) {
             queryParams[key].push(value);
