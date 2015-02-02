@@ -644,5 +644,3 @@
       this['RouteRecognizer'] = $$route$recognizer$$default;
     }
 }).call(this);
-
-//# sourceMappingURL=route-recognizer.js.map
