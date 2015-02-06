@@ -233,6 +233,29 @@ test("Prefers single dynamic segments over stars", function() {
   resultsMatch(router.recognize("/foo/bar/suffix"), [{ handler: handler2, params: { star: "bar", dynamic: "suffix" }, isDynamic: true }]);
 });
 
+test("Prefers more specific routes over less specific routes", function() {
+  var handler1 = { handler: 1 };
+  var handler2 = { handler: 2 };
+  var router = new RouteRecognizer();
+
+  router.add([{ path: "/foo/:dynamic/baz", handler: handler1 }]);
+  router.add([{ path: "/foo/bar/:dynamic", handler: handler2 }]);
+
+  resultsMatch(router.recognize("/foo/bar/baz"), [{ handler: handler2, params: { dynamic: "baz" }, isDynamic: true }]);
+  resultsMatch(router.recognize("/foo/3/baz"), [{ handler: handler1, params: { dynamic: "3" }, isDynamic: true }]);
+});
+
+test("Prefers more specific routes with stars over less specific dynamic routes", function() {
+  var handler1 = { handler: 1 };
+  var handler2 = { handler: 2 };
+  var router = new RouteRecognizer();
+
+  router.add([{ path: "/foo/*star", handler: handler1 }]);
+  router.add([{ path: "/:dynamicOne/:dynamicTwo", handler: handler2 }]);
+
+  resultsMatch(router.recognize("/foo/bar"), [{ handler: handler1, params: { star: "bar" }, isDynamic: true }]);
+});
+
 test("Routes with trailing `/` recognize", function() {
   var handler = {};
   var router = new RouteRecognizer();
