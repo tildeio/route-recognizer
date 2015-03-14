@@ -36,7 +36,7 @@ test("A simple route with query params recognizes", function() {
   router.add([{ path: "/foo/bar", handler: handler}]);
 
   resultsMatch(router.recognize("/foo/bar?sort=date&other=something"), [{ handler: handler, params: {}, isDynamic: false }], { sort: 'date', other: 'something' });
-  resultsMatch(router.recognize("/foo/bar?other=something"), [{ handler: handler, params: {}, isDynamic: false }]);
+  resultsMatch(router.recognize("/foo/bar?other=something"), [{ handler: handler, params: {}, isDynamic: false }], { other: 'something' });
 });
 
 test("False query params = 'false'", function() {
@@ -301,7 +301,7 @@ test("Nested routes with query params recognize", function() {
   equal(router.hasRoute('bar'), false);
 });
 
-test("If there are multiple matches, the route with the most dynamic segments wins", function() {
+test("If there are multiple matches, the route with the least dynamic segments wins", function() {
   var handler1 = { handler: 1 };
   var handler2 = { handler: 2 };
   var handler3 = { handler: 3 };
@@ -319,8 +319,8 @@ test("If there are multiple matches, the route with the most dynamic segments wi
 test("Empty paths", function() {
   var handler1 = { handler: 1 };
   var handler2 = { handler: 2 };
-  var handler3 = { handler: 2 };
-  var handler4 = { handler: 2 };
+  var handler3 = { handler: 3 };
+  var handler4 = { handler: 4 };
 
   var router = new RouteRecognizer();
   router.add([{ path: "/foo", handler: handler1 }, { path: "/", handler: handler2 }, { path: "/bar", handler: handler3 }]);
