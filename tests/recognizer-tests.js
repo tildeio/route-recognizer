@@ -129,6 +129,26 @@ test("A dynamic route recognizes", function() {
   equal(router.recognize("/zoo/baz"), null);
 });
 
+test("A simple dynamic route with an encoded segment recognizes", function() {
+  var handler = {};
+  var router = new RouteRecognizer();
+  router.add([{ path: "/foo/:bar", handler: handler }]);
+
+  var bar = "abc/def";
+  var encodedBar = encodeURIComponent(bar);
+  resultsMatch(router.recognize("/foo/" + encodedBar), [{ handler: handler, params: { bar: bar }, isDynamic: true }]);
+});
+
+test("A complex dynamic route with an encoded segment recognizes", function() {
+  var handler = {};
+  var router = new RouteRecognizer();
+  router.add([{ path: "/foo/:bar/baz", handler: handler }]);
+
+  var bar = "abc/def";
+  var encodedBar = encodeURIComponent(bar);
+  resultsMatch(router.recognize("/foo/" + encodedBar + "/baz"), [{ handler: handler, params: { bar: bar }, isDynamic: true }]);
+});
+
 test("Multiple routes recognize", function() {
   var handler1 = { handler: 1 };
   var handler2 = { handler: 2 };
