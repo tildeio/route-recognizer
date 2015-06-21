@@ -446,6 +446,14 @@ test("Generation works", function() {
   equal( router.generate("postIndex"), "/posts" );
 });
 
+test("Generation encodes dynamic segments", function() {
+  var postId = "abc/def";
+  var encodedPostId = encodeURIComponent(postId);
+  ok(postId !== encodedPostId, "precondition - encoded segment does not equal orginal segment");
+  equal( router.generate("post", { id: postId }), "/posts/" + encodedPostId );
+  equal( router.generate("edit_post", { id: postId }), "/posts/" + encodedPostId + "/edit" );
+});
+
 test("Parsing and generation results into the same input string", function() {
   var query = "filter%20data=date";
   equal(router.generateQueryString(router.parseQueryString(query)), '?' + query);
