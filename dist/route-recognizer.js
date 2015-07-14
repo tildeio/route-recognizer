@@ -636,13 +636,13 @@
 
     $$route$recognizer$$RouteRecognizer.prototype.map = $$route$recognizer$dsl$$default;
 
-    $$route$recognizer$$RouteRecognizer.VERSION = '0.1.6';
+    $$route$recognizer$$RouteRecognizer.VERSION = '0.1.7';
 
     var $$route$recognizer$$default = $$route$recognizer$$RouteRecognizer;
 
     /* global define:true module:true window: true */
     if (typeof define === 'function' && define['amd']) {
-      define(function() { return $$route$recognizer$$default; });
+      define('route-recognizer', function() { return $$route$recognizer$$default; });
     } else if (typeof module !== 'undefined' && module['exports']) {
       module['exports'] = $$route$recognizer$$default;
     } else if (typeof this !== 'undefined') {
