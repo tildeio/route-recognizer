@@ -642,7 +642,7 @@
 
     /* global define:true module:true window: true */
     if (typeof define === 'function' && define['amd']) {
-      define(function() { return $$route$recognizer$$default; });
+      define('route-recognizer', function() { return $$route$recognizer$$default; });
     } else if (typeof module !== 'undefined' && module['exports']) {
       module['exports'] = $$route$recognizer$$default;
     } else if (typeof this !== 'undefined') {
