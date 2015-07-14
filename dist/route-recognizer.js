@@ -185,12 +185,33 @@
       generate: function() { return ""; }
     };
 
-    function $$route$recognizer$$parse(route, names, types) {
+    function $$route$recognizer$$parse(route, names, specificity) {
       // normalize route as not starting with a "/". Recognition will
       // also normalize.
       if (route.charAt(0) === "/") { route = route.substr(1); }
 
       var segments = route.split("/"), results = [];
+
+      // A routes has specificity determined by the order that its different segments
+      // appear in. This system mirrors how the magnitude of numbers written as strings
+      // works.
+      // Consider a number written as: "abc". An example would be "200". Any other number written
+      // "xyz" will be smaller than "abc" so long as `a > z`. For instance, "199" is smaller
+      // then "200", even though "y" and "z" (which are both 9) are larger than "0" (the value
+      // of (`b` and `c`). This is because the leading symbol, "2", is larger than the other
+      // leading symbol, "1".
+      // The rule is that symbols to the left carry more weight than symbols to the right
+      // when a number is written out as a string. In the above strings, the leading digit
+      // represents how many 100's are in the number, and it carries more weight than the middle
+      // number which represents how many 10's are in the number.
+      // This system of number magnitude works well for route specificity, too. A route written as
+      // `a/b/c` will be more specific than `x/y/z` as long as `a` is more specific than
+      // `x`, irrespective of the other parts.
+      // Because of this similarity, we assign each type of segment a number value written as a
+      // string. We can find the specificity of compound routes by concatenating these strings
+      // together, from left to right. After we have looped through all of the segments,
+      // we convert the string to a number.
+      specificity.val = '';
 
       for (var i=0, l=segments.length; i<l; i++) {
         var segment = segments[i], match;
@@ -198,18 +219,21 @@
         if (match = segment.match(/^:([^\/]+)$/)) {
           results.push(new $$route$recognizer$$DynamicSegment(match[1]));
           names.push(match[1]);
-          types.dynamics++;
+          specificity.val += '3';
         } else if (match = segment.match(/^\*([^\/]+)$/)) {
           results.push(new $$route$recognizer$$StarSegment(match[1]));
+          specificity.val += '2';
           names.push(match[1]);
-          types.stars++;
         } else if(segment === "") {
           results.push(new $$route$recognizer$$EpsilonSegment());
+          specificity.val += '1';
         } else {
           results.push(new $$route$recognizer$$StaticSegment(segment));
-          types.statics++;
+          specificity.val += '4';
         }
       }
+
+      specificity.val = +specificity.val;
 
       return results;
     }
@@ -328,29 +352,10 @@
     }
     END IF **/
 
-    // This is a somewhat naive strategy, but should work in a lot of cases
-    // A better strategy would properly resolve /posts/:id/new and /posts/edit/:id.
-    //
-    // This strategy generally prefers more static and less dynamic matching.
-    // Specifically, it
-    //
-    //  * prefers fewer stars to more, then
-    //  * prefers using stars for less of the match to more, then
-    //  * prefers fewer dynamic segments to more, then
-    //  * prefers more static segments to more
+    // Sort the routes by specificity
     function $$route$recognizer$$sortSolutions(states) {
       return states.sort(function(a, b) {
-        if (a.types.stars !== b.types.stars) { return a.types.stars - b.types.stars; }
-
-        if (a.types.stars) {
-          if (a.types.statics !== b.types.statics) { return b.types.statics - a.types.statics; }
-          if (a.types.dynamics !== b.types.dynamics) { return b.types.dynamics - a.types.dynamics; }
-        }
-
-        if (a.types.dynamics !== b.types.dynamics) { return a.types.dynamics - b.types.dynamics; }
-        if (a.types.statics !== b.types.statics) { return b.types.statics - a.types.statics; }
-
-        return 0;
+        return b.specificity.val - a.specificity.val;
       });
     }
 
@@ -428,7 +433,7 @@
     $$route$recognizer$$RouteRecognizer.prototype = {
       add: function(routes, options) {
         var currentState = this.rootState, regex = "^",
-            types = { statics: 0, dynamics: 0, stars: 0 },
+            specificity = {},
             handlers = [], allSegments = [], name;
 
         var isEmpty = true;
@@ -436,7 +441,7 @@
         for (var i=0, l=routes.length; i<l; i++) {
           var route = routes[i], names = [];
 
-          var segments = $$route$recognizer$$parse(route.path, names, types);
+          var segments = $$route$recognizer$$parse(route.path, names, specificity);
 
           allSegments = allSegments.concat(segments);
 
@@ -467,7 +472,7 @@
 
         currentState.handlers = handlers;
         currentState.regex = new RegExp(regex + "$");
-        currentState.types = types;
+        currentState.specificity = specificity;
 
         if (name = options && options.as) {
           this.names[name] = {
@@ -631,7 +636,7 @@
 
     $$route$recognizer$$RouteRecognizer.prototype.map = $$route$recognizer$dsl$$default;
 
-    $$route$recognizer$$RouteRecognizer.VERSION = '0.1.5';
+    $$route$recognizer$$RouteRecognizer.VERSION = '0.1.6';
 
     var $$route$recognizer$$default = $$route$recognizer$$RouteRecognizer;
 
@@ -644,3 +649,5 @@
       this['RouteRecognizer'] = $$route$recognizer$$default;
     }
 }).call(this);
+
+//# sourceMappingURL=route-recognizer.js.map
