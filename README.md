@@ -22,6 +22,11 @@ Add a simple new route description:
 router.add([{ path: "/posts", handler: handler }]);
 ```
 
+Every route can optionally have a name:
+```javascript
+router.add([{ path: "/posts", handler: handler }], { as: "routeName"});
+```
+
 The handler is an opaque object with no specific meaning to
 `route-recognizer`. A module using `route-recognizer` could
 use functions or other objects with domain-specific semantics
