@@ -141,6 +141,15 @@ test("Multiple routes recognize", function() {
   resultsMatch(router.recognize("/bar/1"), [{ handler: handler2, params: { baz: "1" }, isDynamic: true }]);
 });
 
+test("ignore the URI malformed error", function() {
+  var handler1 = { handler: 1 };
+  var router = new RouteRecognizer();
+
+  router.add([{ path: "/foo", handler: handler1 }]);
+
+  deepEqual(router.recognize("/foo?a=1%").queryParams, {a: ""});
+});
+
 test("Multiple routes with overlapping query params recognize", function() {
   var handler1 = { handler: 1 };
   var handler2 = { handler: 2 };
