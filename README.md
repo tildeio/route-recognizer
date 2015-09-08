@@ -85,9 +85,9 @@ If multiple routes all match a path, `route-recognizer`
 will pick the one with the fewest dynamic segments:
 
 ```javascript
-router.add({ path: "/posts/edit", handler: editPost });
-router.add({ path: "/posts/:id", handler: showPost });
-router.add({ path: "/posts/new", handler: newPost });
+router.add([{ path: "/posts/edit", handler: editPost }]);
+router.add([{ path: "/posts/:id", handler: showPost }]);
+router.add([{ path: "/posts/new", handler: newPost }]);
 
 var result1 = router.recognize("/posts/edit");
 result1 === [{ handler: editPost, params: {} }];
