@@ -36,7 +36,7 @@ function buildTestSuite (libTree) {
   var jsHintLib = jsHint(libTree);
 
   var testTree = new Funnel( 'tests', {
-    files: ['recognizer-tests.js', 'router-tests.js'],
+    files: ['recognizer-tests.js', 'dsl-tests.js'],
     destDir: destination
   });
 
