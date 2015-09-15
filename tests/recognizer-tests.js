@@ -30,6 +30,16 @@ test("A unicode route recognizes", function() {
   equal(router.recognize("/uniçø∂∑"), null);
 });
 
+test("A unicode with special char route recognizes", function() {
+  var handler = {};
+  var router = new RouteRecognizer();
+  router.add([{ path: "/some/uni:code;hah", handler: handler }]);
+
+  var encoded = "/some/" + encodeURIComponent("uni:code;hah");
+  resultsMatch(router.recognize(encoded), [{ handler: handler, params: {}, isDynamic: false }]);
+  equal(router.recognize("/some/uni:code"), null);
+});
+
 test("A simple route with query params recognizes", function() {
   var handler = {};
   var router = new RouteRecognizer();
