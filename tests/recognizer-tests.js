@@ -30,6 +30,16 @@ test("A unicode route recognizes", function() {
   equal(router.recognize("/uniçø∂∑"), null);
 });
 
+test("A route with reserved characters recognizes", function() {
+  var handler = {};
+  var router = new RouteRecognizer();
+  router.add([{ path: "/some/reserved?#@:$&+,/=;characters", handler: handler }]);
+
+  var encoded = "/some/" + encodeURIComponent("reserved?#@:$&+,/=;characters");
+  resultsMatch(router.recognize(encoded), [{ handler: handler, params: {}, isDynamic: false }]);
+  equal(router.recognize("/some/eserved?#@:$&+,/=;"), null);
+});
+
 test("A simple route with query params recognizes", function() {
   var handler = {};
   var router = new RouteRecognizer();
