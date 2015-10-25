@@ -3,7 +3,7 @@ var jsHint = require('broccoli-jshint');
 var Funnel = require('broccoli-funnel');
 var mergeTrees = require('broccoli-merge-trees');
 var concat = require('broccoli-concat');
-var replace = require('broccoli-replace');
+var replace = require('broccoli-string-replace');
 
 /**
  * Builds the consumable lib

@@ -12,7 +12,7 @@
     "broccoli-concat": "0.0.12",
     "broccoli-funnel": "^0.1.6",
     "broccoli-jshint": "~0.5.1",
-    "broccoli-replace": "~0.1.6",
+    "broccoli-string-replace": "~0.1.0",
     "broccoli-merge-trees": "^0.2.1",
     "ember-cli": "1.13.1"
   },
