@@ -17,9 +17,9 @@ module("The match DSL", {
   }
 });
 
-var matchesRoute = function(path, expected) {
+var matchesRoute = function(path, expected, queryParams) {
   var actual = router.recognize(path);
-  resultsMatch(actual, expected);
+  resultsMatch(actual, expected, queryParams);
 };
 
 test("supports multiple calls to match", function() {
