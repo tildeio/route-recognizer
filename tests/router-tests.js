@@ -157,7 +157,7 @@ test("supports star routes", function() {
 
 test("star route does not swallow trailing `/`", function() {
   var r;
-  
+
   router.map(function(match) {
     match("/").to("posts");
     match("/*everything").to("glob");
@@ -173,7 +173,7 @@ test("support star route before other segment", function() {
   });
 
   ["folder1/folder2/folder3//the-extra-stuff/", "folder1/folder2/folder3//the-extra-stuff"].forEach(function(r) {
-    matchesRoute("/" + r, [{ handler: "glob", params: {everything: "folder1/folder2/folder3/", extra: "the-extra-stuff"}, isDynamic: true}]);  
+    matchesRoute("/" + r, [{ handler: "glob", params: {everything: "folder1/folder2/folder3/", extra: "the-extra-stuff"}, isDynamic: true}]);
   });
 });
 
@@ -258,4 +258,3 @@ test("supports add-route callback", function() {
   matchesRoute("/posts/new", [{ handler: "newPost", params: {}, isDynamic: false }]);
   ok(called, "The add-route callback was called.");
 });
-
