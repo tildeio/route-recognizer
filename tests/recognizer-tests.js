@@ -20,6 +20,14 @@ test("A simple route recognizes", function() {
   equal(router.recognize("/foo/baz"), null);
 });
 
+test("A route with URL-encoded parts recognizes", function() {
+  var handler = {};
+  var router = new RouteRecognizer();
+  router.add([{ path: "/foo bar?baz", handler: handler }]);
+
+  resultsMatch(router.recognize("/foo%20bar%3fbaz"), [{ handler: handler, params: {}, isDynamic: false }]);
+});
+
 test("A unicode route recognizes", function() {
   var handler = {};
   var router = new RouteRecognizer();
@@ -127,6 +135,16 @@ test("A dynamic route recognizes", function() {
   resultsMatch(router.recognize("/foo/bar"), [{ handler: handler, params: { bar: "bar" }, isDynamic: true }]);
   resultsMatch(router.recognize("/foo/1"), [{ handler: handler, params: { bar: "1" }, isDynamic: true }]);
   equal(router.recognize("/zoo/baz"), null);
+});
+
+test("A dynamic route with encoded params", function() {
+  var handler = {};
+  var router = new RouteRecognizer();
+  router.add([{ path: "/foo/:bar", handler: handler }]);
+
+  equal(router.recognize("/foo/bar%20baz")[0].params.bar, "bar baz");
+  equal(router.recognize("/foo/bar%23baz")[0].params.bar, "bar#baz");
+  equal(router.recognize("/foo/bar%3fbaz")[0].params.bar, "bar?baz");
 });
 
 test("Multiple routes recognize", function() {
