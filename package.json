@@ -12,9 +12,11 @@
     "broccoli-concat": "0.0.12",
     "broccoli-funnel": "^0.1.6",
     "broccoli-jshint": "~0.5.1",
-    "broccoli-string-replace": "~0.1.0",
     "broccoli-merge-trees": "^0.2.1",
-    "ember-cli": "1.13.1"
+    "broccoli-string-replace": "~0.1.0",
+    "do-you-even-bench": "^1.0.2",
+    "ember-cli": "1.13.1",
+    "glob": "^6.0.4"
   },
   "main": "dist/route-recognizer.js",
   "bugs": {
@@ -27,7 +29,8 @@
   "scripts": {
     "test": "ember test",
     "start": "ember test --server",
-    "build": "ember build"
+    "build": "ember build",
+    "bench": "ember build && node ./bench/index.js"
   },
   "license": "MIT"
 }

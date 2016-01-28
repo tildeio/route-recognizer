@@ -408,8 +408,6 @@
 
     function $$route$recognizer$$addSegment(currentState, segment) {
       segment.eachChar(function(ch) {
-        var state;
-
         currentState = currentState.put(ch);
       });
 
@@ -419,7 +417,11 @@
     function $$route$recognizer$$decodeQueryParamPart(part) {
       // http://www.w3.org/TR/html401/interact/forms.html#h-17.13.4.1
       part = part.replace(/\+/gm, '%20');
-      return decodeURIComponent(part);
+      var result;
+      try {
+        result = decodeURIComponent(part);
+      } catch(error) {result = '';}
+      return result;
     }
 
     // The main interface
