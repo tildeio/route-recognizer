@@ -394,6 +394,8 @@
       var captures = path.match(regex), currentCapture = 1;
       var result = new $$route$recognizer$$RecognizeResults(queryParams);
 
+      result.length = handlers.length;
+
       for (var i=0; i<handlers.length; i++) {
         var handler = handlers[i], names = handler.names, params = {};
 
@@ -401,7 +403,7 @@
           params[names[j]] = captures[currentCapture++];
         }
 
-        result.push({ handler: handler.handler, params: params, isDynamic: !!names.length });
+        result[i] = { handler: handler.handler, params: params, isDynamic: !!names.length };
       }
 
       return result;
