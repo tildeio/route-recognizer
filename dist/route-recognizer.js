@@ -259,10 +259,15 @@
     function $$route$recognizer$$State(charSpec) {
       this.charSpec = charSpec;
       this.nextStates = [];
+      this.charSpecs = {};
     }
 
     $$route$recognizer$$State.prototype = {
       get: function(charSpec) {
+        if (this.charSpecs[charSpec.validChars]) {
+          return this.charSpecs[charSpec.validChars];
+        }
+
         var nextStates = this.nextStates;
 
         for (var i=0; i<nextStates.length; i++) {
@@ -271,7 +276,10 @@
           var isEqual = child.charSpec.validChars === charSpec.validChars;
           isEqual = isEqual && child.charSpec.invalidChars === charSpec.invalidChars;
 
-          if (isEqual) { return child; }
+          if (isEqual) {
+            this.charSpecs[charSpec.validChars] = child;
+            return child;
+          }
         }
       },
 
