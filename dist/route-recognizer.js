@@ -63,7 +63,7 @@
 
     function $$route$recognizer$dsl$$addRoute(routeArray, path, handler) {
       var len = 0;
-      for (var i=0, l=routeArray.length; i<l; i++) {
+      for (var i=0; i<routeArray.length; i++) {
         len += routeArray[i].path.length;
       }
 
@@ -133,7 +133,7 @@
       eachChar: function(callback) {
         var string = this.string, ch;
 
-        for (var i=0, l=string.length; i<l; i++) {
+        for (var i=0; i<string.length; i++) {
           ch = string.charAt(i);
           callback({ validChars: ch });
         }
@@ -190,7 +190,8 @@
       // also normalize.
       if (route.charAt(0) === "/") { route = route.substr(1); }
 
-      var segments = route.split("/"), results = [];
+      var segments = route.split("/");
+      var results = new Array(segments.length);
 
       // A routes has specificity determined by the order that its different segments
       // appear in. This system mirrors how the magnitude of numbers written as strings
@@ -213,22 +214,22 @@
       // we convert the string to a number.
       specificity.val = '';
 
-      for (var i=0, l=segments.length; i<l; i++) {
+      for (var i=0; i<segments.length; i++) {
         var segment = segments[i], match;
 
         if (match = segment.match(/^:([^\/]+)$/)) {
-          results.push(new $$route$recognizer$$DynamicSegment(match[1]));
+          results[i] = new $$route$recognizer$$DynamicSegment(match[1]);
           names.push(match[1]);
           specificity.val += '3';
         } else if (match = segment.match(/^\*([^\/]+)$/)) {
-          results.push(new $$route$recognizer$$StarSegment(match[1]));
+          results[i] = new $$route$recognizer$$StarSegment(match[1]);
           specificity.val += '2';
           names.push(match[1]);
         } else if(segment === "") {
-          results.push(new $$route$recognizer$$EpsilonSegment());
+          results[i] = new $$route$recognizer$$EpsilonSegment();
           specificity.val += '1';
         } else {
-          results.push(new $$route$recognizer$$StaticSegment(segment));
+          results[i] = new $$route$recognizer$$StaticSegment(segment);
           specificity.val += '4';
         }
       }
@@ -264,7 +265,7 @@
       get: function(charSpec) {
         var nextStates = this.nextStates;
 
-        for (var i=0, l=nextStates.length; i<l; i++) {
+        for (var i=0; i<nextStates.length; i++) {
           var child = nextStates[i];
 
           var isEqual = child.charSpec.validChars === charSpec.validChars;
@@ -307,7 +308,7 @@
         // DEBUG "  " + debugState(this)
         var returned = [];
 
-        for (var i=0, l=nextStates.length; i<l; i++) {
+        for (var i=0; i<nextStates.length; i++) {
           child = nextStates[i];
 
           charSpec = child.charSpec;
@@ -393,10 +394,10 @@
       var captures = path.match(regex), currentCapture = 1;
       var result = new $$route$recognizer$$RecognizeResults(queryParams);
 
-      for (var i=0, l=handlers.length; i<l; i++) {
+      for (var i=0; i<handlers.length; i++) {
         var handler = handlers[i], names = handler.names, params = {};
 
-        for (var j=0, m=names.length; j<m; j++) {
+        for (var j=0; j<names.length; j++) {
           params[names[j]] = captures[currentCapture++];
         }
 
@@ -436,18 +437,18 @@
       add: function(routes, options) {
         var currentState = this.rootState, regex = "^",
             specificity = {},
-            handlers = [], allSegments = [], name;
+            handlers = new Array(routes.length), allSegments = [], name;
 
         var isEmpty = true;
 
-        for (var i=0, l=routes.length; i<l; i++) {
+        for (var i=0; i<routes.length; i++) {
           var route = routes[i], names = [];
 
           var segments = $$route$recognizer$$parse(route.path, names, specificity);
 
           allSegments = allSegments.concat(segments);
 
-          for (var j=0, m=segments.length; j<m; j++) {
+          for (var j=0; j<segments.length; j++) {
             var segment = segments[j];
 
             if (segment instanceof $$route$recognizer$$EpsilonSegment) { continue; }
@@ -464,7 +465,7 @@
           }
 
           var handler = { handler: route.handler, names: names };
-          handlers.push(handler);
+          handlers[i] = handler;
         }
 
         if (isEmpty) {
@@ -485,11 +486,14 @@
       },
 
       handlersFor: function(name) {
-        var route = this.names[name], result = [];
-        if (!route) { throw new Error("There is no route named " + name); }
+        var route = this.names[name];
 
-        for (var i=0, l=route.handlers.length; i<l; i++) {
-          result.push(route.handlers[i]);
+        if (!route) { throw new Error("There is no route named " + name); }
+        
+        var result = new Array(route.handlers.length);
+        
+        for (var i=0; i<route.handlers.length; i++) {
+          result[i] = route.handlers[i];
         }
 
         return result;
@@ -505,7 +509,7 @@
 
         var segments = route.segments;
 
-        for (var i=0, l=segments.length; i<l; i++) {
+        for (var i=0; i<segments.length; i++) {
           var segment = segments[i];
 
           if (segment instanceof $$route$recognizer$$EpsilonSegment) { continue; }
@@ -532,7 +536,7 @@
           }
         }
         keys.sort();
-        for (var i = 0, len = keys.length; i < len; i++) {
+        for (var i = 0; i < keys.length; i++) {
           key = keys[i];
           var value = params[key];
           if (value == null) {
@@ -540,7 +544,7 @@
           }
           var pair = encodeURIComponent(key);
           if ($$route$recognizer$$isArray(value)) {
-            for (var j = 0, l = value.length; j < l; j++) {
+            for (var j = 0; j < value.length; j++) {
               var arrayPair = key + '[]' + '=' + encodeURIComponent(value[j]);
               pairs.push(arrayPair);
             }
@@ -609,7 +613,7 @@
           isSlashDropped = true;
         }
 
-        for (i=0, l=path.length; i<l; i++) {
+        for (i=0; i<path.length; i++) {
           states = $$route$recognizer$$recognizeChar(states, path.charAt(i));
           if (!states.length) { break; }
         }
@@ -617,7 +621,7 @@
         // END DEBUG GROUP
 
         var solutions = [];
-        for (i=0, l=states.length; i<l; i++) {
+        for (i=0; i<states.length; i++) {
           if (states[i].handlers) { solutions.push(states[i]); }
         }
 
