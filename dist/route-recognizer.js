@@ -130,13 +130,15 @@
 
     function $$route$recognizer$$StaticSegment(string) { this.string = string; }
     $$route$recognizer$$StaticSegment.prototype = {
-      eachChar: function(callback) {
+      eachChar: function(currentState) {
         var string = this.string, ch;
 
         for (var i=0; i<string.length; i++) {
           ch = string.charAt(i);
-          callback({ validChars: ch });
+          currentState = currentState.put({ validChars: ch });
         }
+
+        return currentState;
       },
 
       regex: function() {
@@ -150,8 +152,8 @@
 
     function $$route$recognizer$$DynamicSegment(name) { this.name = name; }
     $$route$recognizer$$DynamicSegment.prototype = {
-      eachChar: function(callback) {
-        callback({ invalidChars: "/", repeat: true });
+      eachChar: function(currentState) {
+        return currentState.put({ invalidChars: "/", repeat: true });
       },
 
       regex: function() {
@@ -165,8 +167,8 @@
 
     function $$route$recognizer$$StarSegment(name) { this.name = name; }
     $$route$recognizer$$StarSegment.prototype = {
-      eachChar: function(callback) {
-        callback({ invalidChars: "", repeat: true });
+      eachChar: function(currentState) {
+        return currentState.put({ invalidChars: "", repeat: true });
       },
 
       regex: function() {
@@ -180,7 +182,9 @@
 
     function $$route$recognizer$$EpsilonSegment() {}
     $$route$recognizer$$EpsilonSegment.prototype = {
-      eachChar: function() {},
+      eachChar: function(currentState) {
+        return currentState;
+      },
       regex: function() { return ""; },
       generate: function() { return ""; }
     };
@@ -417,14 +421,6 @@
       return result;
     }
 
-    function $$route$recognizer$$addSegment(currentState, segment) {
-      segment.eachChar(function(ch) {
-        currentState = currentState.put(ch);
-      });
-
-      return currentState;
-    }
-
     function $$route$recognizer$$decodeQueryParamPart(part) {
       // http://www.w3.org/TR/html401/interact/forms.html#h-17.13.4.1
       part = part.replace(/\+/gm, '%20');
@@ -470,7 +466,7 @@
             regex += "/";
 
             // Add a representation of the segment to the NFA and regex
-            currentState = $$route$recognizer$$addSegment(currentState, segment);
+            currentState = segment.eachChar(currentState);
             regex += segment.regex();
           }
 
