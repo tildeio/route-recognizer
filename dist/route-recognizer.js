@@ -135,7 +135,7 @@
 
         for (var i=0; i<string.length; i++) {
           ch = string.charAt(i);
-          currentState = currentState.put({ validChars: ch });
+          currentState = currentState.put({ invalidChars: undefined, repeat: false, validChars: ch });
         }
 
         return currentState;
@@ -153,7 +153,7 @@
     function $$route$recognizer$$DynamicSegment(name) { this.name = name; }
     $$route$recognizer$$DynamicSegment.prototype = {
       eachChar: function(currentState) {
-        return currentState.put({ invalidChars: "/", repeat: true });
+        return currentState.put({ invalidChars: "/", repeat: true, validChars: undefined });
       },
 
       regex: function() {
@@ -168,7 +168,7 @@
     function $$route$recognizer$$StarSegment(name) { this.name = name; }
     $$route$recognizer$$StarSegment.prototype = {
       eachChar: function(currentState) {
-        return currentState.put({ invalidChars: "", repeat: true });
+        return currentState.put({ invalidChars: "", repeat: true, validChars: undefined });
       },
 
       regex: function() {
@@ -264,6 +264,9 @@
       this.charSpec = charSpec;
       this.nextStates = [];
       this.charSpecs = {};
+      this.regex = undefined;
+      this.handlers = undefined;
+      this.specificity = undefined;
     }
 
     $$route$recognizer$$State.prototype = {
@@ -462,20 +465,19 @@
             isEmpty = false;
 
             // Add a "/" for the new segment
-            currentState = currentState.put({ validChars: "/" });
+            currentState = currentState.put({ invalidChars: undefined, repeat: false, validChars: "/" });
             regex += "/";
 
             // Add a representation of the segment to the NFA and regex
             currentState = segment.eachChar(currentState);
             regex += segment.regex();
           }
-
           var handler = { handler: route.handler, names: names };
           handlers[i] = handler;
         }
 
         if (isEmpty) {
-          currentState = currentState.put({ validChars: "/" });
+          currentState = currentState.put({ invalidChars: undefined, repeat: false, validChars: "/" });
           regex += "/";
         }
 
@@ -495,9 +497,9 @@
         var route = this.names[name];
 
         if (!route) { throw new Error("There is no route named " + name); }
-        
+
         var result = new Array(route.handlers.length);
-        
+
         for (var i=0; i<route.handlers.length; i++) {
           result[i] = route.handlers[i];
         }
