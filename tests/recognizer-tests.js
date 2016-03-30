@@ -265,6 +265,24 @@ test("Prefers more specific routes with stars over less specific dynamic routes"
   resultsMatch(router.recognize("/foo/bar"), [{ handler: handler1, params: { star: "bar" }, isDynamic: true }]);
 });
 
+test("Handle star routes last when there are trailing `/` routes.", function() {
+  var handler1 = { handler: 1 };
+  var handler2 = { handler: 2 };
+  var handler3 = { handler: 3 };
+  var handlerWildcard = { handler: 4 };
+  var router = new RouteRecognizer();
+
+  router.add([{ path: "/foo/:dynamic", handler: handler1 }]);
+  router.add([{ path: "/foo/:dynamic", handler: handler1 }, { path: "/baz/:dynamic", handler: handler2 }, { path: "/", handler: handler3 }]);
+  router.add([{ path: "/foo/:dynamic", handler: handler1 }, { path: "/*wildcard", handler: handlerWildcard }]);
+
+  resultsMatch(router.recognize("/foo/r3/baz/w10"), [
+    { handler: handler1, params: { dynamic: "r3" }, isDynamic: true },
+    { handler: handler2, params: { dynamic: "w10" }, isDynamic: true },
+    { handler: handler3, params: { }, isDynamic: false }
+  ]);
+});
+
 test("Routes with trailing `/` recognize", function() {
   var handler = {};
   var router = new RouteRecognizer();
