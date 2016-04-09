@@ -283,6 +283,23 @@ test("Handle star routes last when there are trailing `/` routes.", function() {
   ]);
 });
 
+test("Handle `/` before globs when the route is empty.", function() {
+  var handler1 = { handler: 1 };
+  var handler2 = { handler: 2 };
+  var router = new RouteRecognizer();
+
+  router.add([{ path: "/", handler: handler1 }]);
+  router.add([{ path: "/*notFound", handler: handler2 }]);
+
+  resultsMatch(router.recognize("/"), [
+    { handler: handler1, params: { }, isDynamic: false }
+  ]);
+
+  resultsMatch(router.recognize("/hello"), [
+    { handler: handler2, params: { notFound: "hello" }, isDynamic: true }
+  ]);
+});
+
 test("Routes with trailing `/` recognize", function() {
   var handler = {};
   var router = new RouteRecognizer();
