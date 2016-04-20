@@ -316,11 +316,9 @@
 
       // Find a list of child states matching the next character
       match: function(ch) {
-        // DEBUG "Processing `" + ch + "`:"
         var nextStates = this.nextStates,
             child, charSpec, chars;
 
-        // DEBUG "  " + debugState(this)
         var returned = [];
 
         for (var i=0; i<nextStates.length; i++) {
@@ -337,36 +335,7 @@
 
         return returned;
       }
-
-      /** IF DEBUG
-      , debug: function() {
-        var charSpec = this.charSpec,
-            debug = "[",
-            chars = charSpec.validChars || charSpec.invalidChars;
-
-        if (charSpec.invalidChars) { debug += "^"; }
-        debug += chars;
-        debug += "]";
-
-        if (charSpec.repeat) { debug += "+"; }
-
-        return debug;
-      }
-      END IF **/
     };
-
-    /** IF DEBUG
-    function debug(log) {
-      console.log(log);
-    }
-
-    function debugState(state) {
-      return state.nextStates.map(function(n) {
-        if (n.nextStates.length === 0) { return "( " + n.debug() + " [accepting] )"; }
-        return "( " + n.debug() + " <then> " + n.nextStates.map(function(s) { return s.debug() }).join(" or ") + " )";
-      }).join(", ")
-    }
-    END IF **/
 
     // Sort the routes by specificity
     function $$route$recognizer$$sortSolutions(states) {
@@ -611,8 +580,6 @@
 
         path = decodeURI(path);
 
-        // DEBUG GROUP path
-
         if (path.charAt(0) !== "/") { path = "/" + path; }
 
         pathLen = path.length;
@@ -625,8 +592,6 @@
           states = $$route$recognizer$$recognizeChar(states, path.charAt(i));
           if (!states.length) { break; }
         }
-
-        // END DEBUG GROUP
 
         var solutions = [];
         for (i=0; i<states.length; i++) {
@@ -650,7 +615,7 @@
 
     $$route$recognizer$$RouteRecognizer.prototype.map = $$route$recognizer$dsl$$default;
 
-    $$route$recognizer$$RouteRecognizer.VERSION = '0.1.9';
+    $$route$recognizer$$RouteRecognizer.VERSION = '0.1.11';
 
     var $$route$recognizer$$default = $$route$recognizer$$RouteRecognizer;
 
