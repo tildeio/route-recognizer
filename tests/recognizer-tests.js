@@ -139,6 +139,18 @@ test("A simple dynamic route with an encoded segment recognizes", function() {
   resultsMatch(router.recognize("/foo/" + encodedBar), [{ handler: handler, params: { bar: bar }, isDynamic: true }]);
 });
 
+test("Setting RouteRecognizer.ENCODE_AND_DECODE_PATH_SEGMENTS to false causes simple dynamic route with encoded path segment to not be decoded", function() {
+  var handler = {};
+  var router = new RouteRecognizer();
+  router.add([{ path: "/foo/:bar", handler: handler }]);
+
+  var bar = "abc/def";
+  var encodedBar = encodeURIComponent(bar);
+  RouteRecognizer.ENCODE_AND_DECODE_PATH_SEGMENTS = false;
+  resultsMatch(router.recognize("/foo/" + encodedBar), [{ handler: handler, params: { bar: encodedBar }, isDynamic: true }]);
+  RouteRecognizer.ENCODE_AND_DECODE_PATH_SEGMENTS = true;
+});
+
 test("A complex dynamic route with an encoded segment recognizes", function() {
   var handler = {};
   var router = new RouteRecognizer();
@@ -147,6 +159,18 @@ test("A complex dynamic route with an encoded segment recognizes", function() {
   var bar = "abc/def";
   var encodedBar = encodeURIComponent(bar);
   resultsMatch(router.recognize("/foo/" + encodedBar + "/baz"), [{ handler: handler, params: { bar: bar }, isDynamic: true }]);
+});
+
+test("Setting RouteRecognizer.ENCODE_AND_DECODE_PATH_SEGMENTS to false causes complex dynamic route with an encoded segment to not be decoded", function() {
+  var handler = {};
+  var router = new RouteRecognizer();
+  router.add([{ path: "/foo/:bar/baz", handler: handler }]);
+
+  var bar = "abc/def";
+  var encodedBar = encodeURIComponent(bar);
+  RouteRecognizer.ENCODE_AND_DECODE_PATH_SEGMENTS = false;
+  resultsMatch(router.recognize("/foo/" + encodedBar + "/baz"), [{ handler: handler, params: { bar: encodedBar }, isDynamic: true }]);
+  RouteRecognizer.ENCODE_AND_DECODE_PATH_SEGMENTS = true;
 });
 
 test("Multiple routes recognize", function() {
@@ -453,6 +477,17 @@ test("Generation encodes dynamic segments", function() {
   equal( router.generate("post", { id: postId }), "/posts/" + encodedPostId );
   equal( router.generate("edit_post", { id: postId }), "/posts/" + encodedPostId + "/edit" );
 });
+
+test("Setting RouteRecognizer.ENCODE_AND_DECODE_PATH_SEGMENTS to false causes generation to not encode dynamic segments", function() {
+  var postId = "abc/def";
+  var encodedPostId = encodeURIComponent(postId);
+  ok(postId !== encodedPostId, "precondition - encoded segment does not equal orginal segment");
+  RouteRecognizer.ENCODE_AND_DECODE_PATH_SEGMENTS = false;
+  equal( router.generate("post", { id: postId }), "/posts/" + postId );
+  equal( router.generate("edit_post", { id: postId }), "/posts/" + postId + "/edit" );
+  RouteRecognizer.ENCODE_AND_DECODE_PATH_SEGMENTS = true;
+});
+
 
 test("Parsing and generation results into the same input string", function() {
   var query = "filter%20data=date";
