@@ -227,11 +227,11 @@
           specificity.val += '3';
         } else if (match = segment.match(/^\*([^\/]+)$/)) {
           results[i] = new $$route$recognizer$$StarSegment(match[1]);
-          specificity.val += '2';
+          specificity.val += '1';
           names.push(match[1]);
         } else if(segment === "") {
           results[i] = new $$route$recognizer$$EpsilonSegment();
-          specificity.val += '1';
+          specificity.val += '2';
         } else {
           results[i] = new $$route$recognizer$$StaticSegment(segment);
           specificity.val += '4';
