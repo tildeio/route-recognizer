@@ -177,6 +177,14 @@ test("support star route before other segment", function() {
   });
 });
 
+test("supports URL encoded route's calls to match", function() {
+  router.map(function(match) {
+    match("/all%20posts").to("indexPost");
+  });
+
+  matchesRoute("/all%20posts", [{ handler: "indexPost", params: {}, isDynamic: false }]);
+});
+
 test("support nested star route", function() {
   router.map(function(match) {
     match("/*everything").to("glob", function(match){
