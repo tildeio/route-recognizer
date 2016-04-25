@@ -139,6 +139,16 @@ test("A simple dynamic route with an encoded segment recognizes", function() {
   resultsMatch(router.recognize("/foo/" + encodedBar), [{ handler: handler, params: { bar: bar }, isDynamic: true }]);
 });
 
+test("A simple dynamic route with an encoded segment that includes an encoded % recognizes", function() {
+  var handler = {};
+  var router = new RouteRecognizer();
+  router.add([{ path: "/foo/:bar", handler: handler }]);
+
+  var bar = "abc%def";
+  var encodedBar = encodeURIComponent(bar);
+  resultsMatch(router.recognize("/foo/" + encodedBar), [{ handler: handler, params: { bar: bar }, isDynamic: true }]);
+});
+
 test("Setting RouteRecognizer.ENCODE_AND_DECODE_PATH_SEGMENTS to false causes simple dynamic route with encoded path segment to not be decoded", function() {
   var handler = {};
   var router = new RouteRecognizer();
