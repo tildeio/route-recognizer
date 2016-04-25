@@ -20,14 +20,65 @@ test("A simple route recognizes", function() {
   equal(router.recognize("/foo/baz"), null);
 });
 
-test("A unicode route recognizes", function() {
+test("A static route with non-ascii characters can be added in un-encoded form and recognized in encoded form", function() {
   var handler = {};
   var router = new RouteRecognizer();
-  router.add([{ path: "/uniçø∂∑/ʇɥƃᴉɹlɐ", handler: handler }]);
+  var unencoded = "/uniçø∂∑/ʇɥƃᴉɹlɐ";
+  var encoded = encodeURI(unencoded);
 
-  var encoded = encodeURI("/uniçø∂∑/ʇɥƃᴉɹlɐ");
+  router.add([{ path: unencoded, handler: handler }]);
   resultsMatch(router.recognize(encoded), [{ handler: handler, params: {}, isDynamic: false }]);
-  equal(router.recognize("/uniçø∂∑"), null);
+});
+
+test("A static route with non-ascii characters can be added in encoded form and recognized in encoded form", function() {
+  var handler = {};
+  var router = new RouteRecognizer();
+  var unencoded = "/uniçø∂∑/ʇɥƃᴉɹlɐ";
+  var encoded = encodeURI(unencoded);
+
+  router.add([{ path: encoded, handler: handler }]);
+  resultsMatch(router.recognize(encoded), [{ handler: handler, params: {}, isDynamic: false }]);
+});
+
+// ":", "/" and "*" are reserved for the router micro-syntax, so they cannot appear in static segments
+test("A static route with URI-reserved characters other than ':', '/' and '*' can be added in un-encoded form and recognized in encoded form", function() {
+  var handler = {};
+  var router = new RouteRecognizer();
+  var unencoded = "/foo]/$bar";
+  var encoded = encodeURI(unencoded); // "/foo%5D/%24bar"
+
+  router.add([{ path: unencoded, handler: handler }]);
+  resultsMatch(router.recognize(encoded), [{ handler: handler, params: {}, isDynamic: false }]);
+});
+
+test("A static route with URI-reserved characters other than ':', '/' and '*' can be added in encoded form and recognized in encoded form", function() {
+  var handler = {};
+  var router = new RouteRecognizer();
+  var unencoded = "/foo]/$bar";
+  var encoded = encodeURI(unencoded); // "/foo%5D/%24bar"
+
+  router.add([{ path: encoded, handler: handler }]);
+  resultsMatch(router.recognize(encoded), [{ handler: handler, params: {}, isDynamic: false }]);
+});
+
+test("A static route with percent ('%') character can be added in un-encoded form and recognized in encoded form", function() {
+  var handler = {};
+  var router = new RouteRecognizer();
+  var unencoded = "/foo%";
+  var encoded = encodeURI(unencoded); // "/foo%25".
+
+  router.add([{ path: unencoded, handler: handler }]);
+  resultsMatch(router.recognize(encoded), [{ handler: handler, params: {}, isDynamic: false }]);
+});
+
+test("A static route with percent ('%') character can be added in encoded form and recognized in encoded form", function() {
+  var handler = {};
+  var router = new RouteRecognizer();
+  var unencoded = "/foo%";
+  var encoded = encodeURI(unencoded); // "/foo%25".
+
+  router.add([{ path: encoded, handler: handler }]);
+  resultsMatch(router.recognize(encoded), [{ handler: handler, params: {}, isDynamic: false }]);
 });
 
 test("A simple route with query params recognizes", function() {
@@ -129,7 +180,7 @@ test("A dynamic route recognizes", function() {
   equal(router.recognize("/zoo/baz"), null);
 });
 
-test("A simple dynamic route with an encoded segment recognizes", function() {
+test("A simple dynamic route recognizes a path with uri-encoded segment", function() {
   var handler = {};
   var router = new RouteRecognizer();
   router.add([{ path: "/foo/:bar", handler: handler }]);
@@ -139,7 +190,7 @@ test("A simple dynamic route with an encoded segment recognizes", function() {
   resultsMatch(router.recognize("/foo/" + encodedBar), [{ handler: handler, params: { bar: bar }, isDynamic: true }]);
 });
 
-test("A simple dynamic route with an encoded segment that includes an encoded % recognizes", function() {
+test("A simple dynamic route recognizes a path with uri-encoded segment when segment includes '%'", function() {
   var handler = {};
   var router = new RouteRecognizer();
   router.add([{ path: "/foo/:bar", handler: handler }]);
