@@ -317,6 +317,53 @@ reservedCharDynamicExpectations.forEach(function(expectation) {
   });
 });
 
+var multiSegmentDynamicExpectations = [{
+  route: "/foo/:bar/baz",
+  path: "/foo/b ar/baz",
+  matches: { bar: "b ar" }
+}, {
+  route: "/foo/:bar/baz",
+  path: "/foo/b%20ar/baz",
+  matches: { bar: "b ar" }
+}, {
+  route: "/foo/:bar/baz",
+  path: "/foo/b%25ar/baz",
+  matches: { bar: "b%ar" }
+}, {
+  route: "/foo/:bar/baz",
+  path: "/foo/%3abar/baz",
+  matches: {bar: ":bar"}
+}, {
+  route: "/foo/:bar/baz",
+  path: "/foo/" + encodeURIComponent("http://example.com/some_url.html?abc=foo") + "/baz",
+  matches: { bar: "http://example.com/some_url.html?abc=foo" }
+}, {
+  route: "/:foo/bar/:baz",
+  path: "/föo/bar/bäz",
+  matches: {foo: "föo", baz: "bäz" }
+}, {
+  route: "/:foo/bar/:baz",
+  path: "/f%c3%b6o/bar/b%c3%a4z",
+  matches: {foo: "föo", baz: "bäz" }
+}, {
+  // route match names have unicode in them
+  route: "/:föo/bar/:bäz",
+  path: "/föo/bar/bäz",
+  matches: {föo: "föo", bäz: "bäz" }
+}];
+
+multiSegmentDynamicExpectations.forEach(function(expectation) {
+  var message = "A multi-segment dynamic route '" + expectation.route + "' recognizes path '" + expectation.path +
+    "' with matches: '" + JSON.stringify(expectation.matches) + "'";
+  test(message, function() {
+    var handler = {};
+    var router = new RouteRecognizer();
+    router.add([{ path: expectation.route, handler: handler }]);
+
+    resultsMatch(router.recognize(expectation.path), [{ handler: handler, params: expectation.matches, isDynamic: true }]);
+  });
+});
+
 var starExpectations = [{
   // encoded % is left encoded
   route: "/foo/*bar",
@@ -337,6 +384,16 @@ var starExpectations = [{
   route: "/foo/*bar",
   path: "/foo/bar/baz/blah/",
   match: "bar/baz/blah/"
+}, {
+  // unencoded url
+  route: "/foo/*bar",
+  path: "/foo/http://example.com/abc_def.html",
+  match: "http://example.com/abc_def.html"
+}, {
+  // encoded url
+  route: "/foo/*bar",
+  path: "/foo/" + encodeURIComponent("http://example.com/abc_%def.html"),
+  match: encodeURIComponent("http://example.com/abc_%def.html")
 }];
 
 starExpectations.forEach(function(expectation) {
