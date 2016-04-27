@@ -20,65 +20,132 @@ test("A simple route recognizes", function() {
   equal(router.recognize("/foo/baz"), null);
 });
 
-test("A static route with non-ascii characters can be added in un-encoded form and recognized in encoded form", function() {
-  var handler = {};
-  var router = new RouteRecognizer();
-  var unencoded = "/uniçø∂∑/ʇɥƃᴉɹlɐ";
-  var encoded = encodeURI(unencoded);
+var slashExpectations = [{
+  // exact with leading slash
+  route: "/foo/bar",
+  path: "/foo/bar",
+}, {
+  // exact with no leading or trailing slash
+  route: "foo/bar",
+  path: "foo/bar",
+}, {
+  // exact with trailing slash
+  route: "foo/bar/",
+  path: "foo/bar/",
+}, {
+  // exact with leading and trailing slash
+  route: "/foo/bar/",
+  path: "/foo/bar/",
+}, {
+  // route only has leading slash
+  route: "/foo/bar",
+  path: "foo/bar",
+}, {
+  // route has leading slash, path trailing slash
+  route: "/foo/bar",
+  path: "foo/bar/",
+}, {
+  // route only has trailing slash
+  route: "foo/bar/",
+  path: "foo/bar",
+}, {
+  // route has trailing slash, path leading slash
+  route: "foo/bar/",
+  path: "/foo/bar",
+}];
 
-  router.add([{ path: unencoded, handler: handler }]);
-  resultsMatch(router.recognize(encoded), [{ handler: handler, params: {}, isDynamic: false }]);
+slashExpectations.forEach(function(expectation) {
+  test("A static route '" + expectation.route + "' recognizes path '" + expectation.path + "'", function() {
+    var handler = {};
+    var router = new RouteRecognizer();
+    router.add([{ path: expectation.route, handler: handler }]);
+    resultsMatch(router.recognize(expectation.path), [{ handler: handler, params: {}, isDynamic: false }]);
+  });
 });
 
-test("A static route with non-ascii characters can be added in encoded form and recognized in encoded form", function() {
-  var handler = {};
-  var router = new RouteRecognizer();
-  var unencoded = "/uniçø∂∑/ʇɥƃᴉɹlɐ";
-  var encoded = encodeURI(unencoded);
+var nonAsciiExpectations = [{
+  // uri-encoded path
+  route: "/foö/bär",
+  path:  "/fo%C3%B6/b%C3%A4r"
+}, {
+  // uri-encoded path to lower-case
+  route: "/foö/bär",
+  path:  "/fo%c3%b6/b%c3%a4r"
+}, {
+  route: "/uniçø∂∑/ʇɥƃᴉɹlɐ",
+  path: encodeURI("/uniçø∂∑/ʇɥƃᴉɹlɐ")
+}, {
+  // exact match
+  route: "/foö/bär",
+  path: "/foö/bär"
+}, {
+  // emoji
+  route: "/foo/😜",
+  path: "/foo/%F0%9F%98%9C"
+}, {
+  // emoji exact match
+  route: "/foo/😜",
+  path: "/foo/😜"
+}];
 
-  router.add([{ path: encoded, handler: handler }]);
-  resultsMatch(router.recognize(encoded), [{ handler: handler, params: {}, isDynamic: false }]);
+nonAsciiExpectations.forEach(function(expectation) {
+  test("A non-ascii static route '" + expectation.route + "' recognizes path '" + expectation.path + "'", function() {
+    var handler = {};
+    var router = new RouteRecognizer();
+    router.add([{ path: expectation.route, handler: handler }]);
+    resultsMatch(router.recognize(expectation.path), [{ handler: handler, params: {}, isDynamic: false }]);
+  });
 });
 
-// ":", "/" and "*" are reserved for the router micro-syntax, so they cannot appear in static segments
-test("A static route with URI-reserved characters other than ':', '/' and '*' can be added in un-encoded form and recognized in encoded form", function() {
-  var handler = {};
-  var router = new RouteRecognizer();
-  var unencoded = "/foo]/$bar";
-  var encoded = encodeURI(unencoded); // "/foo%5D/%24bar"
+var reservedCharExpectations = [{
+  // "foo/:bar" with encoded ":"
+  route: "/foo/%3Abar",
+  path: "/foo/%3Abar"
+}, {
+  // "foo /bar" exact match
+  route: "/foo /bar",
+  path: "/foo /bar"
+}, {
+  // "foo /bar" encoded match
+  route: "/foo /bar",
+  path: "/foo%20/bar"
+}, {
+  // encoded "/" in route segment "ba/r"
+  route: "/foo/ba%2Fr",
+  path: "/foo/ba%2Fr"
+}, {
+  // encoded "/" in "ba/r",n route segment mixed-case, lowercase path
+  route: "/foo/ba%2Fr",
+  path: "/foo/ba%2fr"
+}, {
+  // encoded "/" in "ba/r", mixed-case, lowercase route
+  route: "/foo/ba%2fr",
+  path: "/foo/ba%2Fr"
+}, {
+  // encoded "%" in route segment "ba%r"
+  route: "/foo/ba%25r",
+  path: "/foo/ba%25r"
+}, {
+  // encoded "*" in route segment "ba*r"
+  route: "/foo/ba%2Ar",
+  path: "/foo/ba%2Ar"
+}, {
+  // encoded "?" in route segment "ba?r"
+  route: "/foo/ba%3Fr",
+  path: "/foo/ba%3Fr"
+}, {
+  // encoded "#" in route segment "ba#r"
+  route: "/foo/ba%23r",
+  path: "/foo/ba%23r"
+}];
 
-  router.add([{ path: unencoded, handler: handler }]);
-  resultsMatch(router.recognize(encoded), [{ handler: handler, params: {}, isDynamic: false }]);
-});
-
-test("A static route with URI-reserved characters other than ':', '/' and '*' can be added in encoded form and recognized in encoded form", function() {
-  var handler = {};
-  var router = new RouteRecognizer();
-  var unencoded = "/foo]/$bar";
-  var encoded = encodeURI(unencoded); // "/foo%5D/%24bar"
-
-  router.add([{ path: encoded, handler: handler }]);
-  resultsMatch(router.recognize(encoded), [{ handler: handler, params: {}, isDynamic: false }]);
-});
-
-test("A static route with percent ('%') character can be added in un-encoded form and recognized in encoded form", function() {
-  var handler = {};
-  var router = new RouteRecognizer();
-  var unencoded = "/foo%";
-  var encoded = encodeURI(unencoded); // "/foo%25".
-
-  router.add([{ path: unencoded, handler: handler }]);
-  resultsMatch(router.recognize(encoded), [{ handler: handler, params: {}, isDynamic: false }]);
-});
-
-test("A static route with percent ('%') character can be added in encoded form and recognized in encoded form", function() {
-  var handler = {};
-  var router = new RouteRecognizer();
-  var unencoded = "/foo%";
-  var encoded = encodeURI(unencoded); // "/foo%25".
-
-  router.add([{ path: encoded, handler: handler }]);
-  resultsMatch(router.recognize(encoded), [{ handler: handler, params: {}, isDynamic: false }]);
+reservedCharExpectations.forEach(function(expectation) {
+  test("A static route with reserved chars '" + expectation.route + "' recognizes path '" + expectation.path + "'", function() {
+    var handler = {};
+    var router = new RouteRecognizer();
+    router.add([{ path: expectation.route, handler: handler }]);
+    resultsMatch(router.recognize(expectation.path), [{ handler: handler, params: {}, isDynamic: false }]);
+  });
 });
 
 test("A simple route with query params recognizes", function() {
@@ -153,7 +220,6 @@ test("A route with query params with pluses for spaces instead of %20 recognizes
   deepEqual(router.recognize("/foo/bar?++one+two=three+four+five++").queryParams, { '  one two': 'three four five  ' });
 });
 
-
 test("A `/` route recognizes", function() {
   var handler = {};
   var router = new RouteRecognizer();
@@ -180,22 +246,114 @@ test("A dynamic route recognizes", function() {
   equal(router.recognize("/zoo/baz"), null);
 });
 
+var reservedCharDynamicExpectations = [{
+  // encoded "/"
+  route: "/foo/:bar",
+  path: "/foo/ba%2Fr",
+  match: "ba/r"
+}, {
+  // encoded "/", path lowercase
+  route: "/foo/:bar",
+  path: "/foo/ba%2fr",
+  match: "ba/r"
+}, {
+  // encoded "#"
+  route: "/foo/:bar",
+  path: "/foo/ba%23r",
+  match: "ba#r"
+}, {
+  // encoded ":"
+  route: "/foo/:bar",
+  path: "/foo/%3Abar",
+  match: ":bar"
+}, {
+  // non-encoded ":"
+  route: "/foo/:bar",
+  path: "/foo/:bar",
+  match: ":bar"
+}, {
+  // encoded "?"
+  route: "/foo/:bar",
+  path: "/foo/ba%3Fr",
+  match: "ba?r"
+}, {
+  // encoded " "
+  route: "/foo/:bar",
+  path: "/foo/ba%20r",
+  match: "ba r"
+}, {
+  // non-encoded " "
+  route: "/foo/:bar",
+  path: "/foo/ba r",
+  match: "ba r"
+}, {
+  // encoded "+"
+  route: "/foo/:bar",
+  path: "/foo/ba%2Br",
+  match: "ba+r"
+}, {
+  // non-encoded "+"
+  route: "/foo/:bar",
+  path: "/foo/ba+r",
+  match: "ba+r"
+}, {
+  // encoded %
+  route: "/foo/:bar",
+  path: "/foo/ba%25r",
+  match: "ba%r"
+}, {
+  // many encoded %
+  route: "/foo/:bar",
+  path: "/foo/ba%25%25r%3A%25",
+  match: "ba%%r:%"
+}];
+
+reservedCharDynamicExpectations.forEach(function(expectation) {
+  test("A simple dynamic route '" + expectation.route + "' recognizes path '" + expectation.path + "' with match: '" + expectation.match + "'", function() {
+    var handler = {};
+    var router = new RouteRecognizer();
+    router.add([{ path: expectation.route, handler: handler }]);
+    resultsMatch(router.recognize(expectation.path), [{ handler: handler, params: { bar: expectation.match }, isDynamic: true }]);
+  });
+});
+
+var starExpectations = [{
+  // encoded % is left encoded
+  route: "/foo/*bar",
+  path: "/foo/ba%25r",
+  match: "ba%25r"
+}, {
+  // encoded / is left encoded
+  route: "/foo/*bar",
+  path: "/foo/ba%2Fr",
+  match: "ba%2Fr"
+}, {
+  // multiple segments
+  route: "/foo/*bar",
+  path: "/foo/bar/baz/blah",
+  match: "bar/baz/blah"
+}, {
+  // trailing slash
+  route: "/foo/*bar",
+  path: "/foo/bar/baz/blah/",
+  match: "bar/baz/blah/"
+}];
+
+starExpectations.forEach(function(expectation) {
+  test("A glob route '" + expectation.route + "' recognizes path '" + expectation.path + "' with match: '" + expectation.match + "'", function() {
+    var handler = {};
+    var router = new RouteRecognizer();
+    router.add([{ path: expectation.route, handler: handler }]);
+    resultsMatch(router.recognize(expectation.path), [{ handler: handler, params: { bar: expectation.match }, isDynamic: true }]);
+  });
+});
+
 test("A simple dynamic route recognizes a path with uri-encoded segment", function() {
   var handler = {};
   var router = new RouteRecognizer();
   router.add([{ path: "/foo/:bar", handler: handler }]);
 
   var bar = "abc/def";
-  var encodedBar = encodeURIComponent(bar);
-  resultsMatch(router.recognize("/foo/" + encodedBar), [{ handler: handler, params: { bar: bar }, isDynamic: true }]);
-});
-
-test("A simple dynamic route recognizes a path with uri-encoded segment when segment includes '%'", function() {
-  var handler = {};
-  var router = new RouteRecognizer();
-  router.add([{ path: "/foo/:bar", handler: handler }]);
-
-  var bar = "abc%def";
   var encodedBar = encodeURIComponent(bar);
   resultsMatch(router.recognize("/foo/" + encodedBar), [{ handler: handler, params: { bar: bar }, isDynamic: true }]);
 });
