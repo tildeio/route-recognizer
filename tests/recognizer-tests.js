@@ -78,6 +78,16 @@ var encodedCharStaticExpectations = [{
   route: "/foo/b:ar",
   matches: ["/foo/b:ar"],
   nonmatches: ["/foo/b%3Aar", "/foo/b%3aar"]
+  /* FIXME should this work?
+}, {
+  // encoded non-uri-reserved char "*" in significant place
+  route: "/foo/%2Abar",
+  matches: ["/foo/*bar", "/foo/%2Abar", "/foo/%2baar"]
+  */
+}, {
+  // unencoded "*" in non-significant place
+  route: "/foo/b*ar",
+  matches: ["/foo/b*ar", "/foo/b%2Aar", "/foo/b%2aar"]
 }, {
   // unencoded " "
   route: "/foo /bar",
