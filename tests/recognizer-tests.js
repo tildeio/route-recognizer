@@ -20,14 +20,138 @@ test("A simple route recognizes", function() {
   equal(router.recognize("/foo/baz"), null);
 });
 
-test("A unicode route recognizes", function() {
-  var handler = {};
-  var router = new RouteRecognizer();
-  router.add([{ path: "/uniçø∂∑/ʇɥƃᴉɹlɐ", handler: handler }]);
+var slashStaticExpectations = [{
+  // leading slash
+  route: "/foo/bar",
+  matches: ["/foo/bar", "foo/bar", "foo/bar/"]
+}, {
+  // no leading or trailing slash
+  route: "foo/bar",
+  matches: ["/foo/bar", "foo/bar", "foo/bar/"]
+}, {
+  // trailing slash
+  route: "foo/bar/",
+  matches: ["/foo/bar", "foo/bar", "foo/bar/"]
+}, {
+  // leading and trailing slash
+  route: "/foo/bar/",
+  matches: ["/foo/bar", "foo/bar", "foo/bar/"]
+}];
 
-  var encoded = encodeURI("/uniçø∂∑/ʇɥƃᴉɹlɐ");
-  resultsMatch(router.recognize(encoded), [{ handler: handler, params: {}, isDynamic: false }]);
-  equal(router.recognize("/uniçø∂∑"), null);
+slashStaticExpectations.forEach(function(expectation) {
+  var route, matches;
+  route = expectation.route;
+  matches = expectation.matches;
+
+  matches.forEach(function(match) {
+    test("Static route '" + route + "' recognizes path '" + match + "'", function() {
+      var handler = {};
+      var router = new RouteRecognizer();
+      router.add([{ path: route, handler: handler }]);
+      resultsMatch(router.recognize(match), [{ handler: handler, params: {}, isDynamic: false }]);
+    });
+  });
+});
+
+var nonAsciiStaticExpectations = [{
+  // uri-encoded path
+  route: "/foö/bär",
+  matches:  ["/foö/bär", "/fo%C3%B6/b%C3%A4r", "fo%c3%b6/b%c3%a4r"]
+}, {
+  // emoji
+  route: "/foo/😜",
+  matches: ["/foo/😜", "/foo/%F0%9F%98%9C"]
+}];
+
+// Tests for routes that include percent-encoded characters,
+// encoded and unencoded uri-reserved characters
+// (see http://www.ecma-international.org/ecma-262/6.0/#sec-uri-syntax-and-semantics),
+// unencoded non-uri-reserved characters (like " "),
+// and encoded percent char ("%")
+var encodedCharStaticExpectations = [{
+  // encoded uri-reserved char ":"
+  route: "/foo/%3Abar",
+  matches: ["/foo/%3Abar"],
+  nonmatches: ["/foo/:bar"]
+}, {
+  // unencoded ":" in non-significant place
+  route: "/foo/b:ar",
+  matches: ["/foo/b:ar"],
+  nonmatches: ["/foo/b%3Aar", "/foo/b%3aar"]
+  /* FIXME should this work?
+}, {
+  // encoded non-uri-reserved char "*" in significant place
+  route: "/foo/%2Abar",
+  matches: ["/foo/*bar", "/foo/%2Abar", "/foo/%2baar"]
+  */
+}, {
+  // unencoded "*" in non-significant place
+  route: "/foo/b*ar",
+  matches: ["/foo/b*ar", "/foo/b%2Aar", "/foo/b%2aar"]
+}, {
+  // unencoded " "
+  route: "/foo /bar",
+  matches: ["/foo /bar", "/foo%20/bar"]
+}, {
+  // encoded " "
+  route: "/foo%20/bar",
+  matches: ["/foo /bar", "/foo%20/bar"]
+}, {
+  // upper-case encoded uri-reserved char "/"
+  route: "/foo/ba%2Fr",
+  matches: ["/foo/ba%2Fr", "/foo/ba%2fr"], // match upper and lower-case
+  nonmatches: ["/foo/ba/r"]
+}, {
+  // lower-case encoded uri-reserved char "/"
+  route: "/foo/ba%2fr",
+  matches: ["/foo/ba%2Fr", "/foo/ba%2fr"],
+  nonmatches: ["/foo/ba/r"]
+}, {
+  // encoded special char "%" in route segment "ba%r"
+  route: "/foo/ba%25r",
+  matches: ["/foo/ba%25r"],
+  // nonmatches: ["/foo/ba%r"] // RouteRecognizer will throw malformed URI error
+}, {
+  // encoded non-uri-reserved char "*"
+  route: "/foo/ba%2Ar",
+  matches: ["/foo/ba%2Ar", "/foo/ba*r", "/foo/ba%2ar"]
+}, {
+  // encoded uri-reserved char "?"
+  route: "/foo/ba%3Fr",
+  matches: ["/foo/ba%3Fr", "/foo/ba%3fr"],
+  nonmatches: ["/foo/ba?r"]
+}, {
+  // encoded uri-reserved char "#" in route segment
+  route: "/foo/ba%23r",
+  matches: ["/foo/ba%23r"],
+  nonmatches: ["/foo/ba#r"]
+}];
+
+nonAsciiStaticExpectations.concat(encodedCharStaticExpectations).forEach(function(expectation) {
+  var route, path, matches, nonmatches;
+  route = expectation.route;
+  matches = expectation.matches;
+  nonmatches = expectation.nonmatches || [];
+
+  matches.forEach(function(match) {
+    test("Static route '" + route + "' recognizes path '" + match + "'", function() {
+      var handler = {};
+      var router = new RouteRecognizer();
+      router.add([{ path: route, handler: handler }]);
+      resultsMatch(router.recognize(match), [{ handler: handler, params: {}, isDynamic: false }]);
+    });
+  });
+
+  if (nonmatches.length) {
+    nonmatches.forEach(function(nonmatch) {
+      test("Static route '" + route + "' does not recognize path '" + nonmatch + "'", function() {
+        var handler = {};
+        var router = new RouteRecognizer();
+        router.add([{ path: route, handler: handler }]);
+        equal(router.recognize(nonmatch), null);
+      });
+    });
+  }
 });
 
 test("A simple route with query params recognizes", function() {
@@ -102,7 +226,6 @@ test("A route with query params with pluses for spaces instead of %20 recognizes
   deepEqual(router.recognize("/foo/bar?++one+two=three+four+five++").queryParams, { '  one two': 'three four five  ' });
 });
 
-
 test("A `/` route recognizes", function() {
   var handler = {};
   var router = new RouteRecognizer();
@@ -129,6 +252,199 @@ test("A dynamic route recognizes", function() {
   equal(router.recognize("/zoo/baz"), null);
 });
 
+var nonAsciiDynamicExpectations = [{
+  paths: ["/foo/café", "/foo/caf%C3%A9", "/foo/caf%c3%a9"],
+  match: "café",
+  unencodedMatches: ["café", "café", "café"]
+}, {
+  paths: ["/foo/😜", "/foo/%F0%9F%98%9C"],
+  match: "😜",
+  unencodedMatches: ["😜", "😜"]
+}];
+
+var encodedCharDynamicExpectations = [{
+  // encoded "/", upper and lower
+  paths: ["/foo/ba%2Fr", "/foo/ba%2fr"],
+  match: "ba/r",
+  unencodedMatches: ["ba%2Fr", "ba%2fr"]
+}, {
+  // encoded "#"
+  paths: ["/foo/ba%23r"],
+  match: "ba#r",
+  unencodedMatches: ["ba%23r"]
+}, {
+  // ":"
+  paths: ["/foo/%3Abar", "/foo/%3abar", "/foo/:bar"],
+  match: ":bar",
+  unencodedMatches: ["%3Abar", "%3abar", ":bar"]
+}, {
+  // encoded "?"
+  paths: ["/foo/ba%3Fr", "/foo/ba%3fr"],
+  match: "ba?r",
+  unencodedMatches: ["ba%3Fr", "ba%3fr"]
+}, {
+  // space
+  paths: ["/foo/ba%20r", "/foo/ba r"],
+  match: "ba r",
+  // decodeURI changes "%20" -> " "
+  unencodedMatches: ["ba r", "ba r"]
+}, {
+  // "+"
+  paths: ["/foo/ba%2Br", "/foo/ba%2br", "/foo/ba+r"],
+  match: "ba+r",
+  unencodedMatches: ["ba%2Br", "ba%2br", "ba+r"]
+}, {
+  // encoded %
+  paths: ["/foo/ba%25r"],
+  match: "ba%r",
+  unencodedMatches: ["ba%r"]
+}, {
+  // many encoded %
+  paths: ["/foo/ba%25%25r%3A%25"],
+  match: "ba%%r:%",
+  unencodedMatches: ["ba%%r%3A%"]
+}];
+
+nonAsciiDynamicExpectations.concat(encodedCharDynamicExpectations).forEach(function(expectation) {
+  var route = "/foo/:bar";
+  var paths = expectation.paths;
+  var match = expectation.match;
+  var unencodedMatches = expectation.unencodedMatches;
+
+  paths.forEach(function(path, index) {
+    var unencodedMatch = unencodedMatches[index];
+
+    test("Single-segment dynamic route '" + route + "' recognizes path '" + path + "'", function() {
+      var handler = {};
+      var router = new RouteRecognizer();
+      router.add([{ path: route, handler: handler }]);
+      resultsMatch(router.recognize(path), [{ handler: handler, params: { bar: match }, isDynamic: true }]);
+    });
+
+    test("When RouteRecognizer.ENCODE_AND_DECODE_PATH_SEGMENTS is false, single-segment dynamic route '" + route + "' recognizes path '" + path + "'", function() {
+      RouteRecognizer.ENCODE_AND_DECODE_PATH_SEGMENTS = false;
+
+      var handler = {};
+      var router = new RouteRecognizer();
+      router.add([{ path: route, handler: handler }]);
+      resultsMatch(router.recognize(path), [{ handler: handler, params: { bar: unencodedMatch }, isDynamic: true }]);
+
+      RouteRecognizer.ENCODE_AND_DECODE_PATH_SEGMENTS = true;
+    });
+  });
+});
+
+var multiSegmentDynamicExpectations = [{
+  paths: ["/foo%20/bar/baz%20", "/foo /bar/baz "],
+  match: { foo: "foo ", baz: "baz " },
+  // " " is not a reserved uri character, so "%20" gets normalized to " "
+  // see http://www.ecma-international.org/ecma-262/6.0/#sec-uri-syntax-and-semantics
+  unencodedMatches: [{foo: "foo ", baz: "baz "},
+                     {foo: "foo ", baz: "baz "}]
+}, {
+  paths: ["/fo%25o/bar/ba%25z"],
+  match: { foo: "fo%o", baz: "ba%z" },
+  unencodedMatches: [{foo: "fo%o", baz: "ba%z"}]
+}, {
+  paths: ["/%3Afoo/bar/:baz%3a"],
+  match: {foo: ":foo", baz: ":baz:"},
+  // ":" is a reserved uri character, so "%3A" does not get normalized to ":"
+  unencodedMatches: [{foo: "%3Afoo", baz: ":baz%3a"}]
+}, {
+  paths: [encodeURIComponent("http://example.com/some_url.html?abc=foo") +
+          "/bar/" +
+          encodeURIComponent("http://example2.com/other.html#hash=bar")],
+  match: {
+    foo: "http://example.com/some_url.html?abc=foo",
+    baz: "http://example2.com/other.html#hash=bar"
+  },
+  unencodedMatches: [{
+    foo: decodeURI(encodeURIComponent("http://example.com/some_url.html?abc=foo")),
+    baz: decodeURI(encodeURIComponent("http://example2.com/other.html#hash=bar"))
+  }]
+}, {
+  paths: ["/föo/bar/bäz", "/f%c3%b6o/bar/b%c3%a4z", "/f%C3%B6o/bar/b%C3%A4z"],
+  match: {foo: "föo", baz: "bäz" },
+  unencodedMatches: [
+    {foo: "föo", baz: "bäz"},
+    {foo: "föo", baz: "bäz"},
+    {foo: "föo", baz: "bäz"}
+  ]
+}];
+
+multiSegmentDynamicExpectations.forEach(function(expectation) {
+  var route = "/:foo/bar/:baz";
+  var paths = expectation.paths;
+  var match = expectation.match;
+  var unencodedMatches = expectation.unencodedMatches;
+
+  paths.forEach(function(path, index) {
+    var unencodedMatch = unencodedMatches[index];
+
+    test("Multi-segment dynamic route '" + route + "' recognizes path '" + path + "'", function() {
+      var handler = {};
+      var router = new RouteRecognizer();
+      router.add([{ path: route, handler: handler }]);
+
+      resultsMatch(router.recognize(path), [{ handler: handler, params: match, isDynamic: true }]);
+    });
+
+    test("When RouteRecognizer.ENCODE_AND_DECODE_PATH_SEGMENTS is false, multi-segment dynamic route '" + route + "' recognizes path '" + path + "'", function() {
+      RouteRecognizer.ENCODE_AND_DECODE_PATH_SEGMENTS = false;
+
+      var handler = {};
+      var router = new RouteRecognizer();
+      router.add([{ path: route, handler: handler }]);
+
+      resultsMatch(router.recognize(path), [{ handler: handler, params: unencodedMatch, isDynamic: true }]);
+
+      RouteRecognizer.ENCODE_AND_DECODE_PATH_SEGMENTS = true;
+    });
+  });
+});
+
+test("A dynamic route with unicode match parameters recognizes", function() {
+  var handler = {};
+  var router = new RouteRecognizer();
+  router.add([{ path: "/:föo/bar/:bäz", handler: handler }]);
+  var path = "/foo/bar/baz";
+
+  var expectedParams = { föo: "foo", bäz: "baz" };
+  resultsMatch(router.recognize(path), [{ handler: handler, params: expectedParams, isDynamic: true }]);
+});
+
+var starExpectations = [
+  // encoded % is left encoded
+  "ba%25r",
+
+  // encoded / is left encoded
+  "ba%2Fr",
+
+  // multiple segments
+  "bar/baz/blah",
+
+  // trailing slash
+  "bar/baz/blah/",
+
+  // unencoded url
+  "http://example.com/abc_def.html",
+
+  // encoded url
+  encodeURIComponent("http://example.com/abc_%def.html")
+];
+
+starExpectations.forEach(function(value) {
+  var route = "/foo/*bar";
+  var path = "/foo/" + value;
+
+  test("Star segment glob route '" + route + "' recognizes path '" + path + '"', function() {
+    var handler = {};
+    var router = new RouteRecognizer();
+    router.add([{ path: route, handler: handler }]);
+    resultsMatch(router.recognize(path), [{ handler: handler, params: { bar: value }, isDynamic: true }]);
+  });
+});
+
 test("Multiple routes recognize", function() {
   var handler1 = { handler: 1 };
   var handler2 = { handler: 2 };
@@ -141,7 +457,7 @@ test("Multiple routes recognize", function() {
   resultsMatch(router.recognize("/bar/1"), [{ handler: handler2, params: { baz: "1" }, isDynamic: true }]);
 });
 
-test("ignore the URI malformed error", function() {
+test("query params ignore the URI malformed error", function() {
   var handler1 = { handler: 1 };
   var router = new RouteRecognizer();
 
@@ -194,7 +510,6 @@ test("Array query params do not conflict with controller namespaced query params
   ok(Array.isArray(p['foo[bar]']), "foo[bar] is an Array");
   deepEqual(p, {'foo[bar]': ["1","2"], 'baz': 'barf'});
 });
-
 
 test("Multiple `/` routes recognize", function() {
   var handler1 = { handler: 1 };
@@ -405,7 +720,7 @@ module("Route Generation", {
   setup: function() {
     router = new RouteRecognizer();
 
-    handlers = [ {}, {}, {}, {}, {}, {} ];
+    handlers = [ {}, {}, {}, {}, {}, {}, {} ];
 
     router.add([{ path: "/", handler: {} }], { as: "index" });
     router.add([{ path: "/posts/:id", handler: handlers[0] }], { as: "post" });
@@ -414,6 +729,7 @@ module("Route Generation", {
     router.add([{ path: "/posts/new", handler: handlers[2] }], { as: "new_post" });
     router.add([{ path: "/posts/:id/edit", handler: handlers[3] }], { as: "edit_post" });
     router.add([{ path: "/foo/:bar", handler: handlers[4] }, { path: "/baz/:bat", handler: handlers[5] }], { as: 'foo' });
+    router.add([{ path: "/*catchall", handler: handlers[5] }], { as: 'catchall' });
   }
 });
 
@@ -424,6 +740,81 @@ test("Generation works", function() {
   equal( router.generate("new_post"), "/posts/new" );
   equal( router.generate("edit_post", { id: 1 }), "/posts/1/edit" );
   equal( router.generate("postIndex"), "/posts" );
+  equal( router.generate("catchall", { catchall: "foo"}), "/foo" );
+});
+
+var encodedCharGenerationExpectations = [{
+  route: "post",
+  params: { id: "abc/def" },
+  expected: "/posts/abc%2Fdef",
+  expectedUnencoded: "/posts/abc/def"
+}, {
+  route: "post",
+  params: { id: "abc%def" },
+  expected: "/posts/abc%25def",
+  expectedUnencoded: "/posts/abc%def"
+}, {
+  route: "post",
+  params: { id: "abc def" },
+  expected: "/posts/abc%20def",
+  expectedUnencoded: "/posts/abc def"
+}, {
+  route: "post",
+  params: { id: "café" },
+  expected: "/posts/caf%C3%A9",
+  expectedUnencoded: "/posts/café"
+}, {
+  route: "edit_post",
+  params: { id: "abc/def" },
+  expected: "/posts/abc%2Fdef/edit",
+  expectedUnencoded: "/posts/abc/def/edit"
+}, {
+  route: "edit_post",
+  params: { id: "abc%def" },
+  expected: "/posts/abc%25def/edit",
+  expectedUnencoded: "/posts/abc%def/edit"
+}, {
+  route: "edit_post",
+  params: { id: "café" },
+  expected: "/posts/caf%C3%A9/edit",
+  expectedUnencoded: "/posts/café/edit"
+}];
+
+encodedCharGenerationExpectations.forEach(function(expectation) {
+  var route = expectation.route;
+  var params = expectation.params;
+  var expected = expectation.expected;
+  var expectedUnencoded = expectation.expectedUnencoded;
+
+  test("Encodes dynamic segment value for route '" + route + "' with params " + JSON.stringify(params), function() {
+    equal(router.generate(route, params), expected);
+  });
+
+  test("When RouteRecognizer.ENCODE_AND_DECODE_PATH_SEGMENTS is false, does not encode dynamic segment for route '" + route + "' with params " + JSON.stringify(params), function() {
+    RouteRecognizer.ENCODE_AND_DECODE_PATH_SEGMENTS = false;
+    equal(router.generate(route, params), expectedUnencoded);
+    RouteRecognizer.ENCODE_AND_DECODE_PATH_SEGMENTS = true;
+  });
+});
+
+var globGenerationValues = [
+  "abc/def",
+  "abc%2Fdef",
+  "abc def",
+  "abc%20def",
+  "abc%25def",
+  "café",
+  "caf%C3%A9",
+  "/leading-slash",
+  "leading-slash/",
+  "http://example.com/abc.html?foo=bar",
+  encodeURIComponent("http://example.com/abc.html?foo=bar")
+];
+
+globGenerationValues.forEach(function(value) {
+  test("Generating a star segment glob route with param '" + value + "' passes value through without modification", function() {
+    equal(router.generate("catchall", { catchall: value }), "/" + value);
+  });
 });
 
 test("Parsing and generation results into the same input string", function() {
