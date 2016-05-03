@@ -15,7 +15,7 @@ module("The match DSL", {
   setup: function() {
     router.map = function() {
       var original = new RouteRecognizer();
-      original.map(...arguments);
+      original.map.apply(original, arguments);
       var serialized = original.toJSON();
       router = new RouteRecognizer(serialized);
     };
