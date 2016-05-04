@@ -9,12 +9,12 @@ router.map(function(match) {
   }
 });
 
-var serialized = router.toJSON();
+var serialized = JSON.parse(router.toJSON());
 
 module.exports = {
   name: 'Serialized',
   fn: function() {
-    new RouteRecognizer(serialized);
+    var router = new RouteRecognizer(serialized);
     
     // Look up time is constant
     router.recognize('/posts/1');
