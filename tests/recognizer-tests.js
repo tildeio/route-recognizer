@@ -208,8 +208,8 @@ test("Array query params do not conflict with controller namespaced query params
   router.add([{ path: "/foo/bar", handler: handler }]);
 
   var p = router.recognize("/foo/bar?foo[bar][]=1&foo[bar][]=2&baz=barf").queryParams;
-  ok(Array.isArray(p['foo[bar]']), "foo[bar] is an Array");
-  deepEqual(p, {'foo[bar]': ["1","2"], 'baz': 'barf'});
+  ok(Array.isArray(p.foo.bar), "foo[bar] is an Array");
+  deepEqual(p, { foo: { bar: ["1","2"] }, 'baz': 'barf'});
 });
 
 
