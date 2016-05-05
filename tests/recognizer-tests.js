@@ -102,6 +102,23 @@ test("A route with query params with pluses for spaces instead of %20 recognizes
   deepEqual(router.recognize("/foo/bar?++one+two=three+four+five++").queryParams, { '  one two': 'three four five  ' });
 });
 
+test("A route with query params with a complex encoded object recognizes", function() {
+  var handler = {};
+  var router = new RouteRecognizer();
+  router.add([{ path: "/foo/bar", handler: handler}]);
+
+  var paramsObj = {
+    a: ['4','5','6'],
+    b: {
+      x: ['7'],
+      y: '8',
+      z: ['9','0','true','false','undefined','']
+    },
+    c: '1'
+  };
+  var qps = router.recognize("/foo/bar?a[]=4&a[]=5&a[]=6&b[x][]=7&b[y]=8&b[z][]=9&b[z][]=0&b[z][]=true&b[z][]=false&b[z][]=undefined&b[z][]=&c=1").queryParams;
+  deepEqual(qps, paramsObj);
+});
 
 test("A `/` route recognizes", function() {
   var handler = {};
