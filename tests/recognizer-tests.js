@@ -21,126 +21,108 @@ test("A simple route recognizes", function() {
 });
 
 var slashStaticExpectations = [{
-  // leading slash
-  route: "/foo/bar",
-  matches: ["/foo/bar", "foo/bar", "foo/bar/"]
-}, {
-  // no leading or trailing slash
-  route: "foo/bar",
-  matches: ["/foo/bar", "foo/bar", "foo/bar/"]
-}, {
-  // trailing slash
-  route: "foo/bar/",
-  matches: ["/foo/bar", "foo/bar", "foo/bar/"]
-}, {
-  // leading and trailing slash
-  route: "/foo/bar/",
-  matches: ["/foo/bar", "foo/bar", "foo/bar/"]
+  // leading only, trailing only, both, neither
+  routes: ["/foo/bar", "foo/bar/", "/foo/bar/", "foo/bar"],
+  matches: ["/foo/bar", "foo/bar/", "/foo/bar/", "foo/bar"]
 }];
 
 var nonAsciiStaticExpectations = [{
-  // uri-encoded path
-  route: "/foö/bär",
+  // UTF8
+  routes: ["/foö/bär", "/fo%C3%B6/b%C3%A4r"],
   matches:  ["/foö/bär", "/fo%C3%B6/b%C3%A4r", "fo%c3%b6/b%c3%a4r"]
 }, {
   // emoji
-  route: "/foo/😜",
+  routes: ["/foo/😜", "/foo/%F0%9F%98%9C"],
   matches: ["/foo/😜", "/foo/%F0%9F%98%9C"]
 }];
 
-// Tests for routes that include percent-encoded characters,
-// encoded and unencoded uri-reserved characters
-// (see http://www.ecma-international.org/ecma-262/6.0/#sec-uri-syntax-and-semantics),
-// unencoded non-uri-reserved characters (like " "),
-// and encoded percent char ("%")
+// ascii chars that are not reserved but sometimes encoded
+var unencodedCharStaticExpectations = [{
+  // unencoded space
+  routes: ["/foo /bar"],
+  matches: ["/foo /bar", "/foo%20/bar"]
+}, {
+  // unencoded [
+  routes: ["/foo[/bar"],
+  matches: ["/foo[/bar", "/foo%5B/bar", "/foo%5b/bar"]
+}];
+
+// Tests for routes that include percent-encoded
+// reserved and unreserved characters.
 var encodedCharStaticExpectations = [{
-  // encoded uri-reserved char ":"
-  route: "/foo/%3Abar",
-  matches: ["/foo/%3Abar"],
-  nonmatches: ["/foo/:bar"]
+  // reserved char ":" in significant place, both cases
+  routes: ["/foo/%3Abar", "/foo/%3abar"],
+  matches: ["/foo/%3Abar", "/foo/%3abar", "/foo/:bar"]
 }, {
-  // unencoded ":" in non-significant place
-  route: "/foo/b:ar",
-  matches: ["/foo/b:ar"],
-  nonmatches: ["/foo/b%3Aar", "/foo/b%3aar"]
-  /* FIXME should this work?
+  // reserved char ":" in non-significant place
+  routes: ["/foo/b%3Aar", "/foo/b%3aar"],
+  matches: ["/foo/b:ar", "/foo/b%3aar", "/foo/b%3Aar"],
 }, {
-  // encoded non-uri-reserved char "*" in significant place
-  route: "/foo/%2Abar",
-  matches: ["/foo/*bar", "/foo/%2Abar", "/foo/%2baar"]
-  */
+  // reserved char "*" in significant place
+  routes: ["/foo/%2Abar", "/foo/%2abar"],
+  matches: ["/foo/*bar", "/foo/%2Abar", "/foo/%2abar"]
 }, {
-  // unencoded "*" in non-significant place
-  route: "/foo/b*ar",
+  // reserved char "*" in non-significant place
+  routes: ["/foo/b%2Aar", "/foo/b%2aar"],
   matches: ["/foo/b*ar", "/foo/b%2Aar", "/foo/b%2aar"]
 }, {
-  // unencoded " "
-  route: "/foo /bar",
+  // space: " "
+  routes: ["/foo%20/bar"],
   matches: ["/foo /bar", "/foo%20/bar"]
 }, {
-  // encoded " "
-  route: "/foo%20/bar",
-  matches: ["/foo /bar", "/foo%20/bar"]
-}, {
-  // upper-case encoded uri-reserved char "/"
-  route: "/foo/ba%2Fr",
-  matches: ["/foo/ba%2Fr", "/foo/ba%2fr"], // match upper and lower-case
-  nonmatches: ["/foo/ba/r"]
-}, {
-  // lower-case encoded uri-reserved char "/"
-  route: "/foo/ba%2fr",
+  // reserved char "/"
+  routes: ["/foo/ba%2Fr", "/foo/ba%2fr"],
   matches: ["/foo/ba%2Fr", "/foo/ba%2fr"],
   nonmatches: ["/foo/ba/r"]
 }, {
-  // encoded special char "%" in route segment "ba%r"
-  route: "/foo/ba%25r",
+  // reserved char "%"
+  routes: ["/foo/ba%25r"],
   matches: ["/foo/ba%25r"],
-  // nonmatches: ["/foo/ba%r"] // RouteRecognizer will throw malformed URI error
+  // nonmatches: ["/foo/ba%r"] // malformed URI
 }, {
-  // encoded non-uri-reserved char "*"
-  route: "/foo/ba%2Ar",
-  matches: ["/foo/ba%2Ar", "/foo/ba*r", "/foo/ba%2ar"]
-}, {
-  // encoded uri-reserved char "?"
-  route: "/foo/ba%3Fr",
+  // reserved char "?"
+  routes: ["/foo/ba%3Fr"],
   matches: ["/foo/ba%3Fr", "/foo/ba%3fr"],
   nonmatches: ["/foo/ba?r"]
 }, {
-  // encoded uri-reserved char "#" in route segment
-  route: "/foo/ba%23r",
+  // reserved char "#" in route segment
+  routes: ["/foo/ba%23r"],
   matches: ["/foo/ba%23r"],
-  nonmatches: ["/foo/ba#r"]
+  nonmatches: ["/foo/ba#r"] // "#" not valid to include in path when unencoded
 }];
 
 var staticExpectations = [].concat(slashStaticExpectations,
                                    nonAsciiStaticExpectations,
+                                   unencodedCharStaticExpectations,
                                    encodedCharStaticExpectations);
 
 staticExpectations.forEach(function(expectation) {
-  var route, path, matches, nonmatches;
-  route = expectation.route;
+  var routes, path, matches, nonmatches;
+  routes = expectation.routes || [expectation.route];
   matches = expectation.matches;
   nonmatches = expectation.nonmatches || [];
 
-  matches.forEach(function(match) {
-    test("Static route '" + route + "' recognizes path '" + match + "'", function() {
-      var handler = {};
-      var router = new RouteRecognizer();
-      router.add([{ path: route, handler: handler }]);
-      resultsMatch(router.recognize(match), [{ handler: handler, params: {}, isDynamic: false }]);
-    });
-  });
-
-  if (nonmatches.length) {
-    nonmatches.forEach(function(nonmatch) {
-      test("Static route '" + route + "' does not recognize path '" + nonmatch + "'", function() {
+  routes.forEach(function(route) {
+    matches.forEach(function(match) {
+      test("Static route '" + route + "' recognizes path '" + match + "'", function() {
         var handler = {};
         var router = new RouteRecognizer();
         router.add([{ path: route, handler: handler }]);
-        equal(router.recognize(nonmatch), null);
+        resultsMatch(router.recognize(match), [{ handler: handler, params: {}, isDynamic: false }]);
       });
     });
-  }
+
+    if (nonmatches.length) {
+      nonmatches.forEach(function(nonmatch) {
+        test("Static route '" + route + "' does not recognize path '" + nonmatch + "'", function() {
+          var handler = {};
+          var router = new RouteRecognizer();
+          router.add([{ path: route, handler: handler }]);
+          equal(router.recognize(nonmatch), null);
+        });
+      });
+    }
+  });
 });
 
 test("A simple route with query params recognizes", function() {
@@ -292,6 +274,11 @@ var encodedCharDynamicExpectations = [{
   paths: ["/foo/ba%25%25r%3A%25"],
   match: "ba%%r:%",
   unencodedMatches: ["ba%%r%3A%"]
+}, {
+  // doubly-encoded %
+  paths: ["/foo/ba%2525r"],
+  match: "ba%25r",
+  unencodedMatches: ["ba%25r"]
 }, {
   // doubly-encoded parameter
   paths: ["/foo/" + encodeURIComponent("http://example.com/post/" + encodeURIComponent("http://other-url.com"))],
