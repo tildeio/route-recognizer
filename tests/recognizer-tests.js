@@ -397,7 +397,7 @@ test("A dynamic route with unicode match parameters recognizes", function() {
   resultsMatch(router.recognize(path), [{ handler: handler, params: expectedParams, isDynamic: true }]);
 });
 
-var starExpectations = [
+var starSimpleExpectations = [
   // encoded % is left encoded
   "ba%25r",
 
@@ -417,7 +417,7 @@ var starExpectations = [
   encodeURIComponent("http://example.com/abc_%def.html")
 ];
 
-starExpectations.forEach(function(value) {
+starSimpleExpectations.forEach(function(value) {
   var route = "/foo/*bar";
   var path = "/foo/" + value;
 
@@ -426,6 +426,34 @@ starExpectations.forEach(function(value) {
     var router = new RouteRecognizer();
     router.add([{ path: route, handler: handler }]);
     resultsMatch(router.recognize(path), [{ handler: handler, params: { bar: value }, isDynamic: true }]);
+  });
+});
+
+var starComplexExpectations = [{
+  path: "/b%25ar/baz",
+  params: ["b%25ar", "baz"]
+}, {
+  path: "a/b/c/baz",
+  params: ["a/b/c", "baz"]
+}, {
+  path: "a%2Fb%2fc/baz",
+  params: ["a%2Fb%2fc", "baz"]
+}, {
+  path: encodeURIComponent("http://example.com") + "/baz",
+  params: [encodeURIComponent("http://example.com"), "baz"]
+}];
+
+starComplexExpectations.forEach(function(expectation) {
+  var route = "/*prefix/:suffix";
+  var path = expectation.path;
+  var params = { prefix: expectation.params[0], suffix: expectation.params[1] };
+
+  test("Complex star segment glob route '" + route + "' recognizes path '" + path + '"', function() {
+    var router = new RouteRecognizer();
+    var handler = {};
+    router.add([{ path: route, handler: handler }]);
+
+    resultsMatch(router.recognize(path), [{ handler: handler, params: params, isDynamic: true }]);
   });
 });
 
