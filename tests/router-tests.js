@@ -117,6 +117,20 @@ test("supports deeply nested handlers", function() {
   matchesRoute("/posts/edit", [{ handler: "posts", params: {}, isDynamic: false }, { handler: "editPost", params: {}, isDynamic: false }]);
 });
 
+test("matches order properly for eliding route definitions", function() {
+  router.map(function(match) {
+    match("/posts", function(match) {
+      match("/new").to("new");
+    });
+    match("/posts").to("posts", function(match) {
+      match("/4").to("handler4");
+    });
+    match("/posts/4").to("nohandler4");
+  });
+
+  matchesRoute("/posts/4", [{ handler: "posts", params: {}, isDynamic: false }, { handler: "handler4", params: {}, isDynamic: false }]);
+});
+
 test("supports index-style routes", function() {
   router.map(function(match) {
     match("/posts").to("posts", function(match) {
