@@ -11,8 +11,6 @@ function resultsMatch(results, array, queryParams) {
   }
 }
 
-function test() {}
-
 test("A simple route recognizes", function() {
   var handler = {};
   var router = new RouteRecognizer();
