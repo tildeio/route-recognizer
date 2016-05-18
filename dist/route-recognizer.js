@@ -264,12 +264,20 @@
       this.charSpec = charSpec;
       this.nextStates = [];
       this.charSpecs = {};
-      this.regex = undefined;
+      this.pattern = undefined;
+      this._regex = undefined;
       this.handlers = undefined;
       this.specificity = undefined;
     }
 
     $$route$recognizer$$State.prototype = {
+      regex: function () {
+        if (!this._regex) {
+          this._regex = $$route$recognizer$$buildRegex(this.pattern);
+        }
+        return this._regex;
+      },
+
       get: function(charSpec) {
         if (this.charSpecs[charSpec.validChars]) {
           return this.charSpecs[charSpec.validChars];
@@ -374,7 +382,7 @@
     });
 
     function $$route$recognizer$$findHandler(state, path, queryParams) {
-      var handlers = state.handlers, regex = state.regex;
+      var handlers = state.handlers, regex = state.regex();
       var captures = path.match(regex), currentCapture = 1;
       var result = new $$route$recognizer$$RecognizeResults(queryParams);
 
@@ -411,7 +419,7 @@
     };
 
     function $$route$recognizer$$buildRegex(regex) {
-      return new RegExp(regex + "$");
+      return new RegExp(regex);
     }
 
     $$route$recognizer$$RouteRecognizer.prototype = {
@@ -453,7 +461,7 @@
         }
 
         currentState.handlers = handlers;
-        currentState.regex = $$route$recognizer$$buildRegex(regex);
+        currentState.pattern = regex + "$";
         currentState.specificity = specificity;
 
         if (name = options && options.as) {
@@ -607,7 +615,7 @@
         if (state && state.handlers) {
           // if a trailing slash was dropped and a star segment is the last segment
           // specified, put the trailing slash back
-          if (isSlashDropped && state.regex.source.slice(-5) === "(.+)$") {
+          if (isSlashDropped && state.pattern.slice(-5) === "(.+)$") {
             path = path + "/";
           }
           return $$route$recognizer$$findHandler(state, path, queryParams);
