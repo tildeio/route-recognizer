@@ -189,19 +189,19 @@
       generate: function() { return ""; }
     };
 
-    function $$route$recognizer$$parse(route, names, specificity) {
+    function $$route$recognizer$$parse(allSegments, route, names, specificity) {
       // normalize route as not starting with a "/". Recognition will
       // also normalize.
       if (route.charAt(0) === "/") { route = route.substr(1); }
 
       var segments = route.split("/");
-      var results = new Array(segments.length);
+      //var results = new Array(segments.length);
 
       // A routes has specificity determined by the order that its different segments
       // appear in. This system mirrors how the magnitude of numbers written as strings
       // works.
       // Consider a number written as: "abc". An example would be "200". Any other number written
-      // "xyz" will be smaller than "abc" so long as `a > z`. For instance, "199" is smaller
+      // "xyz" will be smaller than "abc" so long as `a > x`. For instance, "199" is smaller
       // then "200", even though "y" and "z" (which are both 9) are larger than "0" (the value
       // of (`b` and `c`). This is because the leading symbol, "2", is larger than the other
       // leading symbol, "1".
@@ -216,31 +216,31 @@
       // string. We can find the specificity of compound routes by concatenating these strings
       // together, from left to right. After we have looped through all of the segments,
       // we convert the string to a number.
-      specificity.val = '';
+      //var specificity = '';
 
       for (var i=0; i<segments.length; i++) {
         var segment = segments[i], match;
 
         if (match = segment.match(/^:([^\/]+)$/)) {
-          results[i] = new $$route$recognizer$$DynamicSegment(match[1]);
+          allSegments.push(new $$route$recognizer$$DynamicSegment(match[1]));
           names.push(match[1]);
-          specificity.val += '3';
+          specificity += '3';
         } else if (match = segment.match(/^\*([^\/]+)$/)) {
-          results[i] = new $$route$recognizer$$StarSegment(match[1]);
-          specificity.val += '1';
+          allSegments.push(new $$route$recognizer$$StarSegment(match[1]));
+          specificity += '1';
           names.push(match[1]);
         } else if(segment === "") {
-          results[i] = new $$route$recognizer$$EpsilonSegment();
-          specificity.val += '2';
+          allSegments.push(new $$route$recognizer$$EpsilonSegment());
+          specificity += '2';
         } else {
-          results[i] = new $$route$recognizer$$StaticSegment(segment);
-          specificity.val += '4';
+          allSegments.push(new $$route$recognizer$$StaticSegment(segment));
+          specificity += '4';
         }
       }
 
-      specificity.val = +specificity.val;
+      return specificity;
 
-      return results;
+      //specificity.val = +specificity.val;
     }
 
     // A State has a character specification and (`charSpec`) and a list of possible
@@ -264,12 +264,20 @@
       this.charSpec = charSpec;
       this.nextStates = [];
       this.charSpecs = {};
-      this.regex = undefined;
+      this.pattern = undefined;
+      this._regex = undefined;
       this.handlers = undefined;
       this.specificity = undefined;
     }
 
     $$route$recognizer$$State.prototype = {
+      regex: function () {
+        if (!this._regex) {
+          this._regex = $$route$recognizer$$buildRegex(this.pattern);
+        }
+        return this._regex;
+      },
+
       get: function(charSpec) {
         if (this.charSpecs[charSpec.validChars]) {
           return this.charSpecs[charSpec.validChars];
@@ -340,7 +348,7 @@
     // Sort the routes by specificity
     function $$route$recognizer$$sortSolutions(states) {
       return states.sort(function(a, b) {
-        return b.specificity.val - a.specificity.val;
+        return b.specificity < a.specificity ? -1 : b.specificity === a.specificity ? 0 : 1;
       });
     }
 
@@ -374,7 +382,7 @@
     });
 
     function $$route$recognizer$$findHandler(state, path, queryParams) {
-      var handlers = state.handlers, regex = state.regex;
+      var handlers = state.handlers, regex = state.regex();
       var captures = path.match(regex), currentCapture = 1;
       var result = new $$route$recognizer$$RecognizeResults(queryParams);
 
@@ -410,11 +418,14 @@
       this.names = {};
     };
 
+    function $$route$recognizer$$buildRegex(regex) {
+      return new RegExp(regex);
+    }
 
     $$route$recognizer$$RouteRecognizer.prototype = {
-      add: function(routes, options) {
+      add: function RRADD(routes, options) {
         var currentState = this.rootState, regex = "^",
-            specificity = {},
+            specificity = '',
             handlers = new Array(routes.length), allSegments = [], name;
 
         var isEmpty = true;
@@ -422,12 +433,11 @@
         for (var i=0; i<routes.length; i++) {
           var route = routes[i], names = [];
 
-          var segments = $$route$recognizer$$parse(route.path, names, specificity);
+          var j = allSegments.length;
+          specificity = $$route$recognizer$$parse(allSegments, route.path, names, specificity);
 
-          allSegments = allSegments.concat(segments);
-
-          for (var j=0; j<segments.length; j++) {
-            var segment = segments[j];
+          for (; j<allSegments.length; j++) {
+            var segment = allSegments[j];
 
             if (segment instanceof $$route$recognizer$$EpsilonSegment) { continue; }
 
@@ -451,7 +461,7 @@
         }
 
         currentState.handlers = handlers;
-        currentState.regex = new RegExp(regex + "$");
+        currentState.pattern = regex + "$";
         currentState.specificity = specificity;
 
         if (name = options && options.as) {
@@ -605,7 +615,7 @@
         if (state && state.handlers) {
           // if a trailing slash was dropped and a star segment is the last segment
           // specified, put the trailing slash back
-          if (isSlashDropped && state.regex.source.slice(-5) === "(.+)$") {
+          if (isSlashDropped && state.pattern.slice(-5) === "(.+)$") {
             path = path + "/";
           }
           return $$route$recognizer$$findHandler(state, path, queryParams);
