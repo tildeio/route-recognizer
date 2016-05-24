@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>RouteRecognizer Add Profile</title>
+  <script src="../dist/route-recognizer.js"></script>
+  <script src="./routes.js"></script>
+</head>
+<body>
+<script type="text/javascript">
+var router = new RouteRecognizer();
+console.profile('add');
+for (var i = 0; i < ROUTES.length; i++) {
+  var route = ROUTES[i][0];
+  var options = ROUTES[i][1];
+  router.add(route, options);
+}
+console.profileEnd('add');
+</script>
+</body>
+</html>
+
+
