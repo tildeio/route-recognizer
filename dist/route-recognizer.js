@@ -1,397 +1,479 @@
 (function() {
     "use strict";
-    function $$route$recognizer$dsl$$Target(path, matcher, delegate) {
-      this.path = path;
-      this.matcher = matcher;
-      this.delegate = delegate;
+    var $$route$recognizer$normalizer$$PERCENT_ENCODED_VALUES = /%[a-fA-F0-9]{2}/g;
+
+    function $$route$recognizer$normalizer$$toUpper(str) { return str.toUpperCase(); }
+
+    // Turn percent-encoded values to upper case ("%3a" -> "%3A")
+    function $$route$recognizer$normalizer$$percentEncodedValuesToUpper(string) {
+      return string.replace($$route$recognizer$normalizer$$PERCENT_ENCODED_VALUES, $$route$recognizer$normalizer$$toUpper);
     }
 
-    $$route$recognizer$dsl$$Target.prototype = {
-      to: function(target, callback) {
-        var delegate = this.delegate;
+    // Normalizes percent-encoded values to upper-case and decodes percent-encoded
+    // values that are not reserved (like unicode characters).
+    // Safe to call multiple times on the same path.
+    function $$route$recognizer$normalizer$$normalizePath(path) {
+      return path.split('/')
+                 .map($$route$recognizer$normalizer$$normalizeSegment)
+                 .join('/');
+    }
 
-        if (delegate && delegate.willAddRoute) {
-          target = delegate.willAddRoute(this.matcher.target, target);
-        }
+    function $$route$recognizer$normalizer$$percentEncode(char) {
+      return '%' + $$route$recognizer$normalizer$$charToHex(char);
+    }
 
-        this.matcher.add(this.path, target);
+    function $$route$recognizer$normalizer$$charToHex(char) {
+      return char.charCodeAt(0).toString(16).toUpperCase();
+    }
 
-        if (callback) {
-          if (callback.length === 0) { throw new Error("You must have an argument in the function passed to `to`"); }
-          this.matcher.addChild(this.path, target, callback, this.delegate);
-        }
-        return this;
+    // Decodes percent-encoded values in the string except those
+    // characters in `reservedHex`, where `reservedHex` is an array of 2-character
+    // percent-encodings
+    function $$route$recognizer$normalizer$$decodeURIComponentExcept(string, reservedHex) {
+      if (string.indexOf('%') === -1) {
+        // If there is no percent char, there is no decoding that needs to
+        // be done and we exit early
+        return string;
       }
-    };
+      string = $$route$recognizer$normalizer$$percentEncodedValuesToUpper(string);
 
-    function $$route$recognizer$dsl$$Matcher(target) {
-      this.routes = {};
-      this.children = {};
-      this.target = target;
-    }
+      var result = '';
+      var buffer = '';
+      var idx = 0;
+      while (idx < string.length) {
+        var pIdx = string.indexOf('%', idx);
 
-    $$route$recognizer$dsl$$Matcher.prototype = {
-      add: function(path, handler) {
-        this.routes[path] = handler;
-      },
+        if (pIdx === -1) { // no percent char
+          buffer += string.slice(idx);
+          break;
+        } else { // found percent char
+          buffer += string.slice(idx, pIdx);
+          idx = pIdx + 3;
 
-      addChild: function(path, target, callback, delegate) {
-        var matcher = new $$route$recognizer$dsl$$Matcher(target);
-        this.children[path] = matcher;
+          var hex = string.slice(pIdx + 1, pIdx + 3);
+          var encoded = '%' + hex;
 
-        var match = $$route$recognizer$dsl$$generateMatch(path, matcher, delegate);
-
-        if (delegate && delegate.contextEntered) {
-          delegate.contextEntered(target, match);
-        }
-
-        callback(match);
-      }
-    };
-
-    function $$route$recognizer$dsl$$generateMatch(startingPath, matcher, delegate) {
-      return function(path, nestedCallback) {
-        var fullPath = startingPath + path;
-
-        if (nestedCallback) {
-          nestedCallback($$route$recognizer$dsl$$generateMatch(fullPath, matcher, delegate));
-        } else {
-          return new $$route$recognizer$dsl$$Target(startingPath + path, matcher, delegate);
-        }
-      };
-    }
-
-    function $$route$recognizer$dsl$$addRoute(routeArray, path, handler) {
-      var len = 0;
-      for (var i=0; i<routeArray.length; i++) {
-        len += routeArray[i].path.length;
-      }
-
-      path = path.substr(len);
-      var route = { path: path, handler: handler };
-      routeArray.push(route);
-    }
-
-    function $$route$recognizer$dsl$$eachRoute(baseRoute, matcher, callback, binding) {
-      var routes = matcher.routes;
-
-      for (var path in routes) {
-        if (routes.hasOwnProperty(path)) {
-          var routeArray = baseRoute.slice();
-          $$route$recognizer$dsl$$addRoute(routeArray, path, routes[path]);
-
-          if (matcher.children[path]) {
-            $$route$recognizer$dsl$$eachRoute(routeArray, matcher.children[path], callback, binding);
+          if (reservedHex.indexOf(hex) === -1) {
+            // encoded is not in reserved set, add to buffer
+            buffer += encoded;
           } else {
-            callback.call(binding, routeArray);
+            result += decodeURIComponent(buffer);
+            buffer = '';
+            result += encoded;
           }
         }
       }
+      result += decodeURIComponent(buffer);
+      return result;
     }
 
-    var $$route$recognizer$dsl$$default = function(callback, addRouteCallback) {
-      var matcher = new $$route$recognizer$dsl$$Matcher();
+    // Leave these characters in encoded state in segments
+    var $$route$recognizer$normalizer$$reservedSegmentChars = ['%', '/'];
+    var $$route$recognizer$normalizer$$reservedHex = $$route$recognizer$normalizer$$reservedSegmentChars.map($$route$recognizer$normalizer$$charToHex);
 
-      callback($$route$recognizer$dsl$$generateMatch("", matcher, this.delegate));
-
-      $$route$recognizer$dsl$$eachRoute([], matcher, function(route) {
-        if (addRouteCallback) { addRouteCallback(this, route); }
-        else { this.add(route); }
-      }, this);
-    };
-
-    var $$route$recognizer$$specials = [
-      '/', '.', '*', '+', '?', '|',
-      '(', ')', '[', ']', '{', '}', '\\'
-    ];
-
-    var $$route$recognizer$$escapeRegex = new RegExp('(\\' + $$route$recognizer$$specials.join('|\\') + ')', 'g');
-
-    function $$route$recognizer$$isArray(test) {
-      return Object.prototype.toString.call(test) === "[object Array]";
+    function $$route$recognizer$normalizer$$normalizeSegment(segment) {
+      return $$route$recognizer$normalizer$$decodeURIComponentExcept(segment, $$route$recognizer$normalizer$$reservedHex);
     }
 
-    // A Segment represents a segment in the original route description.
-    // Each Segment type provides an `eachChar` and `regex` method.
-    //
-    // The `eachChar` method invokes the callback with one or more character
-    // specifications. A character specification consumes one or more input
-    // characters.
-    //
-    // The `regex` method returns a regex fragment for the segment. If the
-    // segment is a dynamic of star segment, the regex fragment also includes
-    // a capture.
-    //
-    // A character specification contains:
-    //
-    // * `validChars`: a String with a list of all valid characters, or
-    // * `invalidChars`: a String with a list of all invalid characters
-    // * `repeat`: true if the character specification can repeat
-
-    function $$route$recognizer$$StaticSegment(string) { this.string = string; }
-    $$route$recognizer$$StaticSegment.prototype = {
-      eachChar: function(currentState) {
-        var string = this.string, ch;
-
-        for (var i=0; i<string.length; i++) {
-          ch = string.charAt(i);
-          currentState = currentState.put({ invalidChars: undefined, repeat: false, validChars: ch });
-        }
-
-        return currentState;
-      },
-
-      regex: function() {
-        return this.string.replace($$route$recognizer$$escapeRegex, '\\$1');
-      },
-
-      generate: function() {
-        return this.string;
-      }
+    var $$route$recognizer$normalizer$$Normalizer = {
+      normalizeSegment: $$route$recognizer$normalizer$$normalizeSegment,
+      normalizePath: $$route$recognizer$normalizer$$normalizePath
     };
 
-    function $$route$recognizer$$DynamicSegment(name) { this.name = name; }
-    $$route$recognizer$$DynamicSegment.prototype = {
-      eachChar: function(currentState) {
-        return currentState.put({ invalidChars: "/", repeat: true, validChars: undefined });
-      },
-
-      regex: function() {
-        return "([^/]+)";
-      },
-
-      generate: function(params) {
-        return params[this.name];
-      }
-    };
-
-    function $$route$recognizer$$StarSegment(name) { this.name = name; }
-    $$route$recognizer$$StarSegment.prototype = {
-      eachChar: function(currentState) {
-        return currentState.put({ invalidChars: "", repeat: true, validChars: undefined });
-      },
-
-      regex: function() {
-        return "(.+)";
-      },
-
-      generate: function(params) {
-        return params[this.name];
-      }
-    };
-
-    function $$route$recognizer$$EpsilonSegment() {}
-    $$route$recognizer$$EpsilonSegment.prototype = {
-      eachChar: function(currentState) {
-        return currentState;
-      },
-      regex: function() { return ""; },
-      generate: function() { return ""; }
-    };
-
-    function $$route$recognizer$$parse(route, names, specificity) {
-      // normalize route as not starting with a "/". Recognition will
-      // also normalize.
-      if (route.charAt(0) === "/") { route = route.substr(1); }
-
-      var segments = route.split("/");
-      var results = new Array(segments.length);
-
-      // A routes has specificity determined by the order that its different segments
-      // appear in. This system mirrors how the magnitude of numbers written as strings
-      // works.
-      // Consider a number written as: "abc". An example would be "200". Any other number written
-      // "xyz" will be smaller than "abc" so long as `a > z`. For instance, "199" is smaller
-      // then "200", even though "y" and "z" (which are both 9) are larger than "0" (the value
-      // of (`b` and `c`). This is because the leading symbol, "2", is larger than the other
-      // leading symbol, "1".
-      // The rule is that symbols to the left carry more weight than symbols to the right
-      // when a number is written out as a string. In the above strings, the leading digit
-      // represents how many 100's are in the number, and it carries more weight than the middle
-      // number which represents how many 10's are in the number.
-      // This system of number magnitude works well for route specificity, too. A route written as
-      // `a/b/c` will be more specific than `x/y/z` as long as `a` is more specific than
-      // `x`, irrespective of the other parts.
-      // Because of this similarity, we assign each type of segment a number value written as a
-      // string. We can find the specificity of compound routes by concatenating these strings
-      // together, from left to right. After we have looped through all of the segments,
-      // we convert the string to a number.
-      specificity.val = '';
-
-      for (var i=0; i<segments.length; i++) {
-        var segment = segments[i], match;
-
-        if (match = segment.match(/^:([^\/]+)$/)) {
-          results[i] = new $$route$recognizer$$DynamicSegment(match[1]);
-          names.push(match[1]);
-          specificity.val += '3';
-        } else if (match = segment.match(/^\*([^\/]+)$/)) {
-          results[i] = new $$route$recognizer$$StarSegment(match[1]);
-          specificity.val += '1';
-          names.push(match[1]);
-        } else if(segment === "") {
-          results[i] = new $$route$recognizer$$EpsilonSegment();
-          specificity.val += '2';
-        } else {
-          results[i] = new $$route$recognizer$$StaticSegment(segment);
-          specificity.val += '4';
-        }
-      }
-
-      specificity.val = +specificity.val;
-
-      return results;
-    }
-
-    // A State has a character specification and (`charSpec`) and a list of possible
-    // subsequent states (`nextStates`).
-    //
-    // If a State is an accepting state, it will also have several additional
-    // properties:
-    //
-    // * `regex`: A regular expression that is used to extract parameters from paths
-    //   that reached this accepting state.
-    // * `handlers`: Information on how to convert the list of captures into calls
-    //   to registered handlers with the specified parameters
-    // * `types`: How many static, dynamic or star segments in this route. Used to
-    //   decide which route to use if multiple registered routes match a path.
-    //
-    // Currently, State is implemented naively by looping over `nextStates` and
-    // comparing a character specification against a character. A more efficient
-    // implementation would use a hash of keys pointing at one or more next states.
-
-    function $$route$recognizer$$State(charSpec) {
-      this.charSpec = charSpec;
-      this.nextStates = [];
-      this.charSpecs = {};
-      this.regex = undefined;
-      this.handlers = undefined;
-      this.specificity = undefined;
-    }
-
-    $$route$recognizer$$State.prototype = {
-      get: function(charSpec) {
-        if (this.charSpecs[charSpec.validChars]) {
-          return this.charSpecs[charSpec.validChars];
-        }
-
-        var nextStates = this.nextStates;
-
-        for (var i=0; i<nextStates.length; i++) {
-          var child = nextStates[i];
-
-          var isEqual = child.charSpec.validChars === charSpec.validChars;
-          isEqual = isEqual && child.charSpec.invalidChars === charSpec.invalidChars;
-
-          if (isEqual) {
-            this.charSpecs[charSpec.validChars] = child;
-            return child;
-          }
-        }
-      },
-
-      put: function(charSpec) {
-        var state;
-
-        // If the character specification already exists in a child of the current
-        // state, just return that state.
-        if (state = this.get(charSpec)) { return state; }
-
-        // Make a new state for the character spec
-        state = new $$route$recognizer$$State(charSpec);
-
-        // Insert the new state as a child of the current state
-        this.nextStates.push(state);
-
-        // If this character specification repeats, insert the new state as a child
-        // of itself. Note that this will not trigger an infinite loop because each
-        // transition during recognition consumes a character.
-        if (charSpec.repeat) {
-          state.nextStates.push(state);
-        }
-
-        // Return the new state
-        return state;
-      },
-
-      // Find a list of child states matching the next character
-      match: function(ch) {
-        var nextStates = this.nextStates,
-            child, charSpec, chars;
-
-        var returned = [];
-
-        for (var i=0; i<nextStates.length; i++) {
-          child = nextStates[i];
-
-          charSpec = child.charSpec;
-
-          if (typeof (chars = charSpec.validChars) !== 'undefined') {
-            if (chars.indexOf(ch) !== -1) { returned.push(child); }
-          } else if (typeof (chars = charSpec.invalidChars) !== 'undefined') {
-            if (chars.indexOf(ch) === -1) { returned.push(child); }
-          }
-        }
-
-        return returned;
-      }
-    };
-
-    // Sort the routes by specificity
-    function $$route$recognizer$$sortSolutions(states) {
-      return states.sort(function(a, b) {
-        return b.specificity.val - a.specificity.val;
-      });
-    }
-
-    function $$route$recognizer$$recognizeChar(states, ch) {
-      var nextStates = [];
-
-      for (var i=0, l=states.length; i<l; i++) {
-        var state = states[i];
-
-        nextStates = nextStates.concat(state.match(ch));
-      }
-
-      return nextStates;
-    }
-
-    var $$route$recognizer$$oCreate = Object.create || function(proto) {
+    var $$route$recognizer$normalizer$$default = $$route$recognizer$normalizer$$Normalizer;
+    var $$route$recognizer$polyfills$$oCreate = Object.create || function(proto) {
       function F() {}
       F.prototype = proto;
       return new F();
     };
 
-    function $$route$recognizer$$RecognizeResults(queryParams) {
+    function $$route$recognizer$polyfills$$bind(fn, scope) {
+      return function() {
+        return fn.apply(scope, arguments);
+      };
+    }
+
+    function $$route$recognizer$polyfills$$isArray(test) {
+      return Object.prototype.toString.call(test) === "[object Array]";
+    }
+
+    // This object is the accumulator for handlers when recognizing a route.
+    // It's nothing more than an array with a bonus property.
+    function $$route$recognizer$recognize$results$$RecognizeResults(queryParams) {
       this.queryParams = queryParams || {};
     }
-    $$route$recognizer$$RecognizeResults.prototype = $$route$recognizer$$oCreate({
+    $$route$recognizer$recognize$results$$RecognizeResults.prototype = $$route$recognizer$polyfills$$oCreate({
       splice: Array.prototype.splice,
       slice:  Array.prototype.slice,
       push:   Array.prototype.push,
+      pop:    Array.prototype.pop,
       length: 0,
       queryParams: null
     });
 
-    function $$route$recognizer$$findHandler(state, path, queryParams) {
-      var handlers = state.handlers, regex = state.regex;
-      var captures = path.match(regex), currentCapture = 1;
-      var result = new $$route$recognizer$$RecognizeResults(queryParams);
+    var $$route$recognizer$recognize$results$$default = $$route$recognizer$recognize$results$$RecognizeResults;
 
-      result.length = handlers.length;
+    var $$route$recognizer$segment$trie$node$$normalizePath = $$route$recognizer$normalizer$$default.normalizePath;
 
-      for (var i=0; i<handlers.length; i++) {
-        var handler = handlers[i], names = handler.names, params = {};
+    var $$route$recognizer$segment$trie$node$$currentPath = "";
 
-        for (var j=0; j<names.length; j++) {
-          params[names[j]] = captures[currentCapture++];
+    /**
+      Matcher is just a clever recursive function that 
+     */
+    function $$route$recognizer$segment$trie$node$$matcher(addRouteCalled) {
+      return function(path, callback) {
+        $$route$recognizer$segment$trie$node$$currentPath += path;
+        var leaf = this;
+        var segments = path.replace(/^\//, '').split('/');
+
+        // As we're adding segments we need to track the current leaf.
+        for (var i = 0; i < segments.length; i++) {
+          segments[i] = new $$route$recognizer$segment$trie$node$$SegmentTrieNode(this.router, segments[i]);
+
+          if (!this.addRouteCallback || addRouteCalled) {
+            leaf.append(segments[i]);
+          }
+
+          leaf = segments[i];
         }
 
-        result[i] = { handler: handler.handler, params: params, isDynamic: !!names.length };
-      }
+        if (callback) {
+          // No handler, delegate back to the TrieNode's `to` method.
+          leaf.to(undefined, callback);
+        }
 
-      return result;
+        return leaf;
+      };
     }
+
+    /**
+    SegmentTrieNode is simply a radix trie where each radix
+    corresponds to a path segment in the RouteRecognizer microsyntax.
+    */
+    function $$route$recognizer$segment$trie$node$$SegmentTrieNode(router, value) {
+      var normalized;
+
+      // Maintain a reference to the router so we can grab serialized
+      // nodes off of it in case we're not fully initialized.
+      this.router = router;
+
+      // `value` is either a string or a serialized SegmentTrieNode.
+      if (typeof value === 'string') {
+        this.id = router.nodes.push(this) - 1;
+        this.value = value;
+        this.originalValue = undefined;
+
+        switch (this.value.charCodeAt(0)) {
+          case 58: this.type = 'param'; break; // : => 58
+          case 42: this.type = 'glob'; break; // * => 42
+          default:
+            this.type = 'static';
+            normalized = $$route$recognizer$segment$trie$node$$normalizePath(this.value);
+            // We match against a normalized value.
+            // Keep the original value for error messaging.
+            if (normalized !== this.value) {
+              this.originalValue = this.value;
+              this.value = normalized;
+            }
+          break;
+        }
+
+        this.handler = undefined;
+        this.childNodes = [];
+        this.parentNode = undefined;    
+      } else {
+        this.id = value.id;
+        this.value = value.value;
+        this.originalValue = value.originalValue;
+        this.type = value.type;
+        this.handler = value.handler;
+        this.childNodes = value.childNodes || [];
+        this.parentNode = value.parentNode;
+      }
+    }
+
+    $$route$recognizer$segment$trie$node$$SegmentTrieNode.prototype = {
+
+      // Naively add a new child to the current trie node.
+      append: function(trieNode) {
+        this.childNodes.push(trieNode);
+        trieNode.parentNode = this;
+        return this;
+      },
+
+      // Reduce the amount of space which is needed to represent the
+      // radix trie by collapsing common prefixes.
+      compact: function() {
+        if (this.childNodes.length === 0) { return; }
+
+        // Depth-first compaction.
+        this.childNodes.forEach(function(trieNode) {
+          trieNode.compact();
+        });
+
+        // Collapse sibling nodes.
+        this.childNodes = this.childNodes.filter(function(trieNode, index, siblingNodes) {
+          var segmentSeen = false;
+
+          // Scan only segments before this one to see if we've already got a match.
+          for (var i = 0; i < index && segmentSeen === false; i++) {
+            segmentSeen = (
+              siblingNodes[i].value === trieNode.value &&
+              siblingNodes[i].handler === trieNode.handler
+            );
+          }
+
+          if (segmentSeen) {
+            var targetNode = siblingNodes[i-1];
+
+            // Reset the parentNode for each trieNode to the targetNode.
+            trieNode.childNodes.forEach(function(trieNode) {
+              trieNode.parentNode = targetNode;
+            });
+
+            // Concat the childNodes of the active trieNode with the targetNode.
+            targetNode.childNodes = targetNode.childNodes.concat(trieNode.childNodes);
+
+            // Then re-compact the joined trie.
+            targetNode.compact();
+          }
+
+          return !segmentSeen;
+        });
+
+        // Sort nodes to get an approximation of specificity.
+        this.childNodes.sort(function(a, b) {
+          var ascore, bscore;
+          switch (a.type) {
+            case "static": ascore = 0; break;
+            case "param": ascore = 1; break;
+            case "glob": ascore = 2; break;
+          }
+          switch (b.type) {
+            case "static": bscore = 0; break;
+            case "param": bscore = 1; break;
+            case "glob": bscore = 2; break;
+          }
+
+          return ascore > bscore;
+        });
+      },
+
+      // Can't just blindly return itself.
+      // Minimizes individual object size.
+      // Only called at build time.
+      toJSON: function() {
+        var childNodeCount = this.childNodes.length;
+
+        var result = {
+          id: this.id,
+          type: this.type,
+          value: this.value,
+          handler: this.handler,
+        };
+
+        if (this.originalValue) {
+          result.originalValue = this.originalValue;
+        }
+
+        if (this.handler) {
+          result.handler = this.handler;
+        }
+
+        // Set up parentNode reference.
+        if (this.parentNode) {
+          result.parentNode = this.parentNode.id;
+        }
+
+        // Set up childNodes references.
+        if (childNodeCount) {
+          result.childNodes = new Array(childNodeCount);
+          for (var i = 0; i < childNodeCount; i++) {
+            result.childNodes[i] = this.childNodes[i].id;
+          }
+        }
+
+        return result;
+      },
+
+      /**
+        Binds a handler to this trie node.
+        If it receives a callback it will continue matching.
+        @public
+       */
+      to: function(handler, callback) {
+        this.handler = handler;
+
+        if (handler && this.router.addRouteCallback) {
+          this.router.addRouteCallback(this.router, [{
+            path: $$route$recognizer$segment$trie$node$$currentPath,
+            handler: handler
+          }]);
+        }
+
+        $$route$recognizer$segment$trie$node$$currentPath = '';
+
+        if (callback) {
+          if (callback.length === 0) { throw new Error("You must have an argument in the function passed to `to`"); }
+          callback($$route$recognizer$polyfills$$bind($$route$recognizer$segment$trie$node$$matcher(true), this));
+        }
+
+        return this;
+      },
+
+      /**
+        Our goal is to try and match based upon the node type. For non-globbing
+        routes we can simply pop a segment off of the path and continue, eliminating
+        entire branches as we go. Average number of comparisons is:
+          `Number of Trie Nodes / Average Depth / 2`
+
+        If we reach a globbing route we have to change strategy and traverse to all
+        descendent leaf nodes until we find a match. As we traverse we build up a
+        regular expression that would match beginning with that globbing route. We
+        leverage the regular expression to handle the mechanics of greedy pattern
+        matching with back-tracing. The average number of comparisons beyond a
+        globbing route:
+          `Number of Trie Nodes / 2`
+
+        This could be optimized further to do O(1) matching for non-globbing
+        segments but that is overkill for this use case.
+      */
+      walk: function(path, handlers, params, regexPieces) {
+        var isLeafNode = (this.childNodes.length === 0);
+        var isTerminalNode = this.handler;
+        var nodeMatches = false;
+        var nextNode = this;
+        var consumed = false;
+        var segmentIndex = 0;
+
+        // Identify the node type so we know how to match it.
+        switch (this.type) {
+          case "static":
+            if (regexPieces) {
+              // If we're descended from a globbing route.
+              regexPieces.push(this.value);
+            } else {
+              // Matches if the path to recognize is identical to the node value.
+              segmentIndex = this.value.length;
+              nodeMatches = path.indexOf(this.value) === 0;
+              if (nodeMatches) {
+                path = path.substring(segmentIndex);
+
+                // "/".charCodeAt(0) === 47
+                if (path.charCodeAt(0) === 47) {
+                  path = path.substr(1);
+                }
+              }
+            }
+          break;
+          case "param":
+            if (regexPieces) {
+              // If we're descended from a globbing route.
+              regexPieces.push('([^/]+)');
+              params[this.value.substring(1)] = { regex: true, index: regexPieces.length};
+            } else {
+              // Valid for '/' to not appear, or appear anywhere but the 0th index.
+              // 0 length or 0th index would result in an non-matching empty param.
+              segmentIndex = path.indexOf('/');
+              if (segmentIndex === -1) { segmentIndex = path.length; }
+
+              nodeMatches = (path.length > 0 && segmentIndex > 0);
+              if (nodeMatches) {
+                if (this.router.ENCODE_AND_DECODE_PATH_SEGMENTS) {
+                  params[this.value.substring(1)] = decodeURIComponent(path.substr(0, segmentIndex));
+                } else {
+                  params[this.value.substring(1)] = path.substr(0, segmentIndex);
+                }
+                path = path.substring(segmentIndex + 1);
+              }
+            }
+          break;
+          case "glob":
+            // We can no longer do prefix matching. Prepare to traverse leaves.
+
+            // It's possible to have multiple globbing routes in a single path.
+            // So maybe we already have a `regexPieces` array.
+            if (!regexPieces) { regexPieces = []; }
+
+            if (isLeafNode) {
+              // If a glob is the leaf node we don't match a trailing slash.
+              regexPieces.push('(.+)(?:/?)');
+            } else {
+              // Consume the segment. `regexPieces.join` adds the '/'.
+              regexPieces.push('(.+)');
+            }
+            params[this.value.substring(1)] = { regex: true, index: regexPieces.length};
+          break;
+        }
+
+        // Short-circuit for nodes that can't possibly match.
+        if (!nodeMatches && !regexPieces) { return false; }
+
+        if (this.handler) {
+          handlers.push({
+            handler: this.handler,
+            params: params,
+            isDynamic: (this.type !== "static")
+          });
+        }
+
+        var nextParams = this.handler ? {} : params;
+
+        // Depth-first traversal of childNodes. No-op for leaf nodes.
+        for (var i = 0; i < this.childNodes.length; i++) {
+          nextNode = this.childNodes[i].walk(path, handlers, nextParams, regexPieces);
+
+          // Stop traversing once we have a match since we're sorted by specificity.
+          if (!!nextNode) { break; }
+        }
+
+        // If we're at a terminal node find out if we've consumed the entire path.
+        if (isTerminalNode) {
+          if (regexPieces) {
+            var myregex = new RegExp('^'+regexPieces.join('/')+'$');
+            var matches = myregex.exec(path);
+            consumed = !!matches;
+      
+            if (consumed) {
+              // Need to move matches to the correct params location.
+              for (var j = 0; j < handlers.length; j++) {
+                for (var x in handlers[i].params) {
+                  if (handlers[i].params[x].regex) {
+                    handlers[i].params[x] = matches[handlers[i].params[x].index];
+                  }
+                }
+              }
+            } else {
+              // We pushed a segment onto the regexPieces, but this wasn't a match.
+              // Pop it back off for the next go-round.
+              regexPieces.pop();
+            }
+          } else {
+            consumed = (path.length === 0);
+          }
+        }
+
+        // `consumed` is false unless set above.
+        if (isLeafNode && !consumed) {
+          if (this.handler) { handlers.pop(); }
+          return false;
+        } else {
+          return nextNode;
+        }
+      },
+
+      wire: function() {
+        this.parentNode = this.router.nodes[this.parentNode];
+        for (var i = 0; i < this.childNodes.length; i++) {
+          this.childNodes[i] = this.router.nodes[this.childNodes[i]];
+        }
+      }
+    };
+
+    var $$route$recognizer$segment$trie$node$$default = $$route$recognizer$segment$trie$node$$SegmentTrieNode;
+
+    var $$route$recognizer$$normalizePath = $$route$recognizer$normalizer$$default.normalizePath;
+    var $$route$recognizer$$normalizeSegment = $$route$recognizer$normalizer$$default.normalizeSegment;
 
     function $$route$recognizer$$decodeQueryParamPart(part) {
       // http://www.w3.org/TR/html401/interact/forms.html#h-17.13.4.1
@@ -403,77 +485,66 @@
       return result;
     }
 
-    // The main interface
-
-    var $$route$recognizer$$RouteRecognizer = function() {
-      this.rootState = new $$route$recognizer$$State();
+    function $$route$recognizer$$RouteRecognizer(serialized) {
+      this.ENCODE_AND_DECODE_PATH_SEGMENTS = $$route$recognizer$$RouteRecognizer.ENCODE_AND_DECODE_PATH_SEGMENTS;
       this.names = {};
-    };
 
+      if (serialized) {
+        this.compacted = true;
+        this.nodes = new Array(serialized.nodes.length);
+
+        for (var i = 0; i < serialized.nodes.length; i++) {
+          if (!serialized.nodes[i]) { continue; }
+          this.nodes[i] = new $$route$recognizer$segment$trie$node$$default(this, serialized.nodes[i]);
+        }
+
+        for (i = 0; i < serialized.nodes.length; i++) {
+          if (!serialized.nodes[i]) { continue; }
+          this.nodes[i].wire();
+        }
+
+        for (var x in serialized.names) {
+          if (!serialized.names.hasOwnProperty(x)) { return; }
+          this.names[x] = this.nodes[serialized.names[x]];
+        }
+
+        this.rootState = this.nodes[serialized.rootState];
+      } else {
+        this.compacted = false;
+        this.nodes = [];
+        this.rootState = new $$route$recognizer$segment$trie$node$$default(this, '');
+      }
+    }
 
     $$route$recognizer$$RouteRecognizer.prototype = {
       add: function(routes, options) {
-        var currentState = this.rootState, regex = "^",
-            specificity = {},
-            handlers = new Array(routes.length), allSegments = [], name;
+        this.compacted = false;
+        options = options || {};
+        var leaf = this.rootState;
 
-        var isEmpty = true;
-
-        for (var i=0; i<routes.length; i++) {
-          var route = routes[i], names = [];
-
-          var segments = $$route$recognizer$$parse(route.path, names, specificity);
-
-          allSegments = allSegments.concat(segments);
-
-          for (var j=0; j<segments.length; j++) {
-            var segment = segments[j];
-
-            if (segment instanceof $$route$recognizer$$EpsilonSegment) { continue; }
-
-            isEmpty = false;
-
-            // Add a "/" for the new segment
-            currentState = currentState.put({ invalidChars: undefined, repeat: false, validChars: "/" });
-            regex += "/";
-
-            // Add a representation of the segment to the NFA and regex
-            currentState = segment.eachChar(currentState);
-            regex += segment.regex();
-          }
-          var handler = { handler: route.handler, names: names };
-          handlers[i] = handler;
+        // Go through each passed in route and call the matcher with it.
+        for (var i = 0; i < routes.length; i++) {
+          leaf = $$route$recognizer$segment$trie$node$$matcher().call(leaf, routes[i].path);
+          leaf.to(routes[i].handler);
         }
-
-        if (isEmpty) {
-          currentState = currentState.put({ invalidChars: undefined, repeat: false, validChars: "/" });
-          regex += "/";
-        }
-
-        currentState.handlers = handlers;
-        currentState.regex = new RegExp(regex + "$");
-        currentState.specificity = specificity;
-
-        if (name = options && options.as) {
-          this.names[name] = {
-            segments: allSegments,
-            handlers: handlers
-          };
-        }
+        leaf.name = options.as;
+        this.names[options.as] = leaf;
       },
 
       handlersFor: function(name) {
-        var route = this.names[name];
+        var trieNode = this.names[name];
 
-        if (!route) { throw new Error("There is no route named " + name); }
+        if (!trieNode) { throw new Error("There is no route named " + name); }
 
-        var result = new Array(route.handlers.length);
+        var handlers = [];
 
-        for (var i=0; i<route.handlers.length; i++) {
-          result[i] = route.handlers[i];
-        }
+        do {
+          if (trieNode.handler) {
+            handlers.push(trieNode.handler);
+          }
+        } while (trieNode = trieNode.parentNode);
 
-        return result;
+        return handlers;
       },
 
       hasRoute: function(name) {
@@ -481,30 +552,51 @@
       },
 
       generate: function(name, params) {
-        var route = this.names[name], output = "";
-        if (!route) { throw new Error("There is no route named " + name); }
+        if (!this.compacted) { this.rootState.compact(); this.compacted = true; }
 
-        var segments = route.segments;
+        var output = "";
+        var trieNode = this.names[name];
 
-        for (var i=0; i<segments.length; i++) {
-          var segment = segments[i];
+        if (!trieNode) { throw new Error("There is no route named " + name); }
 
-          if (segment instanceof $$route$recognizer$$EpsilonSegment) { continue; }
+        var segments = [];
+        do {
+          // `push` is much faster than `unshift`
+          segments.push(trieNode);
+        } while (trieNode = trieNode.parentNode);
 
-          output += "/";
-          output += segment.generate(params);
+        // But it does mean we have to iterate over these backward.
+        for (var i = segments.length - 1; i >= 0; i--) {
+          trieNode = segments[i];
+
+          if (trieNode.type === 'static') {
+            if (trieNode.value === '') { continue; }
+            output += '/' + trieNode.value;        
+          } else if (trieNode.type === 'param') {
+            if (this.ENCODE_AND_DECODE_PATH_SEGMENTS) {
+              output += '/' + encodeURIComponent(params[trieNode.value.substr(1)]);
+            } else {
+              output += '/' + params[trieNode.value.substr(1)];
+            }
+          } else if (trieNode.type === 'glob') {
+            output += '/' + params[trieNode.value.substr(1)];
+          } else {
+            output += '/' + params[trieNode.value.substr(1)];        
+          }
         }
-
-        if (output.charAt(0) !== '/') { output = '/' + output; }
 
         if (params && params.queryParams) {
-          output += this.generateQueryString(params.queryParams, route.handlers);
+          output += this.generateQueryString(params.queryParams);
         }
 
+        // "/".charCodeAt(0) === 47
+        if (output.charCodeAt(0) !== 47) {
+          output = '/' + output;
+        }
         return output;
       },
 
-      generateQueryString: function(params, handlers) {
+      generateQueryString: function(params) {
         var pairs = [];
         var keys = [];
         for(var key in params) {
@@ -520,7 +612,7 @@
             continue;
           }
           var pair = encodeURIComponent(key);
-          if ($$route$recognizer$$isArray(value)) {
+          if ($$route$recognizer$polyfills$$isArray(value)) {
             for (var j = 0; j < value.length; j++) {
               var arrayPair = key + '[]' + '=' + encodeURIComponent(value[j]);
               pairs.push(arrayPair);
@@ -534,6 +626,12 @@
         if (pairs.length === 0) { return ''; }
 
         return "?" + pairs.join("&");
+      },
+
+      map: function(callback, addRouteCallback) {
+        this.compacted = false;
+        this.addRouteCallback = addRouteCallback;
+        callback($$route$recognizer$polyfills$$bind($$route$recognizer$segment$trie$node$$matcher(), this.rootState));
       },
 
       parseQueryString: function(queryString) {
@@ -567,55 +665,83 @@
       },
 
       recognize: function(path) {
-        var states = [ this.rootState ],
-            pathLen, i, l, queryStart, queryParams = {},
-            isSlashDropped = false;
+        if (!this.compacted) { this.rootState.compact(); this.compacted = true; }
 
-        queryStart = path.indexOf('?');
+        var hashStart = path.indexOf('#');
+        if (hashStart !== -1) {
+          path = path.substr(0, hashStart);
+        }
+
+        var queryString, queryParams;
+        var queryStart = path.indexOf('?');
         if (queryStart !== -1) {
-          var queryString = path.substr(queryStart + 1, path.length);
+          queryString = path.substr(queryStart + 1, path.length);
           path = path.substr(0, queryStart);
           queryParams = this.parseQueryString(queryString);
         }
 
-        path = decodeURI(path);
-
-        if (path.charAt(0) !== "/") { path = "/" + path; }
-
-        pathLen = path.length;
-        if (pathLen > 1 && path.charAt(pathLen - 1) === "/") {
-          path = path.substr(0, pathLen - 1);
-          isSlashDropped = true;
+        // "/".charCodeAt(0) === 47
+        if (path.charCodeAt(0) === 47) {
+          path = path.substr(1);
         }
 
-        for (i=0; i<path.length; i++) {
-          states = $$route$recognizer$$recognizeChar(states, path.charAt(i));
-          if (!states.length) { break; }
+        if (this.ENCODE_AND_DECODE_PATH_SEGMENTS) {
+          path = $$route$recognizer$$normalizePath(path);
+        } else {
+          path = decodeURI(path);
         }
 
-        var solutions = [];
-        for (i=0; i<states.length; i++) {
-          if (states[i].handlers) { solutions.push(states[i]); }
+        var handlers = new $$route$recognizer$recognize$results$$default(queryParams);
+        var trieNode = this.rootState.walk(path, handlers, {});
+
+        if (trieNode) {
+          return handlers;
+        } else {
+          return null;
+        }
+      },
+
+      toJSON: function() {
+        if (!this.compacted) { this.rootState.compact(); this.compacted = true; }
+
+        // Rebuild the names property as a series of ID references.
+        var names = {};
+        for (var x in this.names) {
+          if (!this.names.hasOwnProperty(x)) { return; }
+          names[x] = this.names[x].id;
         }
 
-        states = $$route$recognizer$$sortSolutions(solutions);
+        // Could have unnecessary references after compacting.
+        var parentsChildren = [];
+        for (var i = 0; i < this.nodes.length; i++) {
+          // Skip the root state.
+          if (!this.nodes[i] || !this.nodes[i].parentNode) { continue; }
 
-        var state = solutions[0];
+          // Reduce childNodes to a collection of IDs.
+          parentsChildren = this.nodes[i].parentNode.childNodes.map(function(trieNode) { return trieNode.id; });
 
-        if (state && state.handlers) {
-          // if a trailing slash was dropped and a star segment is the last segment
-          // specified, put the trailing slash back
-          if (isSlashDropped && state.regex.source.slice(-5) === "(.+)$") {
-            path = path + "/";
+          // If we don't find it the current ID on the parent, drop it.
+          if (!~parentsChildren.indexOf(this.nodes[i].id)) {
+            this.nodes[i] = undefined;
           }
-          return $$route$recognizer$$findHandler(state, path, queryParams);
         }
+
+        // Return an object which can be rehydrated.
+        return {
+          names: names,
+          rootState: this.rootState.id,
+          nodes: this.nodes
+        };
       }
     };
 
-    $$route$recognizer$$RouteRecognizer.prototype.map = $$route$recognizer$dsl$$default;
-
     $$route$recognizer$$RouteRecognizer.VERSION = '0.1.11';
+
+    // Set to false to opt-out of encoding and decoding path segments.
+    // See https://github.com/tildeio/route-recognizer/pull/55
+    $$route$recognizer$$RouteRecognizer.ENCODE_AND_DECODE_PATH_SEGMENTS = true;
+
+    $$route$recognizer$$RouteRecognizer.Normalizer = $$route$recognizer$normalizer$$default;
 
     var $$route$recognizer$$default = $$route$recognizer$$RouteRecognizer;
 
