@@ -222,7 +222,8 @@
           for (var i = 0; i < index && segmentSeen === false; i++) {
             segmentSeen = (
               siblingNodes[i].value === trieNode.value &&
-              siblingNodes[i].handler === trieNode.handler
+              siblingNodes[i].handler === trieNode.handler &&
+              (trieNode.name === siblingNodes[i].name || trieNode.name === undefined || siblingNodes[i].name === undefined)
             );
           }
 
@@ -233,6 +234,8 @@
             trieNode.childNodes.forEach(function(trieNode) {
               trieNode.parentNode = targetNode;
             });
+
+            targetNode.name = targetNode.name || trieNode.name;
 
             // Concat the childNodes of the active trieNode with the targetNode.
             targetNode.childNodes = targetNode.childNodes.concat(trieNode.childNodes);
@@ -559,16 +562,36 @@
         if (!trieNode) { throw new Error("There is no route named " + name); }
 
         var handlers = [];
+        var current = {
+          handler: trieNode.handler,
+          names: []
+        };
 
-        do {
+        if (trieNode.type === 'param') {
+          current.names.push({ name: trieNode.value.substr(1), decode: true });
+        }
+        if (trieNode.type === 'glob') {
+          current.names.push({ name: trieNode.value.substr(1), decode: false });
+        }
+
+        while (trieNode = trieNode.parentNode) {
           if (trieNode.handler) {
-            handlers.push({
+            handlers.push(current);
+
+            current = {
               handler: trieNode.handler,
               names: []
-            });
+            };
           }
-        } while (trieNode = trieNode.parentNode);
+          if (trieNode.type === 'param') {
+            current.names.unshift({ name: trieNode.value.substr(1), decode: true });
+          }
+          if (trieNode.type === 'glob') {
+            current.names.unshift({ name: trieNode.value.substr(1), decode: false });
+          }
+        }
 
+        handlers.push(current);
         return handlers.reverse();
       },
 
