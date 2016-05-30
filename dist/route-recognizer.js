@@ -115,31 +115,34 @@
 
     var $$route$recognizer$segment$trie$node$$normalizePath = $$route$recognizer$normalizer$$default.normalizePath;
 
-    var $$route$recognizer$segment$trie$node$$currentPath = "";
+    var $$route$recognizer$segment$trie$node$$router;
 
     /**
       Matcher is just a clever recursive function that 
      */
-    function $$route$recognizer$segment$trie$node$$matcher(addRouteCalled) {
+    function $$route$recognizer$segment$trie$node$$matcher(source) {
       return function(path, callback) {
-        $$route$recognizer$segment$trie$node$$currentPath += path;
-        var leaf = this;
+        var leaf;
+        if (source === 'map' && this === this.router.rootState) {
+          $$route$recognizer$segment$trie$node$$router = this.router;
+          leaf = new $$route$recognizer$segment$trie$node$$SegmentTrieNode({ addRouteCallback: true, nodes: [] }, '');
+        } else {
+          leaf = this;
+        }
+
         var segments = path.replace(/^\//, '').split('/');
 
         // As we're adding segments we need to track the current leaf.
         for (var i = 0; i < segments.length; i++) {
           segments[i] = new $$route$recognizer$segment$trie$node$$SegmentTrieNode(this.router, segments[i]);
 
-          if (!this.addRouteCallback || addRouteCalled) {
-            leaf.append(segments[i]);
-          }
-
+          leaf.append(segments[i]);
           leaf = segments[i];
         }
 
         if (callback) {
           // No handler, delegate back to the TrieNode's `to` method.
-          leaf.to(undefined, callback);
+          leaf.to(undefined, callback, source);
         }
 
         return leaf;
@@ -301,21 +304,40 @@
         If it receives a callback it will continue matching.
         @public
        */
-      to: function(handler, callback) {
+      to: function(handler, callback, source) {
         this.handler = handler;
 
-        if (handler && this.router.addRouteCallback) {
-          this.router.addRouteCallback(this.router, [{
-            path: $$route$recognizer$segment$trie$node$$currentPath,
-            handler: handler
-          }]);
-        }
+        if (handler && this.router.addRouteCallback && source !== 'add') {
+          var routes = [];
+          var trieNode = this;
+          var current = {
+            path: '/' + trieNode.value,
+            handler: trieNode.handler
+          };
 
-        $$route$recognizer$segment$trie$node$$currentPath = '';
+          while (trieNode = trieNode.parentNode) {
+            if (trieNode.handler) {
+              if (current) {
+                routes.unshift(current);
+                current = {
+                  path: '/' + trieNode.value,
+                  handler: trieNode.handler
+                };
+              } else {
+                current.path = trieNode.value === '' ? current.path : '/' + trieNode.value + current.path;
+              }
+            } else {
+              current.path = trieNode.value === '' ? current.path : '/' + trieNode.value + current.path;
+            }
+          }
+
+          routes.unshift(current);
+          this.router.addRouteCallback($$route$recognizer$segment$trie$node$$router, routes);
+        }
 
         if (callback) {
           if (callback.length === 0) { throw new Error("You must have an argument in the function passed to `to`"); }
-          callback($$route$recognizer$polyfills$$bind($$route$recognizer$segment$trie$node$$matcher(true), this));
+          callback($$route$recognizer$polyfills$$bind($$route$recognizer$segment$trie$node$$matcher(source), this));
         }
 
         return this;
@@ -524,8 +546,8 @@
 
         // Go through each passed in route and call the matcher with it.
         for (var i = 0; i < routes.length; i++) {
-          leaf = $$route$recognizer$segment$trie$node$$matcher().call(leaf, routes[i].path);
-          leaf.to(routes[i].handler);
+          leaf = $$route$recognizer$segment$trie$node$$matcher('add').call(leaf, routes[i].path);
+          leaf.to(routes[i].handler, undefined, 'add');
         }
         leaf.name = options.as;
         this.names[options.as] = leaf;
@@ -540,11 +562,14 @@
 
         do {
           if (trieNode.handler) {
-            handlers.push(trieNode.handler);
+            handlers.push({
+              handler: trieNode.handler,
+              names: []
+            });
           }
         } while (trieNode = trieNode.parentNode);
 
-        return handlers;
+        return handlers.reverse();
       },
 
       hasRoute: function(name) {
@@ -631,7 +656,7 @@
       map: function(callback, addRouteCallback) {
         this.compacted = false;
         this.addRouteCallback = addRouteCallback;
-        callback($$route$recognizer$polyfills$$bind($$route$recognizer$segment$trie$node$$matcher(), this.rootState));
+        callback($$route$recognizer$polyfills$$bind($$route$recognizer$segment$trie$node$$matcher('map'), this.rootState));
       },
 
       parseQueryString: function(queryString) {
