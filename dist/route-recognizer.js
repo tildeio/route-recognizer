@@ -100,6 +100,91 @@
       }, this);
     };
 
+    var $$route$recognizer$normalizer$$PERCENT_ENCODED_VALUES = /%[a-fA-F0-9]{2}/g;
+
+    function $$route$recognizer$normalizer$$toUpper(str) { return str.toUpperCase(); }
+
+    // Turn percent-encoded values to upper case ("%3a" -> "%3A")
+    function $$route$recognizer$normalizer$$percentEncodedValuesToUpper(string) {
+      return string.replace($$route$recognizer$normalizer$$PERCENT_ENCODED_VALUES, $$route$recognizer$normalizer$$toUpper);
+    }
+
+    // Normalizes percent-encoded values to upper-case and decodes percent-encoded
+    // values that are not reserved (like unicode characters).
+    // Safe to call multiple times on the same path.
+    function $$route$recognizer$normalizer$$normalizePath(path) {
+      return path.split('/')
+                 .map($$route$recognizer$normalizer$$normalizeSegment)
+                 .join('/');
+    }
+
+    function $$route$recognizer$normalizer$$percentEncode(char) {
+      return '%' + $$route$recognizer$normalizer$$charToHex(char);
+    }
+
+    function $$route$recognizer$normalizer$$charToHex(char) {
+      return char.charCodeAt(0).toString(16).toUpperCase();
+    }
+
+    // Decodes percent-encoded values in the string except those
+    // characters in `reservedHex`, where `reservedHex` is an array of 2-character
+    // percent-encodings
+    function $$route$recognizer$normalizer$$decodeURIComponentExcept(string, reservedHex) {
+      if (string.indexOf('%') === -1) {
+        // If there is no percent char, there is no decoding that needs to
+        // be done and we exit early
+        return string;
+      }
+      string = $$route$recognizer$normalizer$$percentEncodedValuesToUpper(string);
+
+      var result = '';
+      var buffer = '';
+      var idx = 0;
+      while (idx < string.length) {
+        var pIdx = string.indexOf('%', idx);
+
+        if (pIdx === -1) { // no percent char
+          buffer += string.slice(idx);
+          break;
+        } else { // found percent char
+          buffer += string.slice(idx, pIdx);
+          idx = pIdx + 3;
+
+          var hex = string.slice(pIdx + 1, pIdx + 3);
+          var encoded = '%' + hex;
+
+          if (reservedHex.indexOf(hex) === -1) {
+            // encoded is not in reserved set, add to buffer
+            buffer += encoded;
+          } else {
+            result += decodeURIComponent(buffer);
+            buffer = '';
+            result += encoded;
+          }
+        }
+      }
+      result += decodeURIComponent(buffer);
+      return result;
+    }
+
+    // Leave these characters in encoded state in segments
+    var $$route$recognizer$normalizer$$reservedSegmentChars = ['%', '/'];
+    var $$route$recognizer$normalizer$$reservedHex = $$route$recognizer$normalizer$$reservedSegmentChars.map($$route$recognizer$normalizer$$charToHex);
+
+    function $$route$recognizer$normalizer$$normalizeSegment(segment) {
+      return $$route$recognizer$normalizer$$decodeURIComponentExcept(segment, $$route$recognizer$normalizer$$reservedHex);
+    }
+
+    var $$route$recognizer$normalizer$$Normalizer = {
+      normalizeSegment: $$route$recognizer$normalizer$$normalizeSegment,
+      normalizePath: $$route$recognizer$normalizer$$normalizePath
+    };
+
+    var $$route$recognizer$normalizer$$default = $$route$recognizer$normalizer$$Normalizer;
+
+    var $$route$recognizer$$normalizePath = $$route$recognizer$normalizer$$default.normalizePath;
+    var $$route$recognizer$$normalizeSegment = $$route$recognizer$normalizer$$default.normalizeSegment;
+
     var $$route$recognizer$$specials = [
       '/', '.', '*', '+', '?', '|',
       '(', ')', '[', ']', '{', '}', '\\'
@@ -128,7 +213,7 @@
     // * `invalidChars`: a String with a list of all invalid characters
     // * `repeat`: true if the character specification can repeat
 
-    function $$route$recognizer$$StaticSegment(string) { this.string = string; }
+    function $$route$recognizer$$StaticSegment(string) { this.string = $$route$recognizer$$normalizeSegment(string); }
     $$route$recognizer$$StaticSegment.prototype = {
       eachChar: function(currentState) {
         var string = this.string, ch;
@@ -150,7 +235,7 @@
       }
     };
 
-    function $$route$recognizer$$DynamicSegment(name) { this.name = name; }
+    function $$route$recognizer$$DynamicSegment(name) { this.name = $$route$recognizer$$normalizeSegment(name); }
     $$route$recognizer$$DynamicSegment.prototype = {
       eachChar: function(currentState) {
         return currentState.put({ invalidChars: "/", repeat: true, validChars: undefined });
@@ -161,7 +246,11 @@
       },
 
       generate: function(params) {
-        return params[this.name];
+        if ($$route$recognizer$$RouteRecognizer.ENCODE_AND_DECODE_PATH_SEGMENTS) {
+          return encodeURIComponent(params[this.name]);
+        } else {
+          return params[this.name];
+        }
       }
     };
 
@@ -189,7 +278,10 @@
       generate: function() { return ""; }
     };
 
-    function $$route$recognizer$$parse(route, names, specificity) {
+    // The `names` will be populated with the paramter name for each dynamic/star
+    // segment. `shouldDecodes` will be populated with a boolean for each dyanamic/star
+    // segment, indicating whether it should be decoded during recognition.
+    function $$route$recognizer$$parse(route, names, specificity, shouldDecodes) {
       // normalize route as not starting with a "/". Recognition will
       // also normalize.
       if (route.charAt(0) === "/") { route = route.substr(1); }
@@ -201,7 +293,7 @@
       // appear in. This system mirrors how the magnitude of numbers written as strings
       // works.
       // Consider a number written as: "abc". An example would be "200". Any other number written
-      // "xyz" will be smaller than "abc" so long as `a > z`. For instance, "199" is smaller
+      // "xyz" will be smaller than "abc" so long as `a > x`. For instance, "199" is smaller
       // then "200", even though "y" and "z" (which are both 9) are larger than "0" (the value
       // of (`b` and `c`). This is because the leading symbol, "2", is larger than the other
       // leading symbol, "1".
@@ -224,11 +316,13 @@
         if (match = segment.match(/^:([^\/]+)$/)) {
           results[i] = new $$route$recognizer$$DynamicSegment(match[1]);
           names.push(match[1]);
+          shouldDecodes.push(true);
           specificity.val += '3';
         } else if (match = segment.match(/^\*([^\/]+)$/)) {
           results[i] = new $$route$recognizer$$StarSegment(match[1]);
-          specificity.val += '1';
           names.push(match[1]);
+          shouldDecodes.push(false);
+          specificity.val += '1';
         } else if(segment === "") {
           results[i] = new $$route$recognizer$$EpsilonSegment();
           specificity.val += '2';
@@ -373,18 +467,32 @@
       queryParams: null
     });
 
-    function $$route$recognizer$$findHandler(state, path, queryParams) {
+    function $$route$recognizer$$findHandler(state, originalPath, queryParams) {
       var handlers = state.handlers, regex = state.regex;
-      var captures = path.match(regex), currentCapture = 1;
+      var captures = originalPath.match(regex), currentCapture = 1;
       var result = new $$route$recognizer$$RecognizeResults(queryParams);
 
       result.length = handlers.length;
 
       for (var i=0; i<handlers.length; i++) {
-        var handler = handlers[i], names = handler.names, params = {};
+        var handler = handlers[i], names = handler.names,
+          shouldDecodes = handler.shouldDecodes, params = {};
+        var name, shouldDecode, capture;
 
         for (var j=0; j<names.length; j++) {
-          params[names[j]] = captures[currentCapture++];
+          name = names[j];
+          shouldDecode = shouldDecodes[j];
+          capture = captures[currentCapture++];
+
+          if ($$route$recognizer$$RouteRecognizer.ENCODE_AND_DECODE_PATH_SEGMENTS) {
+            if (shouldDecode) {
+              params[name] = decodeURIComponent(capture);
+            } else {
+              params[name] = capture;
+            }
+          } else {
+            params[name] = capture;
+          }
         }
 
         result[i] = { handler: handler.handler, params: params, isDynamic: !!names.length };
@@ -420,9 +528,9 @@
         var isEmpty = true;
 
         for (var i=0; i<routes.length; i++) {
-          var route = routes[i], names = [];
+          var route = routes[i], names = [], shouldDecodes = [];
 
-          var segments = $$route$recognizer$$parse(route.path, names, specificity);
+          var segments = $$route$recognizer$$parse(route.path, names, specificity, shouldDecodes);
 
           allSegments = allSegments.concat(segments);
 
@@ -441,7 +549,7 @@
             currentState = segment.eachChar(currentState);
             regex += segment.regex();
           }
-          var handler = { handler: route.handler, names: names };
+          var handler = { handler: route.handler, names: names, shouldDecodes: shouldDecodes };
           handlers[i] = handler;
         }
 
@@ -569,7 +677,13 @@
       recognize: function(path) {
         var states = [ this.rootState ],
             pathLen, i, l, queryStart, queryParams = {},
+            hashStart,
             isSlashDropped = false;
+
+        hashStart = path.indexOf('#');
+        if (hashStart !== -1) {
+          path = path.substr(0, hashStart);
+        }
 
         queryStart = path.indexOf('?');
         if (queryStart !== -1) {
@@ -578,13 +692,20 @@
           queryParams = this.parseQueryString(queryString);
         }
 
-        path = decodeURI(path);
-
         if (path.charAt(0) !== "/") { path = "/" + path; }
+        var originalPath = path;
+
+        if ($$route$recognizer$$RouteRecognizer.ENCODE_AND_DECODE_PATH_SEGMENTS) {
+          path = $$route$recognizer$$normalizePath(path);
+        } else {
+          path = decodeURI(path);
+          originalPath = decodeURI(originalPath);
+        }
 
         pathLen = path.length;
         if (pathLen > 1 && path.charAt(pathLen - 1) === "/") {
           path = path.substr(0, pathLen - 1);
+          originalPath = originalPath.substr(0, pathLen - 1);
           isSlashDropped = true;
         }
 
@@ -606,16 +727,22 @@
           // if a trailing slash was dropped and a star segment is the last segment
           // specified, put the trailing slash back
           if (isSlashDropped && state.regex.source.slice(-5) === "(.+)$") {
-            path = path + "/";
-          }
-          return $$route$recognizer$$findHandler(state, path, queryParams);
+             originalPath = originalPath + "/";
+           }
+          return $$route$recognizer$$findHandler(state, originalPath, queryParams);
         }
       }
     };
 
     $$route$recognizer$$RouteRecognizer.prototype.map = $$route$recognizer$dsl$$default;
 
-    $$route$recognizer$$RouteRecognizer.VERSION = '0.1.11';
+    $$route$recognizer$$RouteRecognizer.VERSION = '0.2.0';
+
+    // Set to false to opt-out of encoding and decoding path segments.
+    // See https://github.com/tildeio/route-recognizer/pull/55
+    $$route$recognizer$$RouteRecognizer.ENCODE_AND_DECODE_PATH_SEGMENTS = true;
+
+    $$route$recognizer$$RouteRecognizer.Normalizer = $$route$recognizer$normalizer$$default;
 
     var $$route$recognizer$$default = $$route$recognizer$$RouteRecognizer;
 
