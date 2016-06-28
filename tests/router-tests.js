@@ -2,7 +2,7 @@
 
 import RouteRecognizer from 'route-recognizer';
 
-var router;
+var router = {};
 
 function resultsMatch(results, array, queryParams) {
   deepEqual(results.slice(), array);
@@ -13,7 +13,12 @@ function resultsMatch(results, array, queryParams) {
 
 module("The match DSL", {
   setup: function() {
-    router = new RouteRecognizer();
+    router.map = function() {
+      var original = new RouteRecognizer();
+      original.map.apply(original, arguments);
+      var serialized = JSON.parse(JSON.stringify(original));
+      router = new RouteRecognizer(serialized);
+    };
   }
 });
 
