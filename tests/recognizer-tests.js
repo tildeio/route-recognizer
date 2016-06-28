@@ -877,11 +877,11 @@ test("Generating an invalid named route raises", function() {
 });
 
 test("Getting the handlers for a named route", function() {
-  deepEqual(router.handlersFor("post"), [ { handler: handlers[0], names: [{name: 'id', decode: true}] } ]);
-  deepEqual(router.handlersFor("posts"), [ { handler: handlers[1], names: [] } ]);
-  deepEqual(router.handlersFor("new_post"), [ { handler: handlers[2], names: [] } ]);
-  deepEqual(router.handlersFor("edit_post"), [ { handler: handlers[3], names: [{name: 'id', decode: true}] } ]);
-  deepEqual(router.handlersFor("catchall"), [ { handler: handlers[5], names: [{name: 'catchall', decode: false}] } ]);
+  deepEqual(router.handlersFor("post"), [ { handler: handlers[0], names: ['id'], shouldDecodes: [true] } ]);
+  deepEqual(router.handlersFor("posts"), [ { handler: handlers[1], names: [], shouldDecodes: [] } ]);
+  deepEqual(router.handlersFor("new_post"), [ { handler: handlers[2], names: [], shouldDecodes: [] } ]);
+  deepEqual(router.handlersFor("edit_post"), [ { handler: handlers[3], names: ['id'], shouldDecodes: [true] } ]);
+  deepEqual(router.handlersFor("catchall"), [ { handler: handlers[5], names: ['catchall'], shouldDecodes: [false] } ]);
 });
 
 test("Getting a handler for an invalid named route raises", function() {
