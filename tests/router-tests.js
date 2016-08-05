@@ -60,6 +60,31 @@ test("supports nested match", function() {
   matchesRoute("/posts/edit", [{ handler: "editPost", params: {}, isDynamic: false }]);
 });
 
+test("support nested dynamic routes and star route", function() {
+  router.map(function(match) {
+    match("/:routeId").to("routeId", function(match) {
+      match("/").to("routeId.index");
+      match("/:subRouteId").to("subRouteId");
+    });
+    match("/*wildcard").to("wildcard");
+  });
+
+  // fails because it incorrectly matches the wildcard route
+  matchesRoute("/abc", [
+    {handler: "routeId", params: { routeId: "abc" }, isDynamic: true},
+    {handler: "routeId.index", params: {}, isDynamic: false},
+  ]);
+
+  // passes
+  matchesRoute("/abc/def", [
+    {handler: "routeId", params: {routeId: "abc"}, isDynamic: true},
+    {handler: "subRouteId", params: {"subRouteId": "def"}, isDynamic: true}
+  ]);
+
+  // fails because no route is recognized
+  matchesRoute("/abc/def/ghi", [{handler: "wildcard", params: { wildcard: "abc/def/ghi"}, isDynamic: true}]);
+});
+
 test("supports nested match with query params", function() {
   router.map(function(match) {
     match("/posts", function(match) {
