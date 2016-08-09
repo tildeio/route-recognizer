@@ -508,9 +508,29 @@ test("Deserialize query param array", function() {
   var router = new RouteRecognizer();
   router.add([{ path: "/foo/bar", handler: handler }]);
 
-  var p = router.recognize("/foo/bar?foo[]=1&foo[]=2").queryParams;
+  var p = router.recognize("/foo/bar?foo[]=1&foo[]=2&bar=3&bar=4&baz=5").queryParams;
   ok(Array.isArray(p.foo), "foo is an Array");
+  ok(Array.isArray(p.bar), "bar is an Array");
+  ok(!Array.isArray(p.baz), "baz is not an Array");
+  deepEqual(p, {foo: ["1","2"], bar: ["3","4"], baz: "5"});
+});
+
+test("Deserialize query param array, mixed with/without brackets", function() {
+  var handler = {};
+  var router = new RouteRecognizer();
+  router.add([{ path: "/foo/bar", handler: handler }]);
+
+  var p = router.recognize("/foo/bar?foo[]=1&foo=2").queryParams;
   deepEqual(p, {foo: ["1","2"]});
+});
+
+test("Deserialize query param array of size 1", function() {
+  var handler = {};
+  var router = new RouteRecognizer();
+  router.add([{ path: "/foo/bar", handler: handler }]);
+
+  var p = router.recognize("/foo/bar?foo[]=1").queryParams;
+  deepEqual(p, {foo: ["1"]});
 });
 
 test("Array query params do not conflict with controller namespaced query params", function() {
