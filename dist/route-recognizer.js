@@ -306,10 +306,7 @@
       // `x`, irrespective of the other parts.
       // Because of this similarity, we assign each type of segment a number value written as a
       // string. We can find the specificity of compound routes by concatenating these strings
-      // together, from left to right. After we have looped through all of the segments,
-      // we convert the string to a number.
-      specificity.val = '';
-
+      // together, from left to right.
       for (var i=0; i<segments.length; i++) {
         var segment = segments[i], match;
 
@@ -332,9 +329,12 @@
         }
       }
 
-      specificity.val = +specificity.val;
-
       return results;
+    }
+
+    function $$route$recognizer$$isEqualCharSpec(specA, specB) {
+      return specA.validChars === specB.validChars &&
+             specA.invalidChars === specB.invalidChars;
     }
 
     // A State has a character specification and (`charSpec`) and a list of possible
@@ -357,7 +357,6 @@
     function $$route$recognizer$$State(charSpec) {
       this.charSpec = charSpec;
       this.nextStates = [];
-      this.charSpecs = {};
       this.regex = undefined;
       this.handlers = undefined;
       this.specificity = undefined;
@@ -365,20 +364,12 @@
 
     $$route$recognizer$$State.prototype = {
       get: function(charSpec) {
-        if (this.charSpecs[charSpec.validChars]) {
-          return this.charSpecs[charSpec.validChars];
-        }
-
         var nextStates = this.nextStates;
 
         for (var i=0; i<nextStates.length; i++) {
           var child = nextStates[i];
 
-          var isEqual = child.charSpec.validChars === charSpec.validChars;
-          isEqual = isEqual && child.charSpec.invalidChars === charSpec.invalidChars;
-
-          if (isEqual) {
-            this.charSpecs[charSpec.validChars] = child;
+          if ($$route$recognizer$$isEqualCharSpec(child.charSpec, charSpec)) {
             return child;
           }
         }
@@ -434,7 +425,7 @@
     // Sort the routes by specificity
     function $$route$recognizer$$sortSolutions(states) {
       return states.sort(function(a, b) {
-        return b.specificity.val - a.specificity.val;
+        return (b.specificity.val < a.specificity.val) ? -1 : (b.specificity.val === a.specificity.val) ? 0 : 1;
       });
     }
 
@@ -522,7 +513,7 @@
     $$route$recognizer$$RouteRecognizer.prototype = {
       add: function(routes, options) {
         var currentState = this.rootState, regex = "^",
-            specificity = {},
+            specificity = { val: '' },
             handlers = new Array(routes.length), allSegments = [], name;
 
         var isEmpty = true;
