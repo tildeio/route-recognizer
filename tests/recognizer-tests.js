@@ -648,6 +648,16 @@ test("Nested routes recognize", function() {
   equal(router.hasRoute('bar'), false);
 });
 
+test("Nested epsilon routes recognize.", function() {
+  var router = new RouteRecognizer();
+  router.add([{"path":"/","handler":"application"},{"path":"/","handler":"test1"},{"path":"/test2","handler":"test1.test2"}]);
+  router.add([{"path":"/","handler":"application"},{"path":"/","handler":"test1"},{"path":"/","handler":"test1.index"}]);
+  router.add([{"path":"/","handler":"application"},{"path":"/","handler":"test1"},{"path":"/","handler":"test1.index"}]);
+  router.add([{"path":"/","handler":"application"},{"path":"/:param","handler":"misc"}], {"as":"misc"});
+
+  resultsMatch(router.recognize("/test2"), [{ "handler": "application", "isDynamic": false, "params": {} }, { "handler": "test1", "isDynamic": false, "params": {} }, { "handler": "test1.test2", "isDynamic": false, "params": {} }]);
+});
+
 test("Nested routes with query params recognize", function() {
   var handler1 = { handler: 1 };
   var handler2 = { handler: 2 };
