@@ -569,29 +569,6 @@ test("Prefers single dynamic segments over stars", function() {
   resultsMatch(router.recognize("/foo/bar/suffix"), [{ handler: handler2, params: { star: "bar", dynamic: "suffix" }, isDynamic: true }]);
 });
 
-test("Prefers more specific routes over less specific routes", function() {
-  var handler1 = { handler: 1 };
-  var handler2 = { handler: 2 };
-  var router = new RouteRecognizer();
-
-  router.add([{ path: "/foo/:dynamic/baz", handler: handler1 }]);
-  router.add([{ path: "/foo/bar/:dynamic", handler: handler2 }]);
-
-  resultsMatch(router.recognize("/foo/bar/baz"), [{ handler: handler2, params: { dynamic: "baz" }, isDynamic: true }]);
-  resultsMatch(router.recognize("/foo/3/baz"), [{ handler: handler1, params: { dynamic: "3" }, isDynamic: true }]);
-});
-
-test("Prefers more specific routes with stars over less specific dynamic routes", function() {
-  var handler1 = { handler: 1 };
-  var handler2 = { handler: 2 };
-  var router = new RouteRecognizer();
-
-  router.add([{ path: "/foo/*star", handler: handler1 }]);
-  router.add([{ path: "/:dynamicOne/:dynamicTwo", handler: handler2 }]);
-
-  resultsMatch(router.recognize("/foo/bar"), [{ handler: handler1, params: { star: "bar" }, isDynamic: true }]);
-});
-
 test("Handle star routes last when there are trailing `/` routes.", function() {
   var handler1 = { handler: 1 };
   var handler2 = { handler: 2 };
@@ -646,6 +623,16 @@ test("Nested routes recognize", function() {
 
   equal(router.hasRoute('foo'), true);
   equal(router.hasRoute('bar'), false);
+});
+
+test("Nested epsilon routes recognize.", function() {
+  var router = new RouteRecognizer();
+  router.add([{"path":"/","handler":"application"},{"path":"/","handler":"test1"},{"path":"/test2","handler":"test1.test2"}]);
+  router.add([{"path":"/","handler":"application"},{"path":"/","handler":"test1"},{"path":"/","handler":"test1.index"}]);
+  router.add([{"path":"/","handler":"application"},{"path":"/","handler":"test1"},{"path":"/","handler":"test1.index"}]);
+  router.add([{"path":"/","handler":"application"},{"path":"/:param","handler":"misc"}], {"as":"misc"});
+
+  resultsMatch(router.recognize("/test2"), [{ "handler": "application", "isDynamic": false, "params": {} }, { "handler": "test1", "isDynamic": false, "params": {} }, { "handler": "test1.test2", "isDynamic": false, "params": {} }]);
 });
 
 test("Nested routes with query params recognize", function() {
@@ -888,4 +875,60 @@ test("Getting a handler for an invalid named route raises", function() {
     QUnit.throws(function() {
         router.handlersFor("nope");
     }, /There is no route named nope/);
+});
+
+test("Matches the route with the longer static prefix", function() {
+  var handler1 = { handler: 1 };
+  var handler2 = { handler: 2 };
+  var router = new RouteRecognizer();
+
+  router.add([{ path: "/static", handler: handler2 }, { path: "/", handler: handler2 }]);
+  router.add([{ path: "/:dynamic", handler: handler1 }, { path: "/", handler: handler1 }]);
+
+  resultsMatch(router.recognize("/static"), [
+    { handler: handler2, params: { }, isDynamic: false },
+    { handler: handler2, params: { }, isDynamic: false }
+  ]);
+});
+
+// Re: https://github.com/emberjs/ember.js/issues/13960
+test("Matches the route with the longer static prefix with nesting", function() {
+  var handler1 = { handler: 1 };
+  var handler2 = { handler: 2 };
+  var handler3 = { handler: 3 };
+  var router = new RouteRecognizer();
+
+  router.add([
+    { path: "/", handler: handler1 }, /* application route */
+    { path: "/", handler: handler1 }, /* posts route */
+    { path: ":post_id", handler: handler1 }
+  ]);
+  router.add([
+    { path: "/", handler: handler3 }, /* application route */
+    { path: "/team", handler: handler3 },
+    { path: ":user_slug", handler: handler3 }
+  ]);
+  router.add([
+    { path: "/", handler: handler2 }, /* application route */
+    { path: "/team", handler: handler2 },
+    { path: "/", handler: handler2 } /* index route */
+  ]);
+
+  resultsMatch(router.recognize("/5"), [
+    { handler: handler1, params: { }, isDynamic: false },
+    { handler: handler1, params: { }, isDynamic: false },
+    { handler: handler1, params: { post_id: '5' }, isDynamic: true }
+  ]);
+
+  resultsMatch(router.recognize("/team"), [
+    { handler: handler2, params: { }, isDynamic: false },
+    { handler: handler2, params: { }, isDynamic: false },
+    { handler: handler2, params: { }, isDynamic: false }
+  ]);
+
+  resultsMatch(router.recognize("/team/eww_slugs"), [
+    { handler: handler3, params: { }, isDynamic: false },
+    { handler: handler3, params: { }, isDynamic: false },
+    { handler: handler3, params: { user_slug: 'eww_slugs' }, isDynamic: true }
+  ]);
 });
