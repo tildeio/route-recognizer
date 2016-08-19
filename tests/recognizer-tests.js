@@ -796,6 +796,90 @@ encodedCharGenerationExpectations.forEach(function(expectation) {
   });
 });
 
+test("Generating a dynamic segment with unreserved chars does not encode them", function() {
+  // See: https://tools.ietf.org/html/rfc3986#section-2.3
+  var unreservedChars = ["a", "0", "-", ".", "_", "~"];
+  unreservedChars.forEach(function(char) {
+    var route = "post";
+    var params = {id: char};
+    var expected = "/posts/" + char;
+
+    equal(router.generate(route, params), expected, "Unreserved char '" + char + "' is not encoded");
+  });
+});
+
+test("Generating a dynamic segment with sub-delims or ':' or '@' does not encode them", function() {
+  // See https://tools.ietf.org/html/rfc3986#section-2.2
+  var subDelims = ["!", "$", "&", "'", "(", ")", "*", "+", ",", ";", "="];
+  var others = [":", "@"];
+
+  var chars = subDelims.concat(others);
+
+  chars.forEach(function(char) {
+    var route = "post";
+    var params = {id: char};
+    var expected = "/posts/" + char;
+
+    equal(router.generate(route, params), expected,
+          "Char '" + char + "' is not encoded when generating dynamic segment");
+  });
+});
+
+test("Generating a dynamic segment with general delimiters (except ':' and '@') encodes them", function() {
+  // See https://tools.ietf.org/html/rfc3986#section-2.2
+  var genDelims = [":", "/", "?", "#", "[", "]", "@"];
+  var exclude = [":", "@"];
+  var chars = genDelims.filter(function(ch) { return exclude.indexOf(ch) === -1; });
+
+  chars.forEach(function(char) {
+    var route = "post";
+    var params = {id: char};
+    var encoded = encodeURIComponent(char);
+    ok(char !== encoded, "precond - encoded '" + char + "' is different ('" + encoded + "')");
+    var expected = "/posts/" + encoded;
+
+    equal(router.generate(route, params), expected,
+          "Char '" + char + "' is encoded to '" + encoded + "' when generating dynamic segment");
+  });
+});
+
+test("Generating a dynamic segment with miscellaneous other values encodes correctly", function() {
+  var expectations = [{
+    // "/"
+    id: "abc/def",
+    expected: "abc%2Fdef"
+  }, {
+    // percent
+    id: "abc%def",
+    expected: "abc%25def"
+  }, {
+    // all sub-delims
+    id: "!$&'()*+,;=",
+    expected: "!$&'()*+,;="
+  }, {
+    // mix of unreserved and sub-delims
+    id: "@abc!def$",
+    expected: "@abc!def$",
+  }, {
+    // mix of chars that should and should not be encoded
+    id: "abc?def!ghi#jkl",
+    expected: "abc%3Fdef!ghi%23jkl"
+  }, {
+    // non-string value should get coerced to string
+    id: 1,
+    expected: "1"
+  }];
+
+  var route = "post";
+  expectations.forEach(function(expectation) {
+    var params = {id: expectation.id};
+    var expected = "/posts/" + expectation.expected;
+
+    equal(router.generate(route, params), expected,
+          "id '" + params.id + "' is generated correctly");
+  });
+});
+
 var globGenerationValues = [
   "abc/def",
   "abc%2Fdef",
