@@ -175,15 +175,58 @@
       return $$route$recognizer$normalizer$$decodeURIComponentExcept(segment, $$route$recognizer$normalizer$$reservedHex);
     }
 
+    function $$route$recognizer$normalizer$$encodeURIComponentExcept(string, reservedChars) {
+      var pieces       = [];
+      var separators   = [];
+      var currentPiece = '';
+      var idx;
+
+      for (idx=0; idx < string.length; idx++) {
+        var char = string[idx];
+        if (reservedChars.indexOf(char) === -1) {
+          currentPiece += char;
+        } else {
+          pieces.push(currentPiece);
+          separators.push(char);
+          currentPiece = '';
+        }
+      }
+      if (currentPiece.length) {
+        pieces.push(currentPiece);
+        separators.push('');
+      }
+
+      pieces = pieces.map(encodeURIComponent);
+      var encoded = '';
+      for (idx = 0; idx < pieces.length; idx++) {
+        encoded += pieces[idx] + separators[idx];
+      }
+
+      return encoded;
+    }
+
+    // Do not encode these characters when generating dynamic path segments
+    // See https://tools.ietf.org/html/rfc3986#section-3.3
+    var $$route$recognizer$normalizer$$reservedSegmentChars = [
+      "!", "$", "&", "'", "(", ")", "*", "+", ",", ";", "=", // sub-delims
+      ":", "@" // others explicitly allowed by RFC 3986
+    ];
+    function $$route$recognizer$normalizer$$encodePathSegment(segment) {
+      segment = '' + segment; // coerce to string
+      return $$route$recognizer$normalizer$$encodeURIComponentExcept(segment, $$route$recognizer$normalizer$$reservedSegmentChars);
+    }
+
     var $$route$recognizer$normalizer$$Normalizer = {
       normalizeSegment: $$route$recognizer$normalizer$$normalizeSegment,
-      normalizePath: $$route$recognizer$normalizer$$normalizePath
+      normalizePath: $$route$recognizer$normalizer$$normalizePath,
+      encodePathSegment: $$route$recognizer$normalizer$$encodePathSegment
     };
 
     var $$route$recognizer$normalizer$$default = $$route$recognizer$normalizer$$Normalizer;
 
     var $$route$recognizer$$normalizePath = $$route$recognizer$normalizer$$default.normalizePath;
     var $$route$recognizer$$normalizeSegment = $$route$recognizer$normalizer$$default.normalizeSegment;
+    var $$route$recognizer$$encodePathSegment = $$route$recognizer$normalizer$$default.encodePathSegment;
 
     var $$route$recognizer$$specials = [
       '/', '.', '*', '+', '?', '|',
@@ -247,7 +290,7 @@
 
       generate: function(params) {
         if ($$route$recognizer$$RouteRecognizer.ENCODE_AND_DECODE_PATH_SEGMENTS) {
-          return encodeURIComponent(params[this.name]);
+          return $$route$recognizer$$encodePathSegment(params[this.name]);
         } else {
           return params[this.name];
         }
