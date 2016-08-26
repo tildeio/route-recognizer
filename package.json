@@ -8,17 +8,16 @@
     "url": "https://github.com/tildeio/route-recognizer.git"
   },
   "devDependencies": {
-    "broccoli-compile-modules": "1.0.1",
-    "broccoli-concat": "0.0.12",
-    "broccoli-funnel": "^0.1.6",
-    "broccoli-jshint": "~0.5.1",
-    "broccoli-merge-trees": "^0.2.1",
-    "broccoli-string-replace": "~0.1.0",
+    "broccoli-funnel": "^1.0.6",
+    "broccoli-merge-trees": "^1.1.4",
+    "broccoli-rollup": "^1.0.2",
     "do-you-even-bench": "^1.0.2",
-    "ember-cli": "1.13.1",
-    "glob": "^6.0.4"
+    "ember-cli": "^2.7.0",
+    "jshint": "^2.9.3",
+    "rollup-plugin-replace": "^1.1.1"
   },
   "main": "dist/route-recognizer.js",
+  "jsnext:main": "dist/es6/route-recognizer.js",
   "bugs": {
     "url": "https://github.com/tildeio/route-recognizer/issues"
   },
@@ -30,7 +29,8 @@
     "test": "ember test",
     "start": "ember test --server",
     "build": "ember build",
-    "bench": "ember build && node ./bench/index.js"
+    "bench": "ember build && node ./bench/index.js",
+    "lint": "jshint lib/*"
   },
   "license": "MIT"
 }
