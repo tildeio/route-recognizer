@@ -1,4 +1,10 @@
 tmp/
 bower_components/
+node_modules/
 /.bundle
-tests
+ember-cli-build.js
+/testem.json
+/tests/
+/lib/
+/bench/
+/dist/tests/
