@@ -100,120 +100,34 @@
       }, this);
     };
 
-    var $$route$recognizer$normalizer$$PERCENT_ENCODED_VALUES = /%[a-fA-F0-9]{2}/g;
-
-    function $$route$recognizer$normalizer$$toUpper(str) { return str.toUpperCase(); }
-
-    // Turn percent-encoded values to upper case ("%3a" -> "%3A")
-    function $$route$recognizer$normalizer$$percentEncodedValuesToUpper(string) {
-      return string.replace($$route$recognizer$normalizer$$PERCENT_ENCODED_VALUES, $$route$recognizer$normalizer$$toUpper);
-    }
-
-    // Normalizes percent-encoded values to upper-case and decodes percent-encoded
-    // values that are not reserved (like unicode characters).
-    // Safe to call multiple times on the same path.
     function $$route$recognizer$normalizer$$normalizePath(path) {
       return path.split('/')
                  .map($$route$recognizer$normalizer$$normalizeSegment)
                  .join('/');
     }
 
-    function $$route$recognizer$normalizer$$percentEncode(char) {
-      return '%' + $$route$recognizer$normalizer$$charToHex(char);
-    }
-
-    function $$route$recognizer$normalizer$$charToHex(char) {
-      return char.charCodeAt(0).toString(16).toUpperCase();
-    }
-
-    // Decodes percent-encoded values in the string except those
-    // characters in `reservedHex`, where `reservedHex` is an array of 2-character
-    // percent-encodings
-    function $$route$recognizer$normalizer$$decodeURIComponentExcept(string, reservedHex) {
-      if (string.indexOf('%') === -1) {
-        // If there is no percent char, there is no decoding that needs to
-        // be done and we exit early
-        return string;
-      }
-      string = $$route$recognizer$normalizer$$percentEncodedValuesToUpper(string);
-
-      var result = '';
-      var buffer = '';
-      var idx = 0;
-      while (idx < string.length) {
-        var pIdx = string.indexOf('%', idx);
-
-        if (pIdx === -1) { // no percent char
-          buffer += string.slice(idx);
-          break;
-        } else { // found percent char
-          buffer += string.slice(idx, pIdx);
-          idx = pIdx + 3;
-
-          var hex = string.slice(pIdx + 1, pIdx + 3);
-          var encoded = '%' + hex;
-
-          if (reservedHex.indexOf(hex) === -1) {
-            // encoded is not in reserved set, add to buffer
-            buffer += encoded;
-          } else {
-            result += decodeURIComponent(buffer);
-            buffer = '';
-            result += encoded;
-          }
-        }
-      }
-      result += decodeURIComponent(buffer);
-      return result;
-    }
-
-    // Leave these characters in encoded state in segments
-    var $$route$recognizer$normalizer$$reservedSegmentChars = ['%', '/'];
-    var $$route$recognizer$normalizer$$reservedHex = $$route$recognizer$normalizer$$reservedSegmentChars.map($$route$recognizer$normalizer$$charToHex);
-
+    // We want to ensure the characters "%" and "/" remain in percent-encoded
+    // form when normalizing paths, so replace them with their encoded form after
+    // decoding the rest of the path
+    var $$route$recognizer$normalizer$$SEGMENT_RESERVED_CHARS = /%|\//g;
     function $$route$recognizer$normalizer$$normalizeSegment(segment) {
-      return $$route$recognizer$normalizer$$decodeURIComponentExcept(segment, $$route$recognizer$normalizer$$reservedHex);
+      return decodeURIComponent(segment).replace($$route$recognizer$normalizer$$SEGMENT_RESERVED_CHARS, encodeURIComponent);
     }
 
-    function $$route$recognizer$normalizer$$encodeURIComponentExcept(string, reservedChars) {
-      var pieces       = [];
-      var separators   = [];
-      var currentPiece = '';
-      var idx;
-
-      for (idx=0; idx < string.length; idx++) {
-        var char = string[idx];
-        if (reservedChars.indexOf(char) === -1) {
-          currentPiece += char;
-        } else {
-          pieces.push(currentPiece);
-          separators.push(char);
-          currentPiece = '';
-        }
-      }
-      if (currentPiece.length) {
-        pieces.push(currentPiece);
-        separators.push('');
-      }
-
-      pieces = pieces.map(encodeURIComponent);
-      var encoded = '';
-      for (idx = 0; idx < pieces.length; idx++) {
-        encoded += pieces[idx] + separators[idx];
-      }
-
-      return encoded;
-    }
-
-    // Do not encode these characters when generating dynamic path segments
+    // We do not want to encode these characters when generating dynamic path segments
     // See https://tools.ietf.org/html/rfc3986#section-3.3
-    var $$route$recognizer$normalizer$$reservedSegmentChars = [
-      "!", "$", "&", "'", "(", ")", "*", "+", ",", ";", "=", // sub-delims
-      ":", "@" // others explicitly allowed by RFC 3986
-    ];
-    function $$route$recognizer$normalizer$$encodePathSegment(segment) {
-      segment = '' + segment; // coerce to string
-      return $$route$recognizer$normalizer$$encodeURIComponentExcept(segment, $$route$recognizer$normalizer$$reservedSegmentChars);
+    // sub-delims: "!", "$", "&", "'", "(", ")", "*", "+", ",", ";", "="
+    // others allowed by RFC 3986: ":", "@"
+    //
+    // First encode the entire path segment, then decode any of the encoded special chars.
+    //
+    // The chars "!", "'", "(", ")", "*" do not get changed by `encodeURIComponent`,
+    // so the possible encoded chars are:
+    // ['%24', '%26', '%2B', '%2C', '%3B', '%3D', '%3A', '%40'].
+    var $$route$recognizer$normalizer$$PATH_SEGMENT_ENCODINGS = /%(?:24|26|2B|2C|3B|3D|3A|40)/g;
+
+    function $$route$recognizer$normalizer$$encodePathSegment(str) {
+      return encodeURIComponent(str).replace($$route$recognizer$normalizer$$PATH_SEGMENT_ENCODINGS, decodeURIComponent);
     }
 
     var $$route$recognizer$normalizer$$Normalizer = {
@@ -770,7 +684,7 @@
 
     $$route$recognizer$$RouteRecognizer.prototype.map = $$route$recognizer$dsl$$default;
 
-    $$route$recognizer$$RouteRecognizer.VERSION = '0.2.2';
+    $$route$recognizer$$RouteRecognizer.VERSION = '0.2.4';
 
     // Set to false to opt-out of encoding and decoding path segments.
     // See https://github.com/tildeio/route-recognizer/pull/55
