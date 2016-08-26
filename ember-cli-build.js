@@ -1,6 +1,7 @@
 var Rollup = require('broccoli-rollup');
 var Funnel = require('broccoli-funnel');
 var MergeTrees = require('broccoli-merge-trees');
+var FileCreator = require('broccoli-file-creator');
 var replace = require('rollup-plugin-replace');
 
 module.exports = function () {
@@ -18,9 +19,9 @@ module.exports = function () {
         }, {
           dest: 'named-amd/route-recognizer.js',
           format: 'amd',
-          moduleId: 'route-recognizer'
+          moduleId: 'route-recognizer',
+          exports: 'named'
         }, {
-          sourceMap: true,
           dest: 'route-recognizer.js',
           format: 'umd',
           moduleId: 'route-recognizer',
@@ -51,8 +52,12 @@ module.exports = function () {
       annotation: 'tests/qunit.{js,css}',
       files: ['qunit.css', 'qunit.js'],
       destDir: 'tests'
+    }),
+    // make pretender build happy
+    new FileCreator('route-recognizer.js.map', '', {
+      annotation: 'dummy source map'
     })
-  ], { 
+  ], {
     annotation: 'dist'
   });
 }
