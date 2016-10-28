@@ -1,9 +1,3 @@
-(function (global, factory) {
-  typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
-  typeof define === 'function' && define.amd ? define('route-recognizer', factory) :
-  (global.RouteRecognizer = factory());
-}(this, (function () { 'use strict';
-
 function Target(path, matcher, delegate) {
   this.path = path;
   this.matcher = matcher;
@@ -715,6 +709,4 @@ RouteRecognizer.Normalizer = {
   encodePathSegment: encodePathSegment
 };
 
-return RouteRecognizer;
-
-})));
+export default RouteRecognizer;
