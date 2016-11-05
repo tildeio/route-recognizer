@@ -14,6 +14,7 @@
     "broccoli-rollup": "^1.0.2",
     "do-you-even-bench": "^1.0.2",
     "ember-cli": "^2.7.0",
+    "glob": "^7.1.1",
     "jshint": "^2.9.3",
     "rollup-plugin-replace": "^1.1.1"
   },
