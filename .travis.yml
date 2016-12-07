@@ -3,12 +3,10 @@ node_js:
   - "6"
 
 before_script:
-  - npm install -g bower
   - npm install
-  - bower install
 
 script:
-  - ./node_modules/.bin/jshint lib/*
-  - ./node_modules/.bin/ember test
+  - npm run lint
+  - npm test
 
 sudo: false

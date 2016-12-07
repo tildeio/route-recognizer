@@ -6,7 +6,7 @@ function Target(path, matcher, delegate) {
 
 Target.prototype = {
   to: function(target, callback) {
-    var delegate = this.delegate;
+    let delegate = this.delegate;
 
     if (delegate && delegate.willAddRoute) {
       target = delegate.willAddRoute(this.matcher.target, target);
@@ -22,22 +22,26 @@ Target.prototype = {
   }
 };
 
-function Matcher(target) {
-  this.routes = {};
-  this.children = {};
-  this.target = target;
-}
+class Matcher {
+  routes: any;
+  children: any;
+  target: any;
 
-Matcher.prototype = {
-  add: function(path, handler) {
+  constructor(target?: any) {
+    this.routes = {};
+    this.children = {};
+    this.target = target;
+  }
+
+  add(path, handler) {
     this.routes[path] = handler;
-  },
+  }
 
-  addChild: function(path, target, callback, delegate) {
-    var matcher = new Matcher(target);
+  addChild(path, target, callback, delegate) {
+    let matcher = new Matcher(target);
     this.children[path] = matcher;
 
-    var match = generateMatch(path, matcher, delegate);
+    let match = generateMatch(path, matcher, delegate);
 
     if (delegate && delegate.contextEntered) {
       delegate.contextEntered(target, match);
@@ -45,11 +49,11 @@ Matcher.prototype = {
 
     callback(match);
   }
-};
+}
 
 function generateMatch(startingPath, matcher, delegate) {
   return function(path, nestedCallback) {
-    var fullPath = startingPath + path;
+    let fullPath = startingPath + path;
 
     if (nestedCallback) {
       nestedCallback(generateMatch(fullPath, matcher, delegate));
@@ -60,22 +64,22 @@ function generateMatch(startingPath, matcher, delegate) {
 }
 
 function addRoute(routeArray, path, handler) {
-  var len = 0;
-  for (var i=0; i<routeArray.length; i++) {
+  let len = 0;
+  for (let i = 0; i < routeArray.length; i++) {
     len += routeArray[i].path.length;
   }
 
   path = path.substr(len);
-  var route = { path: path, handler: handler };
+  let route = { path: path, handler: handler };
   routeArray.push(route);
 }
 
 function eachRoute(baseRoute, matcher, callback, binding) {
-  var routes = matcher.routes;
+  let routes = matcher.routes;
 
-  for (var path in routes) {
+  for (let path in routes) {
     if (routes.hasOwnProperty(path)) {
-      var routeArray = baseRoute.slice();
+      let routeArray = baseRoute.slice();
       addRoute(routeArray, path, routes[path]);
 
       if (matcher.children[path]) {
@@ -87,8 +91,8 @@ function eachRoute(baseRoute, matcher, callback, binding) {
   }
 }
 
-export default function(callback, addRouteCallback) {
-  var matcher = new Matcher();
+export default function(callback, addRouteCallback?) {
+  let matcher = new Matcher();
 
   callback(generateMatch("", matcher, this.delegate));
 

@@ -1,6 +1,6 @@
 {
   "name": "route-recognizer",
-  "version": "0.2.8",
+  "version": "0.3.0",
   "description": "A lightweight JavaScript library that matches paths against registered routes.",
   "author": "Yehuda Katz",
   "repository": {
@@ -8,18 +8,24 @@
     "url": "https://github.com/tildeio/route-recognizer.git"
   },
   "devDependencies": {
-    "broccoli-file-creator": "^1.1.1",
+    "@types/qunit": "^2.0.31",
     "broccoli-funnel": "^1.0.6",
     "broccoli-merge-trees": "^1.1.4",
     "broccoli-rollup": "^1.0.2",
+    "broccoli-string-replace": "^0.1.1",
+    "broccoli-typescript-compiler": "^1.0.1",
     "do-you-even-bench": "^1.0.2",
     "ember-cli": "^2.7.0",
     "glob": "^7.1.1",
     "jshint": "^2.9.3",
-    "rollup-plugin-replace": "^1.1.1"
+    "qunitjs": "^2.1.0",
+    "rollup-plugin-buble": "^0.14.0",
+    "tslint": "^4.0.2",
+    "typescript": "^2.1.4"
   },
   "main": "dist/route-recognizer.js",
-  "jsnext:main": "dist/es6/route-recognizer.js",
+  "jsnext:main": "dist/route-recognizer.es.js",
+  "module": "dist/route-recognizer.es.js",
   "bugs": {
     "url": "https://github.com/tildeio/route-recognizer/issues"
   },
@@ -32,7 +38,7 @@
     "start": "ember test --server",
     "build": "ember build",
     "bench": "ember build && node ./bench/index.js",
-    "lint": "jshint lib/*"
+    "lint": "tslint lib/**/*.ts tests/**/*.ts && jshint ember-cli-build.js"
   },
   "license": "MIT"
 }
