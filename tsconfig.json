@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "module": "es2015",
+    "moduleResolution": "node",
+    "target": "es3",
+    "declaration": true,
+    "outDir": "dist",
+    "noEmit": true,
+    "strictNullChecks": true,
+    "noImplicitReturns": true,
+    "noImplicitAny": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "baseUrl": ".",
+    "paths": {
+      "route-recognizer": ["lib/route-recognizer"]
+    }
+  },
+  "files": [
+    "lib/route-recognizer.ts",
+    "tests/index.ts"
+  ]
+}

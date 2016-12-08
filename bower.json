@@ -1,6 +1,6 @@
 {
   "name": "route-recognizer",
-  "version": "0.2.7",
+  "version": "0.3.0",
   "homepage": "https://github.com/tildeio/route-recognizer",
   "authors": [
     "Yehuda Katz <wycats@gmail.com>"
@@ -21,11 +21,8 @@
     "**/.*",
     "node_modules",
     "bower_components",
+    "bench",
     "test",
     "tests"
-  ],
-  "devDependencies": {
-    "qunit": "~1.14.0",
-    "loader.js": "stefanpenner/loader.js#7f79173fd5c61dc256af9aa01c56d50ebfec10fe"
-  }
+  ]
 }

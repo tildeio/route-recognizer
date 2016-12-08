@@ -2,17 +2,17 @@
 // values that are not reserved (i.e., unicode characters, emoji, etc). The reserved
 // chars are "/" and "%".
 // Safe to call multiple times on the same path.
-export function normalizePath(path) {
-  return path.split('/')
+export function normalizePath(path: string): string {
+  return path.split("/")
              .map(normalizeSegment)
-             .join('/');
+             .join("/");
 }
 
 // We want to ensure the characters "%" and "/" remain in percent-encoded
 // form when normalizing paths, so replace them with their encoded form after
 // decoding the rest of the path
-var SEGMENT_RESERVED_CHARS = /%|\//g;
-export function normalizeSegment(segment) {
+let SEGMENT_RESERVED_CHARS = /%|\//g;
+export function normalizeSegment(segment: string) {
   return decodeURIComponent(segment).replace(SEGMENT_RESERVED_CHARS, encodeURIComponent);
 }
 
@@ -26,8 +26,8 @@ export function normalizeSegment(segment) {
 // The chars "!", "'", "(", ")", "*" do not get changed by `encodeURIComponent`,
 // so the possible encoded chars are:
 // ['%24', '%26', '%2B', '%2C', '%3B', '%3D', '%3A', '%40'].
-var PATH_SEGMENT_ENCODINGS = /%(?:24|26|2B|2C|3B|3D|3A|40)/g;
+let PATH_SEGMENT_ENCODINGS = /%(?:24|26|2B|2C|3B|3D|3A|40)/g;
 
-export function encodePathSegment(str) {
+export function encodePathSegment(str: string) {
   return encodeURIComponent(str).replace(PATH_SEGMENT_ENCODINGS, decodeURIComponent);
 }

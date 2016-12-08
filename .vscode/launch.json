@@ -1,24 +1,19 @@
 {
   "version": "0.2.0",
   "configurations": [
-   {
-			"name": "Debug",
-			"type": "node",
-			"request": "launch",
-			"program": "./bench/index.js",
-			"stopOnEntry": false,
-			"args": [],
-			"cwd": ".",
-			"runtimeExecutable": null,
-			"runtimeArgs": [
-				"--nolazy"
-			],
-			"env": {
-				"NODE_ENV": "development"
-			},
-			"externalConsole": false,
-			"sourceMaps": true,
-			"outDir": null
-		}
+    {
+      "name": "Launch Chrome against localhost, with sourcemaps",
+      "type": "chrome",
+      "request": "launch",
+      "diagnosticLogging": true,
+      "url": "http://localhost:4200/tests/",
+      "sourceMaps": true,
+      "webRoot": "${workspaceRoot}/dist",
+      "sourceMapPathOverrides": {
+        "route-recognizer.ts": "${workspaceRoot}/lib/route-recognizer.ts",
+        "route-recognizer/*": "${workspaceRoot}/lib/route-recognizer/*",
+        "tests/*": "${workspaceRoot}/tests/*"
+      }
+    }
   ]
 }

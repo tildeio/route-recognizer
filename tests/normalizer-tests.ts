@@ -1,12 +1,12 @@
 /* globals QUnit */
 
-import RouteRecognizer from 'route-recognizer';
+import RouteRecognizer from "route-recognizer";
 
-var Normalizer = RouteRecognizer.Normalizer;
+const Normalizer = RouteRecognizer.Normalizer;
 
-module("Normalization");
+QUnit.module("Normalization");
 
-var expectations = [{
+const expectations = [{
   paths: ["/foo/bar"],
   normalized: "/foo/bar"
 }, {
@@ -32,13 +32,11 @@ var expectations = [{
   normalized: "/%25%25%25%25::%2F%2F%2F"
 }];
 
-expectations.forEach(function(expectation) {
-  var paths = expectation.paths;
-  var normalized = expectation.normalized;
-
+expectations.forEach(expectation => {
+  let { paths, normalized } = expectation;
   paths.forEach(function(path) {
-    test("the path '" + path + "' is normalized to '" + normalized + "'", function() {
-      equal(Normalizer.normalizePath(path), normalized);
+    QUnit.test("the path '" + path + "' is normalized to '" + normalized + "'", (assert: Assert) => {
+      assert.equal(Normalizer.normalizePath(path), normalized);
     });
   });
 });
