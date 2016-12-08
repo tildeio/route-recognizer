@@ -12,7 +12,7 @@ const isArray = Array.isArray || function isArray(value: any[]): value is Array<
   return Object.prototype.toString.call(value) === "[object Array]";
 };
 
-function getParam(params: any | undefined | null, key: any | undefined | null) {
+function getParam(params: Params | null | undefined, key: string): string {
   if (typeof params !== "object" || params === null) {
     throw new Error("You must pass an object as the second argument to `generate`.");
   }
@@ -27,6 +27,13 @@ function getParam(params: any | undefined | null, key: any | undefined | null) {
     throw new Error("You must provide a param `" + key + "`.");
   }
   return str;
+}
+
+const enum SegmentType {
+  Static,
+  Dynamic,
+  Star,
+  Epsilon
 }
 
 // A Segment represents a segment in the original route description.
@@ -46,6 +53,7 @@ function getParam(params: any | undefined | null, key: any | undefined | null) {
 // * `invalidChars`: a String with a list of all invalid characters
 // * `repeat`: true if the character specification can repeat
 class StaticSegment {
+  type: SegmentType.Static;
   string: string;
 
   constructor(str: string) {
@@ -67,12 +75,13 @@ class StaticSegment {
     return this.string.replace(escapeRegex, "\\$1");
   }
 
-  generate() {
+  generate(params?: Params | null) {
     return this.string;
   }
 }
 
 class DynamicSegment {
+  type: SegmentType.Dynamic;
   name: string;
   constructor(name: string) {
     this.name = normalizeSegment(name);
@@ -86,9 +95,8 @@ class DynamicSegment {
     return "([^/]+)";
   }
 
-  generate(params: string) {
+  generate(params?: Params | null) {
     let value = getParam(params, this.name);
-
     if (RouteRecognizer.ENCODE_AND_DECODE_PATH_SEGMENTS) {
       return encodePathSegment(value);
     } else {
@@ -97,34 +105,52 @@ class DynamicSegment {
   }
 }
 
-function StarSegment(name) { this.name = name; }
-StarSegment.prototype = {
-  eachChar: function(currentState) {
-    return currentState.put({ invalidChars: "", repeat: true, validChars: undefined });
-  },
+class StarSegment {
+  type: SegmentType.Star;
+  constructor(public name: string) {}
 
-  regex: function() {
+  eachChar(currentState) {
+    return currentState.put({
+      invalidChars: "",
+      repeat: true,
+      validChars: undefined
+    });
+  }
+
+  regex() {
     return "(.+)";
-  },
+  }
 
-  generate: function(params) {
+  generate(params?: Params | null): string {
     return getParam(params, this.name);
   }
-};
+}
 
-function EpsilonSegment() {}
-EpsilonSegment.prototype = {
-  eachChar: function(currentState) {
+class EpsilonSegment {
+  type: SegmentType.Epsilon;
+  eachChar(currentState) {
     return currentState;
-  },
-  regex: function() { return ""; },
-  generate: function() { return ""; }
-};
+  }
+  regex(): string {
+    return "";
+  }
+  generate(): string {
+    return "";
+  }
+}
+
+export interface Params {
+  [key: string]: string[] | string | undefined;
+  queryParams?: string[];
+}
+
+
+type Segment = StaticSegment | DynamicSegment | StarSegment | EpsilonSegment;
 
 // The `names` will be populated with the paramter name for each dynamic/star
 // segment. `shouldDecodes` will be populated with a boolean for each dyanamic/star
 // segment, indicating whether it should be decoded during recognition.
-function parse(route, names, types, shouldDecodes) {
+function parse(route, names, types, shouldDecodes): Segment[] {
   // normalize route as not starting with a "/". Recognition will
   // also normalize.
   if (route.charAt(0) === "/") { route = route.substr(1); }
@@ -352,11 +378,24 @@ function decodeQueryParamPart(part) {
   return result;
 }
 
+export interface Route {
+  path: string;
+  handler: any;
+  queryParams?: string[];
+}
+
+interface NamedRoute {
+  segments: Segment[];
+  handlers: any[];
+}
+
 // The main interface
 
 class RouteRecognizer {
   private rootState: State;
-  names: {};
+  private names: {
+    [name: string]: NamedRoute;
+  };
   map = map;
 
   delegate: {
@@ -377,10 +416,13 @@ class RouteRecognizer {
     this.names = {};
   }
 
-  add(routes, options?: any) {
-    let currentState = this.rootState, regex = "^",
-        types = { statics: 0, dynamics: 0, stars: 0 },
-        handlers = new Array(routes.length), allSegments: any[] = [], name;
+  add(routes: Route[], options?: { as: string }) {
+    let currentState = this.rootState;
+    let regex = "^";
+    let types = { statics: 0, dynamics: 0, stars: 0 };
+    let handlers: any[] = new Array(routes.length);
+    let allSegments: Segment[] = [];
+    let name: string | undefined;
 
     let isEmpty = true;
 
@@ -422,7 +464,8 @@ class RouteRecognizer {
     if (typeof options === "object" && options !== null && options.hasOwnProperty("as")) {
       name = options.as;
     }
-    if (this.names.hasOwnProperty(name)) {
+
+    if (name && this.names.hasOwnProperty(name)) {
       throw new Error("You may not add a duplicate route named `" + name + "`.");
     }
 
@@ -452,16 +495,19 @@ class RouteRecognizer {
     return !!this.names[name];
   }
 
-  generate(name, params?) {
-    let route = this.names[name], output = "";
+  generate(name, params?: Params | null) {
+    let route = this.names[name];
+    let output = "";
     if (!route) { throw new Error("There is no route named " + name); }
 
-    let segments = route.segments;
+    let segments: Segment[] = route.segments;
 
     for (let i = 0; i < segments.length; i++) {
-      let segment = segments[i];
+      let segment: Segment = segments[i];
 
-      if (segment instanceof EpsilonSegment) { continue; }
+      if (segment instanceof EpsilonSegment) {
+        continue;
+      }
 
       output += "/";
       output += segment.generate(params);

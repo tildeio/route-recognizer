@@ -96,9 +96,9 @@ function map (callback, addRouteCallback) {
 // Safe to call multiple times on the same path.
 // Normalizes percent-encoded values in `path` to upper-case and decodes percent-encoded
 function normalizePath(path) {
-    return path.split('/')
+    return path.split("/")
         .map(normalizeSegment)
-        .join('/');
+        .join("/");
 }
 // We want to ensure the characters "%" and "/" remain in percent-encoded
 // form when normalizing paths, so replace them with their encoded form after
@@ -123,10 +123,10 @@ function encodePathSegment(str) {
 }
 
 var specials = [
-    '/', '.', '*', '+', '?', '|',
-    '(', ')', '[', ']', '{', '}', '\\'
+    "/", ".", "*", "+", "?", "|",
+    "(", ")", "[", "]", "{", "}", "\\"
 ];
-var escapeRegex = new RegExp('(\\' + specials.join('|\\') + ')', 'g');
+var escapeRegex = new RegExp("(\\" + specials.join("|\\") + ")", "g");
 var isArray = Array.isArray || function isArray(value) {
     return Object.prototype.toString.call(value) === "[object Array]";
 };
@@ -160,21 +160,21 @@ function getParam(params, key) {
 // * `validChars`: a String with a list of all valid characters, or
 // * `invalidChars`: a String with a list of all invalid characters
 // * `repeat`: true if the character specification can repeat
-var StaticSegment = function StaticSegment(string) {
-    this.string = normalizeSegment(string);
+var StaticSegment = function StaticSegment(str) {
+    this.string = normalizeSegment(str);
 };
 StaticSegment.prototype.eachChar = function eachChar (currentState) {
-    var string = this.string, ch;
-    for (var i = 0; i < string.length; i++) {
-        ch = string.charAt(i);
+    var str = this.string, ch;
+    for (var i = 0; i < str.length; i++) {
+        ch = str.charAt(i);
         currentState = currentState.put({ invalidChars: undefined, repeat: false, validChars: ch });
     }
     return currentState;
 };
 StaticSegment.prototype.regex = function regex () {
-    return this.string.replace(escapeRegex, '\\$1');
+    return this.string.replace(escapeRegex, "\\$1");
 };
-StaticSegment.prototype.generate = function generate () {
+StaticSegment.prototype.generate = function generate (params) {
     return this.string;
 };
 var DynamicSegment = function DynamicSegment(name) {
@@ -195,25 +195,32 @@ DynamicSegment.prototype.generate = function generate (params) {
         return value;
     }
 };
-function StarSegment(name) { this.name = name; }
-StarSegment.prototype = {
-    eachChar: function (currentState) {
-        return currentState.put({ invalidChars: "", repeat: true, validChars: undefined });
-    },
-    regex: function () {
-        return "(.+)";
-    },
-    generate: function (params) {
-        return getParam(params, this.name);
-    }
+var StarSegment = function StarSegment(name) {
+    this.name = name;
 };
-function EpsilonSegment() { }
-EpsilonSegment.prototype = {
-    eachChar: function (currentState) {
-        return currentState;
-    },
-    regex: function () { return ""; },
-    generate: function () { return ""; }
+StarSegment.prototype.eachChar = function eachChar (currentState) {
+    return currentState.put({
+        invalidChars: "",
+        repeat: true,
+        validChars: undefined
+    });
+};
+StarSegment.prototype.regex = function regex () {
+    return "(.+)";
+};
+StarSegment.prototype.generate = function generate (params) {
+    return getParam(params, this.name);
+};
+var EpsilonSegment = function EpsilonSegment () {};
+
+EpsilonSegment.prototype.eachChar = function eachChar (currentState) {
+    return currentState;
+};
+EpsilonSegment.prototype.regex = function regex () {
+    return "";
+};
+EpsilonSegment.prototype.generate = function generate () {
+    return "";
 };
 // The `names` will be populated with the paramter name for each dynamic/star
 // segment. `shouldDecodes` will be populated with a boolean for each dyanamic/star
@@ -227,7 +234,7 @@ function parse(route, names, types, shouldDecodes) {
     var segments = route.split("/");
     var results = new Array(segments.length);
     for (var i = 0; i < segments.length; i++) {
-        var segment = segments[i], match;
+        var segment = segments[i], match = (void 0);
         if (match = segment.match(/^:([^\/]+)$/)) {
             results[i] = new DynamicSegment(match[1]);
             names.push(match[1]);
@@ -313,12 +320,12 @@ State.prototype.match = function match (ch) {
     for (var i = 0; i < nextStates.length; i++) {
         child = nextStates[i];
         charSpec = child.charSpec;
-        if (typeof (chars = charSpec.validChars) !== 'undefined') {
+        if (typeof (chars = charSpec.validChars) !== "undefined") {
             if (chars.indexOf(ch) !== -1) {
                 returned.push(child);
             }
         }
-        else if (typeof (chars = charSpec.invalidChars) !== 'undefined') {
+        else if (typeof (chars = charSpec.invalidChars) !== "undefined") {
             if (chars.indexOf(ch) === -1) {
                 returned.push(child);
             }
@@ -388,7 +395,7 @@ function findHandler(state, originalPath, queryParams) {
     result.length = handlers.length;
     for (var i = 0; i < handlers.length; i++) {
         var handler = handlers[i], names = handler.names, shouldDecodes = handler.shouldDecodes, params = {};
-        var name, shouldDecode, capture;
+        var name = (void 0), shouldDecode = (void 0), capture = (void 0);
         for (var j = 0; j < names.length; j++) {
             name = names[j];
             shouldDecode = shouldDecodes[j];
@@ -411,13 +418,13 @@ function findHandler(state, originalPath, queryParams) {
 }
 function decodeQueryParamPart(part) {
     // http://www.w3.org/TR/html401/interact/forms.html#h-17.13.4.1
-    part = part.replace(/\+/gm, '%20');
+    part = part.replace(/\+/gm, "%20");
     var result;
     try {
         result = decodeURIComponent(part);
     }
     catch (error) {
-        result = '';
+        result = "";
     }
     return result;
 }
@@ -428,7 +435,12 @@ var RouteRecognizer = function RouteRecognizer() {
     this.names = {};
 };
 RouteRecognizer.prototype.add = function add (routes, options) {
-    var currentState = this.rootState, regex = "^", types = { statics: 0, dynamics: 0, stars: 0 }, handlers = new Array(routes.length), allSegments = [], name;
+    var currentState = this.rootState;
+    var regex = "^";
+    var types = { statics: 0, dynamics: 0, stars: 0 };
+    var handlers = new Array(routes.length);
+    var allSegments = [];
+    var name;
     var isEmpty = true;
     for (var i = 0; i < routes.length; i++) {
         var route = routes[i], names = [], shouldDecodes = [];
@@ -460,7 +472,7 @@ RouteRecognizer.prototype.add = function add (routes, options) {
     if (typeof options === "object" && options !== null && options.hasOwnProperty("as")) {
         name = options.as;
     }
-    if (this.names.hasOwnProperty(name)) {
+    if (name && this.names.hasOwnProperty(name)) {
         throw new Error("You may not add a duplicate route named `" + name + "`.");
     }
     if (name = options && options.as) {
@@ -485,7 +497,8 @@ RouteRecognizer.prototype.hasRoute = function hasRoute (name) {
     return !!this.names[name];
 };
 RouteRecognizer.prototype.generate = function generate (name, params) {
-    var route = this.names[name], output = "";
+    var route = this.names[name];
+    var output = "";
     if (!route) {
         throw new Error("There is no route named " + name);
     }
@@ -498,8 +511,8 @@ RouteRecognizer.prototype.generate = function generate (name, params) {
         output += "/";
         output += segment.generate(params);
     }
-    if (output.charAt(0) !== '/') {
-        output = '/' + output;
+    if (output.charAt(0) !== "/") {
+        output = "/" + output;
     }
     if (params && params.queryParams) {
         output += this.generateQueryString(params.queryParams, route.handlers);
@@ -516,15 +529,15 @@ RouteRecognizer.prototype.generateQueryString = function generateQueryString (pa
     }
     keys.sort();
     for (var i = 0; i < keys.length; i++) {
-        key = keys[i];
-        var value = params[key];
+        var key$1 = keys[i];
+        var value = params[key$1];
         if (value == null) {
             continue;
         }
-        var pair = encodeURIComponent(key);
+        var pair = encodeURIComponent(key$1);
         if (isArray(value)) {
             for (var j = 0; j < value.length; j++) {
-                var arrayPair = key + '[]' + '=' + encodeURIComponent(value[j]);
+                var arrayPair = key$1 + "[]" + "=" + encodeURIComponent(value[j]);
                 pairs.push(arrayPair);
             }
         }
@@ -534,27 +547,27 @@ RouteRecognizer.prototype.generateQueryString = function generateQueryString (pa
         }
     }
     if (pairs.length === 0) {
-        return '';
+        return "";
     }
     return "?" + pairs.join("&");
 };
 RouteRecognizer.prototype.parseQueryString = function parseQueryString (queryString) {
     var pairs = queryString.split("&"), queryParams = {};
     for (var i = 0; i < pairs.length; i++) {
-        var pair = pairs[i].split('='), key = decodeQueryParamPart(pair[0]), keyLength = key.length, isArray = false, value;
+        var pair = pairs[i].split("="), key = decodeQueryParamPart(pair[0]), keyLength = key.length, isArray = false, value = (void 0);
         if (pair.length === 1) {
-            value = 'true';
+            value = "true";
         }
         else {
-            //Handle arrays
-            if (keyLength > 2 && key.slice(keyLength - 2) === '[]') {
+            // Handle arrays
+            if (keyLength > 2 && key.slice(keyLength - 2) === "[]") {
                 isArray = true;
                 key = key.slice(0, keyLength - 2);
                 if (!queryParams[key]) {
                     queryParams[key] = [];
                 }
             }
-            value = pair[1] ? decodeQueryParamPart(pair[1]) : '';
+            value = pair[1] ? decodeQueryParamPart(pair[1]) : "";
         }
         if (isArray) {
             queryParams[key].push(value);
@@ -567,11 +580,11 @@ RouteRecognizer.prototype.parseQueryString = function parseQueryString (queryStr
 };
 RouteRecognizer.prototype.recognize = function recognize (path) {
     var states = [this.rootState], pathLen, i, queryStart, queryParams = {}, hashStart, isSlashDropped = false;
-    hashStart = path.indexOf('#');
+    hashStart = path.indexOf("#");
     if (hashStart !== -1) {
         path = path.substr(0, hashStart);
     }
-    queryStart = path.indexOf('?');
+    queryStart = path.indexOf("?");
     if (queryStart !== -1) {
         var queryString = path.substr(queryStart + 1, path.length);
         path = path.substr(0, queryStart);
@@ -617,7 +630,7 @@ RouteRecognizer.prototype.recognize = function recognize (path) {
         return findHandler(state, originalPath, queryParams);
     }
 };
-RouteRecognizer.VERSION = '0.3.0';
+RouteRecognizer.VERSION = "0.3.0";
 // Set to false to opt-out of encoding and decoding path segments.
 // See https://github.com/tildeio/route-recognizer/pull/55
 RouteRecognizer.ENCODE_AND_DECODE_PATH_SEGMENTS = true;

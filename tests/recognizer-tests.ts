@@ -935,7 +935,7 @@ QUnit.module("Route Generation", hooks => {
     }, /You must pass an object as the second argument to `generate`./, "No argument passed.");
 
     assert.throws(function() {
-      router.generate("edit", false);
+      router.generate("edit", <{}>false);
     }, /You must pass an object as the second argument to `generate`./, "Boolean passed.");
 
     assert.throws(function() {
@@ -943,15 +943,15 @@ QUnit.module("Route Generation", hooks => {
     }, /You must pass an object as the second argument to `generate`./, "`null` passed.");
 
     assert.throws(function() {
-      router.generate("edit", "123");
+      router.generate("edit", <{}>"123");
     }, /You must pass an object as the second argument to `generate`./, "String passed.");
 
     assert.throws(function() {
-      router.generate("edit", new String("foo"));
+      router.generate("edit", <{}>new String("foo"));
     }, /You must provide param `secret` to `generate`./, "`new String()` passed.");
 
     assert.throws(function() {
-      router.generate("edit", []);
+      router.generate("edit", <{}>[]);
     }, /You must provide param `secret` to `generate`./, "Array passed.");
 
     assert.throws(function() {
@@ -963,7 +963,7 @@ QUnit.module("Route Generation", hooks => {
     }, /You must pass an object as the second argument to `generate`./, "No argument passed.");
 
     assert.throws(function() {
-      router.generate("create", false);
+      router.generate("create", <{}>false);
     }, /You must pass an object as the second argument to `generate`./, "Boolean passed.");
 
     assert.throws(function() {
@@ -971,15 +971,15 @@ QUnit.module("Route Generation", hooks => {
     }, /You must pass an object as the second argument to `generate`./, "`null` passed.");
 
     assert.throws(function() {
-      router.generate("create", "123");
+      router.generate("create", <{}>"123");
     }, /You must pass an object as the second argument to `generate`./, "String passed.");
 
     assert.throws(function() {
-      router.generate("create", new String("foo"));
+      router.generate("create", <{}>new String("foo"));
     }, /You must provide param `secret` to `generate`./, "`new String()` passed.");
 
     assert.throws(function() {
-      router.generate("create", []);
+      router.generate("create", <{}>[]);
     }, /You must provide param `secret` to `generate`./, "Array passed.");
 
     assert.throws(function() {
