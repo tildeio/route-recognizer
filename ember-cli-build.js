@@ -54,6 +54,9 @@ module.exports = function () {
     }
   });
   return new MergeTrees([
+    new Funnel(compiled, {
+      include: ['**/*.d.ts']
+    }),
     new Rollup(compiled, {
       annotation: 'route-recognizer.js',
       rollup: {

@@ -40,10 +40,10 @@ Matcher.prototype.addChild = function addChild (path, target, callback, delegate
     callback(match);
 };
 function generateMatch(startingPath, matcher, delegate) {
-    function match(path, nestedCallback) {
+    function match(path, callback) {
         var fullPath = startingPath + path;
-        if (nestedCallback) {
-            nestedCallback(generateMatch(fullPath, matcher, delegate));
+        if (callback) {
+            callback(generateMatch(fullPath, matcher, delegate));
         }
         else {
             return new Target(fullPath, matcher, delegate);
@@ -127,8 +127,8 @@ var specials = [
     "(", ")", "[", "]", "{", "}", "\\"
 ];
 var escapeRegex = new RegExp("(\\" + specials.join("|\\") + ")", "g");
-var isArray = Array.isArray || function isArray(value) {
-    return Object.prototype.toString.call(value) === "[object Array]";
+var isArray = Array.isArray || function isArray(arg) {
+    return Object.prototype.toString.call(arg) === "[object Array]";
 };
 function getParam(params, key) {
     if (typeof params !== "object" || params === null) {

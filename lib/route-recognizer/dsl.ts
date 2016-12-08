@@ -14,13 +14,17 @@ export interface RouteRecognizer {
   add(routes: Route[]): void;
 }
 
+export interface MatchCallback {
+  (match: MatchDSL): void;
+}
+
 export interface MatchDSL {
   (path: string): ToDSL;
-  (path: string, callback: (match: MatchDSL) => void): void;
+  (path: string, callback: MatchCallback): void;
 }
 
 export interface ToDSL {
-  to(name: string, callback?: (match: MatchDSL) => void): void;
+  to(name: string, callback?: MatchCallback): void;
 }
 
 class Target implements ToDSL {
@@ -34,7 +38,7 @@ class Target implements ToDSL {
     this.delegate = delegate;
   }
 
-  to(target: string, callback: (match: MatchDSL) => void) {
+  to(target: string, callback: MatchCallback) {
     let delegate = this.delegate;
 
     if (delegate && delegate.willAddRoute) {
@@ -69,7 +73,7 @@ export class Matcher {
     this.routes[path] = target;
   }
 
-  addChild(path: string, target: string, callback: (match: MatchDSL) => void, delegate: Delegate | undefined) {
+  addChild(path: string, target: string, callback: MatchCallback, delegate: Delegate | undefined) {
     let matcher = new Matcher(target);
     this.children[path] = matcher;
 
@@ -85,11 +89,11 @@ export class Matcher {
 
 function generateMatch(startingPath: string, matcher: Matcher, delegate: Delegate | undefined): MatchDSL {
   function match(path: string): ToDSL;
-  function match(path: string, nestedCallback: (match: MatchDSL) => void): void;
-  function match(path: string, nestedCallback?: (match: MatchDSL) => void): ToDSL | void {
+  function match(path: string, callback: MatchCallback): void;
+  function match(path: string, callback?: MatchCallback): ToDSL | void {
     let fullPath = startingPath + path;
-    if (nestedCallback) {
-      nestedCallback(generateMatch(fullPath, matcher, delegate));
+    if (callback) {
+      callback(generateMatch(fullPath, matcher, delegate));
     } else {
       return new Target(fullPath, matcher, delegate);
     }
@@ -126,7 +130,7 @@ function eachRoute<T>(baseRoute: Route[], matcher: Matcher, callback: (this: T, 
   }
 }
 
-export default function <T extends RouteRecognizer>(this: T, callback: (match: MatchDSL) => void, addRouteCallback?: (routeRecognizer: T, routes: Route[]) => void) {
+export default function <T extends RouteRecognizer>(this: T, callback: MatchCallback, addRouteCallback?: (routeRecognizer: T, routes: Route[]) => void) {
   let matcher = new Matcher();
 
   callback(generateMatch("", matcher, this.delegate));

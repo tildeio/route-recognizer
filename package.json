@@ -26,13 +26,15 @@
   "main": "dist/route-recognizer.js",
   "jsnext:main": "dist/route-recognizer.es.js",
   "module": "dist/route-recognizer.es.js",
+  "types": "dist/route-recognizer.d.ts",
+  "files": [
+    "dist/*",
+    "!dist/tests"
+  ],
   "bugs": {
     "url": "https://github.com/tildeio/route-recognizer/issues"
   },
   "homepage": "https://github.com/tildeio/route-recognizer",
-  "directories": {
-    "test": "tests"
-  },
   "scripts": {
     "test": "ember test",
     "start": "ember test --server",

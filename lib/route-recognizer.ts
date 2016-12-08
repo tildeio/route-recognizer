@@ -8,8 +8,8 @@ const specials = [
 
 const escapeRegex = new RegExp("(\\" + specials.join("|\\") + ")", "g");
 
-const isArray = Array.isArray || function isArray(value: any[]): value is Array<any> {
-  return Object.prototype.toString.call(value) === "[object Array]";
+const isArray = Array.isArray || function isArray(arg: any): arg is any[] {
+  return Object.prototype.toString.call(arg) === "[object Array]";
 };
 
 function getParam(params: Params | null | undefined, key: string): string {
