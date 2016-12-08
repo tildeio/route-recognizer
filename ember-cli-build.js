@@ -44,10 +44,7 @@ module.exports = function () {
         strictNullChecks: true,
         inlineSourceMap: true,
         inlineSources: true,
-        baseUrl: ".",
-        paths: {
-          "route-recognizer": ["route-recognizer.ts"]
-        }
+        baseUrl: "."
       },
       files: [
         "route-recognizer.ts",

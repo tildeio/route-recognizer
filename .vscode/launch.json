@@ -8,7 +8,7 @@
       "diagnosticLogging": true,
       "url": "http://localhost:4200/tests/",
       "sourceMaps": true,
-      "webRoot": "${workspaceRoot}",
+      "webRoot": "${workspaceRoot}/dist",
       "sourceMapPathOverrides": {
         "route-recognizer.ts": "${workspaceRoot}/lib/route-recognizer.ts",
         "route-recognizer/*": "${workspaceRoot}/lib/route-recognizer/*",

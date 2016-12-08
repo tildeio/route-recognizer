@@ -1,17 +1,21 @@
 /* globals QUnit */
 
-import RouteRecognizer from "route-recognizer";
+import RouteRecognizer, { QueryParams, Results, Result } from "route-recognizer";
 
 QUnit.module("Route Recognition");
 
-function resultsMatch(assert, results, array, queryParams?: any) {
-  assert.deepEqual(results.slice(), array);
+function queryParams(results: Results | undefined): QueryParams | undefined {
+  return results && results.queryParams;
+}
+
+function resultsMatch(assert: Assert, actual: Results | undefined, expected: Result[], queryParams?: QueryParams) {
+  assert.deepEqual(actual && actual.slice(), expected);
   if (queryParams) {
-    assert.deepEqual(queryParams, results.queryParams);
+    assert.deepEqual(actual && actual.queryParams, queryParams);
   }
 }
 
-QUnit.test("A simple route recognizes", assert => {
+QUnit.test("A simple route recognizes", (assert: Assert) => {
   let handler = {};
   let router = new RouteRecognizer();
   router.add([{ path: "/foo/bar", handler: handler }]);
@@ -101,14 +105,12 @@ const staticExpectations = (<{
                encodedCharStaticExpectations);
 
 staticExpectations.forEach(function(expectation) {
-  let routes, path, matches, nonmatches;
-  routes = expectation.routes;
-  matches = expectation.matches;
-  nonmatches = expectation.nonmatches || [];
+  let { routes, matches } = expectation;
+  let nonmatches = expectation.nonmatches || [];
 
   routes.forEach(function(route) {
     matches.forEach(function(match) {
-      QUnit.test("Static route '" + route + "' recognizes path '" + match + "'", assert => {
+      QUnit.test("Static route '" + route + "' recognizes path '" + match + "'", (assert: Assert) => {
         let handler = {};
         let router = new RouteRecognizer();
         router.add([{ path: route, handler: handler }]);
@@ -118,7 +120,7 @@ staticExpectations.forEach(function(expectation) {
 
     if (nonmatches.length) {
       nonmatches.forEach(function(nonmatch) {
-        QUnit.test("Static route '" + route + "' does not recognize path '" + nonmatch + "'", assert => {
+        QUnit.test("Static route '" + route + "' does not recognize path '" + nonmatch + "'", (assert: Assert) => {
           let handler = {};
           let router = new RouteRecognizer();
           router.add([{ path: route, handler: handler }]);
@@ -129,7 +131,7 @@ staticExpectations.forEach(function(expectation) {
   });
 });
 
-QUnit.test("Escaping works for path length with trailing slashes.", assert => {
+QUnit.test("Escaping works for path length with trailing slashes.", (assert: Assert) => {
   let handler = {};
   let router = new RouteRecognizer();
   router.add([{ path: "/foo/:query", handler: handler }]);
@@ -138,7 +140,7 @@ QUnit.test("Escaping works for path length with trailing slashes.", assert => {
   resultsMatch(assert, router.recognize("/foo/%e8%81%8c%e4%bd%8d/"), [{ handler: handler, params: { query: "职位" }, isDynamic: true }]);
 });
 
-QUnit.test("A simple route with query params recognizes", assert => {
+QUnit.test("A simple route with query params recognizes", (assert: Assert) => {
   let handler = {};
   let router = new RouteRecognizer();
   router.add([{ path: "/foo/bar", handler: handler}]);
@@ -147,70 +149,70 @@ QUnit.test("A simple route with query params recognizes", assert => {
   resultsMatch(assert, router.recognize("/foo/bar?other=something"), [{ handler: handler, params: {}, isDynamic: false }], { other: "something" });
 });
 
-QUnit.test("False query params = 'false'", assert => {
+QUnit.test("False query params = 'false'", (assert: Assert) => {
   let handler = {};
   let router = new RouteRecognizer();
   router.add([{ path: "/foo/bar", handler: handler }]);
 
-  assert.deepEqual(router.recognize("/foo/bar?show=false").queryParams, { show: "false" });
-  assert.deepEqual(router.recognize("/foo/bar?show=false&other=something").queryParams, { show: "false", other: "something" });
+  assert.deepEqual(queryParams(router.recognize("/foo/bar?show=false")), { show: "false" });
+  assert.deepEqual(queryParams(router.recognize("/foo/bar?show=false&other=something")), { show: "false", other: "something" });
 });
 
-QUnit.test("True query params = 'true'", assert => {
+QUnit.test("True query params = 'true'", (assert: Assert) => {
   let handler = {};
   let router = new RouteRecognizer();
   router.add([{ path: "/foo/bar", handler: handler }]);
 
-  assert.deepEqual(router.recognize("/foo/bar?show=true").queryParams, {show: "true"});
-  assert.deepEqual(router.recognize("/foo/bar?show=true&other=something").queryParams, {show: "true", other: "something" });
+  assert.deepEqual(queryParams(router.recognize("/foo/bar?show=true")), {show: "true"});
+  assert.deepEqual(queryParams(router.recognize("/foo/bar?show=true&other=something")), {show: "true", other: "something" });
 });
 
-QUnit.test("Query params without '='", assert => {
+QUnit.test("Query params without '='", (assert: Assert) => {
     let handler = {};
     let router = new RouteRecognizer();
     router.add([{ path: "/foo/bar", handler: handler }]);
 
-    assert.deepEqual(router.recognize("/foo/bar?show").queryParams, {show: "true"});
-    assert.deepEqual(router.recognize("/foo/bar?show&hide").queryParams, {show: "true", hide: "true"});
+    assert.deepEqual(queryParams(router.recognize("/foo/bar?show")), {show: "true"});
+    assert.deepEqual(queryParams(router.recognize("/foo/bar?show&hide")), {show: "true", hide: "true"});
 });
 
-QUnit.test("Query params with = and without value are empty string", assert => {
+QUnit.test("Query params with = and without value are empty string", (assert: Assert) => {
   let handler = {};
   let router = new RouteRecognizer();
   router.add([{ path: "/foo/bar", handler: handler }]);
 
-  assert.deepEqual(router.recognize("/foo/bar?search=").queryParams, {search: ""});
-  assert.deepEqual(router.recognize("/foo/bar?search=&other=something").queryParams, {search: "", other: "something" });
+  assert.deepEqual(queryParams(router.recognize("/foo/bar?search=")), {search: ""});
+  assert.deepEqual(queryParams(router.recognize("/foo/bar?search=&other=something")), {search: "", other: "something" });
 });
 
-QUnit.test("A simple route with multiple query params recognizes", assert => {
+QUnit.test("A simple route with multiple query params recognizes", (assert: Assert) => {
   let handler = {};
   let router = new RouteRecognizer();
   router.add([{ path: "/foo/bar", handler: handler, queryParams: ["sort", "direction", "category"] }]);
 
-  assert.deepEqual(router.recognize("/foo/bar?sort=date&other=something").queryParams, {sort: "date", other: "something" });
-  assert.deepEqual(router.recognize("/foo/bar?sort=date&other=something&direction=asc").queryParams, {sort: "date", direction: "asc", other: "something" });
-  assert.deepEqual(router.recognize("/foo/bar?sort=date&other=something&direction=asc&category=awesome").queryParams, {sort: "date", direction: "asc", category: "awesome", other: "something"});
-  assert.deepEqual(router.recognize("/foo/bar?other=something").queryParams, { other: "something" });
+  assert.deepEqual(queryParams(router.recognize("/foo/bar?sort=date&other=something")), {sort: "date", other: "something" });
+  assert.deepEqual(queryParams(router.recognize("/foo/bar?sort=date&other=something&direction=asc")), {sort: "date", direction: "asc", other: "something" });
+  assert.deepEqual(queryParams(router.recognize("/foo/bar?sort=date&other=something&direction=asc&category=awesome")), {sort: "date", direction: "asc", category: "awesome", other: "something"});
+  assert.deepEqual(queryParams(router.recognize("/foo/bar?other=something")), { other: "something" });
 });
 
-QUnit.test("A simple route with query params with encoding recognizes", assert => {
+QUnit.test("A simple route with query params with encoding recognizes", (assert: Assert) => {
   let handler = {};
   let router = new RouteRecognizer();
   router.add([{ path: "/foo/bar", handler: handler}]);
 
-  assert.deepEqual(router.recognize("/foo/bar?other=something%20100%25").queryParams, { other: "something 100%" });
+  assert.deepEqual(queryParams(router.recognize("/foo/bar?other=something%20100%25")), { other: "something 100%" });
 });
 
-QUnit.test("A route with query params with pluses for spaces instead of %20 recognizes", assert => {
+QUnit.test("A route with query params with pluses for spaces instead of %20 recognizes", (assert: Assert) => {
   let handler = {};
   let router = new RouteRecognizer();
   router.add([{ path: "/foo/bar", handler: handler}]);
 
-  assert.deepEqual(router.recognize("/foo/bar?++one+two=three+four+five++").queryParams, { "  one two": "three four five  " });
+  assert.deepEqual(queryParams(router.recognize("/foo/bar?++one+two=three+four+five++")), { "  one two": "three four five  " });
 });
 
-QUnit.test("A `/` route recognizes", assert => {
+QUnit.test("A `/` route recognizes", (assert: Assert) => {
   let handler = {};
   let router = new RouteRecognizer();
   router.add([{ path: "/", handler: handler }]);
@@ -218,7 +220,7 @@ QUnit.test("A `/` route recognizes", assert => {
   resultsMatch(assert, router.recognize("/"), [{ handler: handler, params: {}, isDynamic: false }]);
 });
 
-QUnit.test("A `/` route with query params recognizes", assert => {
+QUnit.test("A `/` route with query params recognizes", (assert: Assert) => {
   let handler = {};
   let router = new RouteRecognizer();
   router.add([{ path: "/", handler: handler }]);
@@ -226,7 +228,7 @@ QUnit.test("A `/` route with query params recognizes", assert => {
   resultsMatch(assert, router.recognize("/?lemon=jello"), [{ handler: handler, params: {}, isDynamic: false }], { lemon: "jello" });
 });
 
-QUnit.test("A dynamic route recognizes", assert => {
+QUnit.test("A dynamic route recognizes", (assert: Assert) => {
   let handler = {};
   let router = new RouteRecognizer();
   router.add([{ path: "/foo/:bar", handler: handler }]);
@@ -312,14 +314,14 @@ dynamicExpectations.forEach(expectation => {
   paths.forEach(function(path, index) {
     let unencodedMatch = unencodedMatches[index];
 
-    QUnit.test("Single-segment dynamic route '" + route + "' recognizes path '" + path + "'", assert => {
+    QUnit.test("Single-segment dynamic route '" + route + "' recognizes path '" + path + "'", (assert: Assert) => {
       let handler = {};
       let router = new RouteRecognizer();
       router.add([{ path: route, handler: handler }]);
       resultsMatch(assert, router.recognize(path), [{ handler: handler, params: { bar: match }, isDynamic: true }]);
     });
 
-    QUnit.test("When RouteRecognizer.ENCODE_AND_DECODE_PATH_SEGMENTS is false, single-segment dynamic route '" + route + "' recognizes path '" + path + "'", assert => {
+    QUnit.test("When RouteRecognizer.ENCODE_AND_DECODE_PATH_SEGMENTS is false, single-segment dynamic route '" + route + "' recognizes path '" + path + "'", (assert: Assert) => {
       RouteRecognizer.ENCODE_AND_DECODE_PATH_SEGMENTS = false;
 
       let handler = {};
@@ -377,7 +379,7 @@ multiSegmentDynamicExpectations.forEach(expectation => {
   paths.forEach((path, index) => {
     let unencodedMatch = unencodedMatches[index];
 
-    QUnit.test("Multi-segment dynamic route '" + route + "' recognizes path '" + path + "'", assert => {
+    QUnit.test("Multi-segment dynamic route '" + route + "' recognizes path '" + path + "'", (assert: Assert) => {
       let handler = {};
       let router = new RouteRecognizer();
       router.add([{ path: route, handler: handler }]);
@@ -385,7 +387,7 @@ multiSegmentDynamicExpectations.forEach(expectation => {
       resultsMatch(assert, router.recognize(path), [{ handler: handler, params: match, isDynamic: true }]);
     });
 
-    QUnit.test("When RouteRecognizer.ENCODE_AND_DECODE_PATH_SEGMENTS is false, multi-segment dynamic route '" + route + "' recognizes path '" + path + "'", assert => {
+    QUnit.test("When RouteRecognizer.ENCODE_AND_DECODE_PATH_SEGMENTS is false, multi-segment dynamic route '" + route + "' recognizes path '" + path + "'", (assert: Assert) => {
       RouteRecognizer.ENCODE_AND_DECODE_PATH_SEGMENTS = false;
 
       let handler = {};
@@ -399,7 +401,7 @@ multiSegmentDynamicExpectations.forEach(expectation => {
   });
 });
 
-QUnit.test("A dynamic route with unicode match parameters recognizes", assert => {
+QUnit.test("A dynamic route with unicode match parameters recognizes", (assert: Assert) => {
   let handler = {};
   let router = new RouteRecognizer();
   router.add([{ path: "/:föo/bar/:bäz", handler: handler }]);
@@ -433,7 +435,7 @@ starSimpleExpectations.forEach(function(value) {
   let route = "/foo/*bar";
   let path = "/foo/" + value;
 
-  QUnit.test("Star segment glob route '" + route + "' recognizes path '" + path + "'", assert => {
+  QUnit.test("Star segment glob route '" + route + "' recognizes path '" + path + "'", (assert: Assert) => {
     let handler = {};
     let router = new RouteRecognizer();
     router.add([{ path: route, handler: handler }]);
@@ -460,7 +462,7 @@ starComplexExpectations.forEach(function(expectation) {
   let path = expectation.path;
   let params = { prefix: expectation.params[0], suffix: expectation.params[1] };
 
-  QUnit.test("Complex star segment glob route '" + route + "' recognizes path '" + path + "'", assert => {
+  QUnit.test("Complex star segment glob route '" + route + "' recognizes path '" + path + "'", (assert: Assert) => {
     let router = new RouteRecognizer();
     let handler = {};
     router.add([{ path: route, handler: handler }]);
@@ -469,7 +471,7 @@ starComplexExpectations.forEach(function(expectation) {
   });
 });
 
-QUnit.test("Multiple routes recognize", assert => {
+QUnit.test("Multiple routes recognize", (assert: Assert) => {
   let handler1 = { handler: 1 };
   let handler2 = { handler: 2 };
   let router = new RouteRecognizer();
@@ -481,16 +483,16 @@ QUnit.test("Multiple routes recognize", assert => {
   resultsMatch(assert, router.recognize("/bar/1"), [{ handler: handler2, params: { baz: "1" }, isDynamic: true }]);
 });
 
-QUnit.test("query params ignore the URI malformed error", assert => {
+QUnit.test("query params ignore the URI malformed error", (assert: Assert) => {
   let handler1 = { handler: 1 };
   let router = new RouteRecognizer();
 
   router.add([{ path: "/foo", handler: handler1 }]);
 
-  assert.deepEqual(router.recognize("/foo?a=1%").queryParams, {a: ""});
+  assert.deepEqual(queryParams(router.recognize("/foo?a=1%")), {a: ""});
 });
 
-QUnit.test("Multiple routes with overlapping query params recognize", assert => {
+QUnit.test("Multiple routes with overlapping query params recognize", (assert: Assert) => {
   let handler1 = { handler: 1 };
   let handler2 = { handler: 2 };
   let router = new RouteRecognizer();
@@ -498,44 +500,45 @@ QUnit.test("Multiple routes with overlapping query params recognize", assert => 
   router.add([{ path: "/foo", handler: handler1 }]);
   router.add([{ path: "/bar", handler: handler2 }]);
 
-  assert.deepEqual(router.recognize("/foo").queryParams, {});
-  assert.deepEqual(router.recognize("/foo?a=1").queryParams, {a: "1"});
-  assert.deepEqual(router.recognize("/foo?a=1&b=2").queryParams, {a: "1", b: "2"});
-  assert.deepEqual(router.recognize("/foo?a=1&b=2&c=3").queryParams, {a: "1", b: "2", c: "3"});
-  assert.deepEqual(router.recognize("/foo?b=2&c=3").queryParams, {b: "2", c: "3"});
-  assert.deepEqual(router.recognize("/foo?c=3").queryParams, { c: "3" });
-  assert.deepEqual(router.recognize("/foo?a=1&c=3").queryParams, {a: "1", c: "3" });
+  assert.deepEqual(queryParams(router.recognize("/foo")), {});
+  assert.deepEqual(queryParams(router.recognize("/foo?a=1")), {a: "1"});
+  assert.deepEqual(queryParams(router.recognize("/foo?a=1&b=2")), {a: "1", b: "2"});
+  assert.deepEqual(queryParams(router.recognize("/foo?a=1&b=2&c=3")), {a: "1", b: "2", c: "3"});
+  assert.deepEqual(queryParams(router.recognize("/foo?b=2&c=3")), {b: "2", c: "3"});
+  assert.deepEqual(queryParams(router.recognize("/foo?c=3")), { c: "3" });
+  assert.deepEqual(queryParams(router.recognize("/foo?a=1&c=3")), {a: "1", c: "3" });
 
-  assert.deepEqual(router.recognize("/bar").queryParams, {});
-  assert.deepEqual(router.recognize("/bar?a=1").queryParams, { a: "1" });
-  assert.deepEqual(router.recognize("/bar?a=1&b=2").queryParams, { a: "1", b: "2"});
-  assert.deepEqual(router.recognize("/bar?a=1&b=2&c=3").queryParams, { a: "1", b: "2", c: "3"});
-  assert.deepEqual(router.recognize("/bar?b=2&c=3").queryParams, {b: "2", c: "3"});
-  assert.deepEqual(router.recognize("/bar?c=3").queryParams, {c: "3"});
-  assert.deepEqual(router.recognize("/bar?a=1&c=3").queryParams, {a: "1", c: "3"});
+  assert.deepEqual(queryParams(router.recognize("/bar")), {});
+  assert.deepEqual(queryParams(router.recognize("/bar?a=1")), { a: "1" });
+  assert.deepEqual(queryParams(router.recognize("/bar?a=1&b=2")), { a: "1", b: "2"});
+  assert.deepEqual(queryParams(router.recognize("/bar?a=1&b=2&c=3")), { a: "1", b: "2", c: "3"});
+  assert.deepEqual(queryParams(router.recognize("/bar?b=2&c=3")), {b: "2", c: "3"});
+  assert.deepEqual(queryParams(router.recognize("/bar?c=3")), {c: "3"});
+  assert.deepEqual(queryParams(router.recognize("/bar?a=1&c=3")), {a: "1", c: "3"});
 });
 
-QUnit.test("Deserialize query param array", assert => {
+QUnit.test("Deserialize query param array", (assert: Assert) => {
   let handler = {};
   let router = new RouteRecognizer();
   router.add([{ path: "/foo/bar", handler: handler }]);
 
-  let p = router.recognize("/foo/bar?foo[]=1&foo[]=2").queryParams;
-  assert.ok(Array.isArray(p.foo), "foo is an Array");
+  let results = router.recognize("/foo/bar?foo[]=1&foo[]=2");
+  let p = results && results.queryParams;
+  assert.ok(p && Array.isArray(p["foo"]), "foo is an Array");
   assert.deepEqual(p, {foo: ["1", "2"]});
 });
 
-QUnit.test("Array query params do not conflict with controller namespaced query params", assert => {
+QUnit.test("Array query params do not conflict with controller namespaced query params", (assert: Assert) => {
   let handler = {};
   let router = new RouteRecognizer();
   router.add([{ path: "/foo/bar", handler: handler }]);
 
-  let p = router.recognize("/foo/bar?foo[bar][]=1&foo[bar][]=2&baz=barf").queryParams;
-  assert.ok(Array.isArray(p["foo[bar]"]), "foo[bar] is an Array");
+  let p = queryParams(router.recognize("/foo/bar?foo[bar][]=1&foo[bar][]=2&baz=barf"));
+  assert.ok(p && Array.isArray(p["foo[bar]"]), "foo[bar] is an Array");
   assert.deepEqual(p, {"foo[bar]": ["1", "2"], "baz": "barf"});
 });
 
-QUnit.test("Multiple `/` routes recognize", assert => {
+QUnit.test("Multiple `/` routes recognize", (assert: Assert) => {
   let handler1 = { handler: 1 };
   let handler2 = { handler: 2 };
   let router = new RouteRecognizer();
@@ -544,7 +547,7 @@ QUnit.test("Multiple `/` routes recognize", assert => {
   resultsMatch(assert, router.recognize("/"), [{ handler: handler1, params: {}, isDynamic: false }, { handler: handler2, params: {}, isDynamic: false }]);
 });
 
-QUnit.test("Overlapping routes recognize", assert => {
+QUnit.test("Overlapping routes recognize", (assert: Assert) => {
   let handler1 = { handler: 1 };
   let handler2 = { handler: 2 };
   let router = new RouteRecognizer();
@@ -556,7 +559,7 @@ QUnit.test("Overlapping routes recognize", assert => {
   resultsMatch(assert, router.recognize("/foo/1"), [{ handler: handler2, params: { baz: "1" }, isDynamic: true }]);
 });
 
-QUnit.test("Overlapping star routes recognize", assert => {
+QUnit.test("Overlapping star routes recognize", (assert: Assert) => {
   let handler1 = { handler: 1 };
   let handler2 = { handler: 2 };
   let router = new RouteRecognizer();
@@ -568,7 +571,7 @@ QUnit.test("Overlapping star routes recognize", assert => {
   resultsMatch(assert, router.recognize("/1"), [{ handler: handler1, params: { foo: "1" }, isDynamic: true }]);
 });
 
-QUnit.test("Prefers single dynamic segments over stars", assert => {
+QUnit.test("Prefers single dynamic segments over stars", (assert: Assert) => {
   let handler1 = { handler: 1 };
   let handler2 = { handler: 2 };
   let router = new RouteRecognizer();
@@ -581,7 +584,7 @@ QUnit.test("Prefers single dynamic segments over stars", assert => {
   resultsMatch(assert, router.recognize("/foo/bar/suffix"), [{ handler: handler2, params: { star: "bar", dynamic: "suffix" }, isDynamic: true }]);
 });
 
-QUnit.test("Handle star routes last when there are trailing `/` routes.", assert => {
+QUnit.test("Handle star routes last when there are trailing `/` routes.", (assert: Assert) => {
   let handler1 = { handler: 1 };
   let handler2 = { handler: 2 };
   let handler3 = { handler: 3 };
@@ -599,7 +602,7 @@ QUnit.test("Handle star routes last when there are trailing `/` routes.", assert
   ]);
 });
 
-QUnit.test("Handle `/` before globs when the route is empty.", assert => {
+QUnit.test("Handle `/` before globs when the route is empty.", (assert: Assert) => {
   let handler1 = { handler: 1 };
   let handler2 = { handler: 2 };
   let router = new RouteRecognizer();
@@ -616,7 +619,7 @@ QUnit.test("Handle `/` before globs when the route is empty.", assert => {
   ]);
 });
 
-QUnit.test("Routes with trailing `/` recognize", assert => {
+QUnit.test("Routes with trailing `/` recognize", (assert: Assert) => {
   let handler = {};
   let router = new RouteRecognizer();
 
@@ -624,7 +627,7 @@ QUnit.test("Routes with trailing `/` recognize", assert => {
   resultsMatch(assert, router.recognize("/foo/bar/"), [{ handler: handler, params: {}, isDynamic: false }]);
 });
 
-QUnit.test("Nested routes recognize", assert => {
+QUnit.test("Nested routes recognize", (assert: Assert) => {
   let handler1 = { handler: 1 };
   let handler2 = { handler: 2 };
 
@@ -637,7 +640,7 @@ QUnit.test("Nested routes recognize", assert => {
   assert.equal(router.hasRoute("bar"), false);
 });
 
-QUnit.test("Nested epsilon routes recognize.", assert => {
+QUnit.test("Nested epsilon routes recognize.", (assert: Assert) => {
   let router = new RouteRecognizer();
   router.add([{"path": "/", "handler": "application"}, {"path": "/", "handler": "test1"}, {"path": "/test2", "handler": "test1.test2"}]);
   router.add([{"path": "/", "handler": "application"}, {"path": "/", "handler": "test1"}, {"path": "/", "handler": "test1.index"}]);
@@ -647,7 +650,7 @@ QUnit.test("Nested epsilon routes recognize.", assert => {
   resultsMatch(assert, router.recognize("/test2"), [{ "handler": "application", "isDynamic": false, "params": {} }, { "handler": "test1", "isDynamic": false, "params": {} }, { "handler": "test1.test2", "isDynamic": false, "params": {} }]);
 });
 
-QUnit.test("Nested routes with query params recognize", assert => {
+QUnit.test("Nested routes with query params recognize", (assert: Assert) => {
   let handler1 = { handler: 1 };
   let handler2 = { handler: 2 };
 
@@ -671,7 +674,7 @@ QUnit.test("Nested routes with query params recognize", assert => {
   assert.equal(router.hasRoute("bar"), false);
 });
 
-QUnit.test("If there are multiple matches, the route with the least dynamic segments wins", assert => {
+QUnit.test("If there are multiple matches, the route with the least dynamic segments wins", (assert: Assert) => {
   let handler1 = { handler: 1 };
   let handler2 = { handler: 2 };
   let handler3 = { handler: 3 };
@@ -686,7 +689,7 @@ QUnit.test("If there are multiple matches, the route with the least dynamic segm
   resultsMatch(assert, router.recognize("/posts/edit"), [{ handler: handler3, params: {}, isDynamic: false }]);
 });
 
-QUnit.test("Empty paths", assert => {
+QUnit.test("Empty paths", (assert: Assert) => {
   let handler1 = { handler: 1 };
   let handler2 = { handler: 2 };
   let handler3 = { handler: 3 };
@@ -700,7 +703,7 @@ QUnit.test("Empty paths", assert => {
   resultsMatch(assert, router.recognize("/foo/baz"), [{ handler: handler1, params: {}, isDynamic: false }, { handler: handler2, params: {}, isDynamic: false }, { handler: handler4, params: {}, isDynamic: false }]);
 });
 
-QUnit.test("Repeated empty segments don't confuse the recognizer", assert => {
+QUnit.test("Repeated empty segments don't confuse the recognizer", (assert: Assert) => {
   let handler1 = { handler: 1 },
       handler2 = { handler: 2 },
       handler3 = { handler: 3 },
@@ -717,7 +720,7 @@ QUnit.test("Repeated empty segments don't confuse the recognizer", assert => {
 });
 
 // BUG - https://github.com/emberjs/ember.js/issues/2559
-QUnit.test("Dynamic routes without leading `/` and single length param are recognized", assert => {
+QUnit.test("Dynamic routes without leading `/` and single length param are recognized", (assert: Assert) => {
   let handler = {};
   let router = new RouteRecognizer();
 
@@ -727,7 +730,8 @@ QUnit.test("Dynamic routes without leading `/` and single length param are recog
 
 
 QUnit.module("Route Generation", hooks => {
-  let router, handlers;
+  let router: RouteRecognizer;
+  let handlers: any[];
 
   hooks.beforeEach(() => {
     router = new RouteRecognizer();
@@ -744,7 +748,7 @@ QUnit.module("Route Generation", hooks => {
     router.add([{ path: "/*catchall", handler: handlers[5] }], { as: "catchall" });
   });
 
-  QUnit.test("Generation works", assert => {
+  QUnit.test("Generation works", (assert: Assert) => {
     assert.equal( router.generate("index"), "/" );
     assert.equal( router.generate("post", { id: 1 }), "/posts/1" );
     assert.equal( router.generate("posts"), "/posts" );
@@ -797,18 +801,18 @@ QUnit.module("Route Generation", hooks => {
     let expected = expectation.expected;
     let expectedUnencoded = expectation.expectedUnencoded;
 
-    QUnit.test("Encodes dynamic segment value for route '" + route + "' with params " + JSON.stringify(params), assert => {
+    QUnit.test("Encodes dynamic segment value for route '" + route + "' with params " + JSON.stringify(params), (assert: Assert) => {
       assert.equal(router.generate(route, params), expected);
     });
 
-    QUnit.test("When RouteRecognizer.ENCODE_AND_DECODE_PATH_SEGMENTS is false, does not encode dynamic segment for route '" + route + "' with params " + JSON.stringify(params), assert => {
+    QUnit.test("When RouteRecognizer.ENCODE_AND_DECODE_PATH_SEGMENTS is false, does not encode dynamic segment for route '" + route + "' with params " + JSON.stringify(params), (assert: Assert) => {
       RouteRecognizer.ENCODE_AND_DECODE_PATH_SEGMENTS = false;
       assert.equal(router.generate(route, params), expectedUnencoded);
       RouteRecognizer.ENCODE_AND_DECODE_PATH_SEGMENTS = true;
     });
   });
 
-  QUnit.test("Generating a dynamic segment with unreserved chars does not encode them", assert => {
+  QUnit.test("Generating a dynamic segment with unreserved chars does not encode them", (assert: Assert) => {
     // See: https://tools.ietf.org/html/rfc3986#section-2.3
     let unreservedChars = ["a", "0", "-", ".", "_", "~"];
     unreservedChars.forEach(function(char) {
@@ -820,7 +824,7 @@ QUnit.module("Route Generation", hooks => {
     });
   });
 
-  QUnit.test("Generating a dynamic segment with sub-delims or ':' or '@' does not encode them", assert => {
+  QUnit.test("Generating a dynamic segment with sub-delims or ':' or '@' does not encode them", (assert: Assert) => {
     // See https://tools.ietf.org/html/rfc3986#section-2.2
     let subDelims = ["!", "$", "&", "'", "(", ")", "*", "+", ",", ";", "="];
     let others = [":", "@"];
@@ -837,7 +841,7 @@ QUnit.module("Route Generation", hooks => {
     });
   });
 
-  QUnit.test("Generating a dynamic segment with general delimiters (except ':' and '@') encodes them", assert => {
+  QUnit.test("Generating a dynamic segment with general delimiters (except ':' and '@') encodes them", (assert: Assert) => {
     // See https://tools.ietf.org/html/rfc3986#section-2.2
     let genDelims = [":", "/", "?", "#", "[", "]", "@"];
     let exclude = [":", "@"];
@@ -855,7 +859,7 @@ QUnit.module("Route Generation", hooks => {
     });
   });
 
-  QUnit.test("Generating a dynamic segment with miscellaneous other values encodes correctly", assert => {
+  QUnit.test("Generating a dynamic segment with miscellaneous other values encodes correctly", (assert: Assert) => {
     let expectations = [{
       // "/"
       id: "abc/def",
@@ -907,12 +911,12 @@ QUnit.module("Route Generation", hooks => {
   ];
 
   globGenerationValues.forEach(value => {
-    QUnit.test("Generating a star segment glob route with param '" + value + "' passes value through without modification", assert => {
+    QUnit.test("Generating a star segment glob route with param '" + value + "' passes value through without modification", (assert: Assert) => {
       assert.equal(router.generate("catchall", { catchall: value }), "/" + value);
     });
   });
 
-  QUnit.test("Throws when generating dynamic routes with an empty string", assert => {
+  QUnit.test("Throws when generating dynamic routes with an empty string", (assert: Assert) => {
     let router = new RouteRecognizer();
     router.add([{ "path": "/posts", "handler": "posts" }, { "path": "/*secret/create", "handler": "create" }], { as: "create" });
     router.add([{ "path": "/posts", "handler": "posts" }, { "path": "/:secret/edit", "handler": "edit" }], { as: "edit" });
@@ -925,7 +929,7 @@ QUnit.module("Route Generation", hooks => {
     }, /You must provide a param `secret`./);
   });
 
-  QUnit.test("Fails reasonably when bad params passed to dynamic segment", assert => {
+  QUnit.test("Fails reasonably when bad params passed to dynamic segment", (assert: Assert) => {
     let router = new RouteRecognizer();
     router.add([{ "path": "/posts", "handler": "posts" }, { "path": "/*secret/create", "handler": "create" }], { as: "create" });
     router.add([{ "path": "/posts", "handler": "posts" }, { "path": "/:secret/edit", "handler": "edit" }], { as: "edit" });
@@ -987,7 +991,7 @@ QUnit.module("Route Generation", hooks => {
     }, /You must provide param `secret` to `generate`./, "Object without own property passed.");
   });
 
-  QUnit.test("Prevents duplicate additions of the same named route.", assert => {
+  QUnit.test("Prevents duplicate additions of the same named route.", (assert: Assert) => {
     let router = new RouteRecognizer();
     router.add([{ path: "/posts/:id/foo", handler: "post" }], { as: "post" });
 
@@ -996,12 +1000,12 @@ QUnit.module("Route Generation", hooks => {
     }, /You may not add a duplicate route named `post`./, "Attempting to clobber an existing route.");
   });
 
-  QUnit.test("Parsing and generation results into the same input string", assert => {
+  QUnit.test("Parsing and generation results into the same input string", (assert: Assert) => {
     let query = "filter%20data=date";
     assert.equal(router.generateQueryString(router.parseQueryString(query)), "?" + query);
   });
 
-  QUnit.test("Generation works with query params", assert => {
+  QUnit.test("Generation works with query params", (assert: Assert) => {
     assert.equal( router.generate("index", {queryParams: {filter: "date"}}), "/?filter=date" );
     assert.equal( router.generate("index", {queryParams: {filter: true}}), "/?filter=true" );
     assert.equal( router.generate("posts", {queryParams: {sort: "title"}}), "/posts?sort=title");
@@ -1020,15 +1024,15 @@ QUnit.module("Route Generation", hooks => {
     assert.equal( router.generate("index", {queryParams: {filter: "date", sort: 0}}), "/?filter=date&sort=0" );
   });
 
-  QUnit.test("Generation works with array query params", assert => {
+  QUnit.test("Generation works with array query params", (assert: Assert) => {
     assert.equal( router.generate("index", {queryParams: {foo: [1, 2, 3]}}), "/?foo[]=1&foo[]=2&foo[]=3" );
   });
 
-  QUnit.test("Generation works with controller namespaced array query params", assert => {
+  QUnit.test("Generation works with controller namespaced array query params", (assert: Assert) => {
     assert.equal( router.generate("posts", {queryParams: {"foo[bar]": [1, 2, 3]}}), "/posts?foo[bar][]=1&foo[bar][]=2&foo[bar][]=3" );
   });
 
-  QUnit.test("Empty query params don't have an extra question mark", assert => {
+  QUnit.test("Empty query params don't have an extra question mark", (assert: Assert) => {
     assert.equal( router.generate("index", {queryParams: {}}), "/" );
     assert.equal( router.generate("index", {queryParams: null}), "/" );
     assert.equal( router.generate("posts", {queryParams: {}}), "/posts");
@@ -1037,13 +1041,13 @@ QUnit.module("Route Generation", hooks => {
     assert.equal( router.generate("posts", {queryParams: { foo: undefined } }), "/posts");
   });
 
-  QUnit.test("Generating an invalid named route raises", assert => {
+  QUnit.test("Generating an invalid named route raises", (assert: Assert) => {
     assert.throws(function() {
       router.generate("nope");
     }, /There is no route named nope/);
   });
 
-  QUnit.test("Getting the handlers for a named route", assert => {
+  QUnit.test("Getting the handlers for a named route", (assert: Assert) => {
     assert.deepEqual(router.handlersFor("post"), [ { handler: handlers[0], names: ["id"], shouldDecodes: [true] } ]);
     assert.deepEqual(router.handlersFor("posts"), [ { handler: handlers[1], names: [], shouldDecodes: [] } ]);
     assert.deepEqual(router.handlersFor("new_post"), [ { handler: handlers[2], names: [], shouldDecodes: [] } ]);
@@ -1051,13 +1055,13 @@ QUnit.module("Route Generation", hooks => {
     assert.deepEqual(router.handlersFor("catchall"), [ { handler: handlers[5], names: ["catchall"], shouldDecodes: [false] } ]);
   });
 
-  QUnit.test("Getting a handler for an invalid named route raises", assert => {
+  QUnit.test("Getting a handler for an invalid named route raises", (assert: Assert) => {
       assert.throws(function() {
           router.handlersFor("nope");
       }, /There is no route named nope/);
   });
 
-  QUnit.test("Matches the route with the longer static prefix", assert => {
+  QUnit.test("Matches the route with the longer static prefix", (assert: Assert) => {
     let handler1 = { handler: 1 };
     let handler2 = { handler: 2 };
     let router = new RouteRecognizer();
@@ -1072,7 +1076,7 @@ QUnit.module("Route Generation", hooks => {
   });
 
   // Re: https://github.com/emberjs/ember.js/issues/13960
-  QUnit.test("Matches the route with the longer static prefix with nesting", assert => {
+  QUnit.test("Matches the route with the longer static prefix with nesting", (assert: Assert) => {
     let handler1 = { handler: 1 };
     let handler2 = { handler: 2 };
     let handler3 = { handler: 3 };

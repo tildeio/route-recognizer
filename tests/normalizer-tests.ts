@@ -35,7 +35,7 @@ const expectations = [{
 expectations.forEach(expectation => {
   let { paths, normalized } = expectation;
   paths.forEach(function(path) {
-    QUnit.test("the path '" + path + "' is normalized to '" + normalized + "'", assert => {
+    QUnit.test("the path '" + path + "' is normalized to '" + normalized + "'", (assert: Assert) => {
       assert.equal(Normalizer.normalizePath(path), normalized);
     });
   });

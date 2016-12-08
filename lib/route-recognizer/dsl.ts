@@ -1,11 +1,40 @@
-function Target(path, matcher, delegate) {
-  this.path = path;
-  this.matcher = matcher;
-  this.delegate = delegate;
+export interface Delegate {
+  contextEntered?(context: string, route: MatchDSL): void;
+  willAddRoute?(context: string | undefined, route: string): string;
 }
 
-Target.prototype = {
-  to: function(target, callback) {
+export interface Route {
+  path: string;
+  handler: any;
+  queryParams?: string[];
+}
+
+export interface RouteRecognizer {
+  delegate: Delegate | undefined;
+  add(routes: Route[]): void;
+}
+
+export interface MatchDSL {
+  (path: string): ToDSL;
+  (path: string, callback: (match: MatchDSL) => void): void;
+}
+
+export interface ToDSL {
+  to(name: string, callback?: (match: MatchDSL) => void): void;
+}
+
+class Target implements ToDSL {
+  path: string;
+  matcher: Matcher;
+  delegate: Delegate | undefined;
+
+  constructor(path: string, matcher: Matcher, delegate: Delegate | undefined) {
+    this.path = path;
+    this.matcher = matcher;
+    this.delegate = delegate;
+  }
+
+  to(target: string, callback: (match: MatchDSL) => void) {
     let delegate = this.delegate;
 
     if (delegate && delegate.willAddRoute) {
@@ -18,26 +47,29 @@ Target.prototype = {
       if (callback.length === 0) { throw new Error("You must have an argument in the function passed to `to`"); }
       this.matcher.addChild(this.path, target, callback, this.delegate);
     }
-    return this;
   }
-};
+}
 
-class Matcher {
-  routes: any;
-  children: any;
-  target: any;
+export class Matcher {
+  routes: {
+    [path: string]: string | undefined;
+  };
+  children: {
+    [path: string]: Matcher | undefined;
+  };
+  target: string | undefined;
 
-  constructor(target?: any) {
+  constructor(target?: string) {
     this.routes = {};
     this.children = {};
     this.target = target;
   }
 
-  add(path, handler) {
-    this.routes[path] = handler;
+  add(path: string, target: string) {
+    this.routes[path] = target;
   }
 
-  addChild(path, target, callback, delegate) {
+  addChild(path: string, target: string, callback: (match: MatchDSL) => void, delegate: Delegate | undefined) {
     let matcher = new Matcher(target);
     this.children[path] = matcher;
 
@@ -51,19 +83,21 @@ class Matcher {
   }
 }
 
-function generateMatch(startingPath, matcher, delegate) {
-  return function(path, nestedCallback) {
+function generateMatch(startingPath: string, matcher: Matcher, delegate: Delegate | undefined): MatchDSL {
+  function match(path: string): ToDSL;
+  function match(path: string, nestedCallback: (match: MatchDSL) => void): void;
+  function match(path: string, nestedCallback?: (match: MatchDSL) => void): ToDSL | void {
     let fullPath = startingPath + path;
-
     if (nestedCallback) {
       nestedCallback(generateMatch(fullPath, matcher, delegate));
     } else {
-      return new Target(startingPath + path, matcher, delegate);
+      return new Target(fullPath, matcher, delegate);
     }
   };
+  return match;
 }
 
-function addRoute(routeArray, path, handler) {
+function addRoute(routeArray: Route[], path: string, handler: any) {
   let len = 0;
   for (let i = 0; i < routeArray.length; i++) {
     len += routeArray[i].path.length;
@@ -74,7 +108,7 @@ function addRoute(routeArray, path, handler) {
   routeArray.push(route);
 }
 
-function eachRoute(baseRoute, matcher, callback, binding) {
+function eachRoute<T>(baseRoute: Route[], matcher: Matcher, callback: (this: T, routes: Route[]) => void, binding: T) {
   let routes = matcher.routes;
 
   for (let path in routes) {
@@ -82,8 +116,9 @@ function eachRoute(baseRoute, matcher, callback, binding) {
       let routeArray = baseRoute.slice();
       addRoute(routeArray, path, routes[path]);
 
-      if (matcher.children[path]) {
-        eachRoute(routeArray, matcher.children[path], callback, binding);
+      let nested = matcher.children[path];
+      if (nested) {
+        eachRoute(routeArray, nested, callback, binding);
       } else {
         callback.call(binding, routeArray);
       }
@@ -91,13 +126,13 @@ function eachRoute(baseRoute, matcher, callback, binding) {
   }
 }
 
-export default function(callback, addRouteCallback?) {
+export default function <T extends RouteRecognizer>(this: T, callback: (match: MatchDSL) => void, addRouteCallback?: (routeRecognizer: T, routes: Route[]) => void) {
   let matcher = new Matcher();
 
   callback(generateMatch("", matcher, this.delegate));
 
-  eachRoute([], matcher, function(route) {
-    if (addRouteCallback) { addRouteCallback(this, route); }
-    else { this.add(route); }
+  eachRoute([], matcher, function(routes: Route[]) {
+    if (addRouteCallback) { addRouteCallback(this, routes); }
+    else { this.add(routes); }
   }, this);
 }
