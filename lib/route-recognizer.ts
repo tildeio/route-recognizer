@@ -1,23 +1,24 @@
-import map, { Delegate, Route, MatchDSL } from "./route-recognizer/dsl";
+import { createMap } from "./route-recognizer/util";
+import map, { Delegate, Route, Opaque, MatchDSL } from "./route-recognizer/dsl";
 import { normalizePath, normalizeSegment, encodePathSegment } from "./route-recognizer/normalizer";
 
-const specials = [
-  "/", ".", "*", "+", "?", "|",
-  "(", ")", "[", "]", "{", "}", "\\"
-];
+const enum CHARS {
+  STAR = 42,
+  SLASH = 47,
+  COLON = 58
+}
 
-const escapeRegex = new RegExp("(\\" + specials.join("|\\") + ")", "g");
+const escapeRegex = /(\/|\.|\*|\+|\?|\||\(|\)|\[|\]|\{|\}|\\)/g;
 
-const isArray = Array.isArray || function isArray(arg: any): arg is any[] {
-  return Object.prototype.toString.call(arg) === "[object Array]";
-};
+const isArray = Array.isArray;
+const hasOwnProperty = Object.prototype.hasOwnProperty;
 
 function getParam(params: Params | null | undefined, key: string): string {
   if (typeof params !== "object" || params === null) {
     throw new Error("You must pass an object as the second argument to `generate`.");
   }
 
-  if (!params.hasOwnProperty(key)) {
+  if (!hasOwnProperty.call(params, key)) {
     throw new Error("You must provide param `" + key + "` to `generate`.");
   }
 
@@ -53,15 +54,15 @@ const enum SegmentType {
 // * `invalidChars`: a String with a list of all invalid characters
 // * `repeat`: true if the character specification can repeat
 class StaticSegment {
-  type: SegmentType.Static;
-  string: string;
+  type: SegmentType.Static = SegmentType.Static;
+  value: string;
 
   constructor(str: string) {
-    this.string = normalizeSegment(str);
+    this.value = normalizeSegment(str);
   }
 
   eachChar(currentState: State) {
-    let str = this.string, ch;
+    let str = this.value, ch;
 
     for (let i = 0; i < str.length; i++) {
       ch = str.charAt(i);
@@ -72,19 +73,19 @@ class StaticSegment {
   }
 
   regex() {
-    return this.string.replace(escapeRegex, "\\$1");
+    return this.value.replace(escapeRegex, "\\$1");
   }
 
   generate(_?: Params | null) {
-    return this.string;
+    return this.value;
   }
 }
 
 class DynamicSegment {
-  type: SegmentType.Dynamic;
-  name: string;
+  type: SegmentType.Dynamic = SegmentType.Dynamic;
+  value: string;
   constructor(name: string) {
-    this.name = normalizeSegment(name);
+    this.value = normalizeSegment(name);
   }
 
   eachChar(currentState: State) {
@@ -96,7 +97,7 @@ class DynamicSegment {
   }
 
   generate(params?: Params | null) {
-    let value = getParam(params, this.name);
+    let value = getParam(params, this.value);
     if (RouteRecognizer.ENCODE_AND_DECODE_PATH_SEGMENTS) {
       return encodePathSegment(value);
     } else {
@@ -106,8 +107,11 @@ class DynamicSegment {
 }
 
 class StarSegment {
-  type: SegmentType.Star;
-  constructor(public name: string) {}
+  type: SegmentType.Star = SegmentType.Star;
+  value: string;
+  constructor(name: string) {
+    this.value = name;
+  }
 
   eachChar(currentState: State) {
     return currentState.put({
@@ -122,12 +126,13 @@ class StarSegment {
   }
 
   generate(params?: Params | null): string {
-    return getParam(params, this.name);
+    return getParam(params, this.value);
   }
 }
 
 class EpsilonSegment {
-  type: SegmentType.Epsilon;
+  type: SegmentType.Epsilon = SegmentType.Epsilon;
+  value = undefined;
   eachChar(currentState: State) {
     return currentState;
   }
@@ -140,8 +145,8 @@ class EpsilonSegment {
 }
 
 export interface Params {
-  [key: string]: any | undefined;
-  [key: number]: any | undefined;
+  [key: string]: Opaque;
+  [key: number]: Opaque;
   queryParams?: QueryParams | null;
 }
 
@@ -150,41 +155,46 @@ type Segment = StaticSegment | DynamicSegment | StarSegment | EpsilonSegment;
 // The `names` will be populated with the paramter name for each dynamic/star
 // segment. `shouldDecodes` will be populated with a boolean for each dyanamic/star
 // segment, indicating whether it should be decoded during recognition.
-function parse(route: string, names: string[], types: Types, shouldDecodes: boolean[]): Segment[] {
+function parse(segments: Segment[], route: string, names: string[], types: Types, shouldDecodes: boolean[]): void {
   // normalize route as not starting with a "/". Recognition will
   // also normalize.
-  if (route.charAt(0) === "/") { route = route.substr(1); }
+  if (route.length > 0 && route.charCodeAt(0) === CHARS.SLASH) { route = route.substr(1); }
 
-  let segments = route.split("/");
-  let results = new Array(segments.length);
+  let parts = route.split("/");
 
-  for (let i = 0; i < segments.length; i++) {
-    let segment = segments[i], match;
+  for (let i = 0; i < parts.length; i++) {
+    let part = parts[i];
 
-    if (match = segment.match(/^:([^\/]+)$/)) {
-      results[i] = new DynamicSegment(match[1]);
-      names.push(match[1]);
+    if (part === "") {
+      segments.push(new EpsilonSegment());
+    } else if (part.charCodeAt(0) === CHARS.COLON) {
+      let name = part.slice(1);
+      segments.push(new DynamicSegment(name));
+      names.push(name);
       shouldDecodes.push(true);
       types.dynamics++;
-    } else if (match = segment.match(/^\*([^\/]+)$/)) {
-      results[i] = new StarSegment(match[1]);
-      names.push(match[1]);
+    } else if (part.charCodeAt(0) === CHARS.STAR) {
+      let name = part.slice(1);
+      segments.push(new StarSegment(name));
+      names.push(name);
       shouldDecodes.push(false);
       types.stars++;
-    } else if (segment === "") {
-      results[i] = new EpsilonSegment();
-    } else {
-      results[i] = new StaticSegment(segment);
+    }  else {
+      segments.push(new StaticSegment(part));
       types.statics++;
     }
   }
-
-  return results;
 }
 
 function isEqualCharSpec(specA: CharSpec | undefined, specB: CharSpec) {
   return specA && specA.validChars === specB.validChars &&
          specA.invalidChars === specB.invalidChars;
+}
+
+interface Handler {
+  handler: Opaque;
+  names: string[];
+  shouldDecodes: boolean[];
 }
 
 // A State has a character specification and (`charSpec`) and a list of possible
@@ -203,20 +213,28 @@ function isEqualCharSpec(specA: CharSpec | undefined, specB: CharSpec) {
 // Currently, State is implemented naively by looping over `nextStates` and
 // comparing a character specification against a character. A more efficient
 // implementation would use a hash of keys pointing at one or more next states.
-
 class State {
   nextStates: State[];
   charSpec: CharSpec | undefined;
-  regex: RegExp | undefined;
-  handlers: any[] | undefined;
+  pattern: string;
+  handlers: Handler[] | undefined;
   types: Types | undefined;
+  _regex: RegExp | undefined;
 
   constructor (charSpec?: CharSpec) {
     this.charSpec = charSpec;
     this.nextStates = [];
-    this.regex = undefined;
+    this.pattern = "";
+    this._regex = undefined;
     this.handlers = undefined;
     this.types = undefined;
+  }
+
+  regex(): RegExp {
+    if (!this._regex) {
+      this._regex = new RegExp(this.pattern);
+    }
+    return this._regex;
   }
 
   get(charSpec: CharSpec): State | void {
@@ -327,36 +345,38 @@ export interface QueryParams {
 }
 
 export interface Result {
-  handler: any;
+  handler: Opaque;
   params: Params;
   isDynamic: boolean;
 }
 
-export interface Results {
+export interface Results extends ArrayLike<Result | undefined> {
   queryParams: QueryParams;
-  [index: number]: Result | undefined;
-  length: number;
   slice(start?: number, end?: number): Result[];
   splice(start: number, deleteCount: number, ...items: Result[]): Result[];
   push(...results: Result[]): number;
 }
 
-class RecognizeResults {
+class RecognizeResults implements Results {
   queryParams: QueryParams;
-  splice = Array.prototype.splice;
-  slice =  Array.prototype.slice;
-  push = Array.prototype.push;
   length = 0;
-  [index: number]: any | undefined;
+  [index: number]: Result | undefined;
+  splice: (start: number, deleteCount: number, ...items: Result[]) => Result[];
+  slice: (start?: number, end?: number) => Result[];
+  push: (...results: Result[]) => number;
 
-  constructor(queryParams?: QueryParams | undefined) {
+  constructor(queryParams?: QueryParams) {
     this.queryParams = queryParams || {};
   }
 };
 
+RecognizeResults.prototype.splice = Array.prototype.splice;
+RecognizeResults.prototype.slice =  Array.prototype.slice;
+RecognizeResults.prototype.push = Array.prototype.push;
+
 function findHandler(state: State, originalPath: string, queryParams: QueryParams): Results {
   let handlers = state.handlers;
-  let regex = state.regex;
+  let regex: RegExp = state.regex();
   if (!regex || !handlers) throw new Error("state not initialized");
   let captures: RegExpMatchArray | null = originalPath.match(regex);
   let currentCapture = 1;
@@ -369,20 +389,13 @@ function findHandler(state: State, originalPath: string, queryParams: QueryParam
     let names = handler.names;
     let shouldDecodes = handler.shouldDecodes;
     let params: Params = {};
-    let name, shouldDecode, capture;
 
     for (let j = 0; j < names.length; j++) {
-      name = names[j];
-      shouldDecode = shouldDecodes[j];
-      if (!captures) throw Error("expected params");
-      capture = captures[currentCapture++];
+      let name = names[j];
+      let capture = captures && captures[currentCapture++];
 
-      if (RouteRecognizer.ENCODE_AND_DECODE_PATH_SEGMENTS) {
-        if (shouldDecode) {
-          params[name] = decodeURIComponent(capture);
-        } else {
-          params[name] = capture;
-        }
+      if (RouteRecognizer.ENCODE_AND_DECODE_PATH_SEGMENTS && shouldDecodes[j]) {
+        params[name] = capture && decodeURIComponent(capture);
       } else {
         params[name] = capture;
       }
@@ -406,14 +419,14 @@ function decodeQueryParamPart(part: string): string {
 
 interface NamedRoute {
   segments: Segment[];
-  handlers: any[];
+  handlers: Opaque[];
 }
 
 class RouteRecognizer {
-  private rootState: State;
+  private rootState: State = new State();
   private names: {
     [name: string]: NamedRoute | undefined;
-  };
+  } = createMap<NamedRoute>();
   map: (context: (match: MatchDSL) => void, addCallback?: (router: this, routes: Route[]) => void) => void = map;
 
   delegate: Delegate | undefined;
@@ -426,44 +439,37 @@ class RouteRecognizer {
     normalizeSegment, normalizePath, encodePathSegment
   };
 
-  constructor() {
-    this.rootState = new State();
-    this.names = {};
-  }
-
   add(routes: Route[], options?: { as: string }) {
     let currentState = this.rootState;
-    let regex = "^";
+    let pattern = "^";
     let types = { statics: 0, dynamics: 0, stars: 0 };
-    let handlers: any[] = new Array(routes.length);
+    let handlers: Handler[] = new Array(routes.length);
     let allSegments: Segment[] = [];
     let name: string | undefined;
 
     let isEmpty = true;
-
+    let j = 0;
     for (let i = 0; i < routes.length; i++) {
       let route = routes[i];
       let names: string[] = [];
       let shouldDecodes: boolean[] = [];
 
-      let segments = parse(route.path, names, types, shouldDecodes);
+      parse(allSegments, route.path, names, types, shouldDecodes);
 
-      allSegments = allSegments.concat(segments);
+      for (; j < allSegments.length; j++) {
+        let segment = allSegments[j];
 
-      for (let j = 0; j < segments.length; j++) {
-        let segment = segments[j];
-
-        if (segment instanceof EpsilonSegment) { continue; }
+        if (segment.type === SegmentType.Epsilon) { continue; }
 
         isEmpty = false;
 
         // Add a "/" for the new segment
         currentState = currentState.put({ invalidChars: undefined, repeat: false, validChars: "/" });
-        regex += "/";
+        pattern += "/";
 
         // Add a representation of the segment to the NFA and regex
         currentState = segment.eachChar(currentState);
-        regex += segment.regex();
+        pattern += segment.regex();
       }
       let handler = { handler: route.handler, names: names, shouldDecodes: shouldDecodes };
       handlers[i] = handler;
@@ -471,18 +477,18 @@ class RouteRecognizer {
 
     if (isEmpty) {
       currentState = currentState.put({ invalidChars: undefined, repeat: false, validChars: "/" });
-      regex += "/";
+      pattern += "/";
     }
 
     currentState.handlers = handlers;
-    currentState.regex = new RegExp(regex + "$");
+    currentState.pattern = pattern + "$";
     currentState.types = types;
 
-    if (typeof options === "object" && options !== null && options.hasOwnProperty("as")) {
+    if (typeof options === "object" && options !== null && hasOwnProperty.call(options, "as")) {
       name = options.as;
     }
 
-    if (name && this.names.hasOwnProperty(name)) {
+    if (name && hasOwnProperty.call(this.names, name)) {
       throw new Error("You may not add a duplicate route named `" + name + "`.");
     }
 
@@ -541,12 +547,7 @@ class RouteRecognizer {
 
   generateQueryString(params: QueryParams) {
     let pairs: string[] = [];
-    let keys: string[] = [];
-    for (let key in params) {
-      if (params.hasOwnProperty(key)) {
-        keys.push(key);
-      }
-    }
+    let keys: string[] = Object.keys(params);
     keys.sort();
     for (let i = 0; i < keys.length; i++) {
       let key = keys[i];
@@ -653,7 +654,7 @@ class RouteRecognizer {
     if (state && state.handlers) {
       // if a trailing slash was dropped and a star segment is the last segment
       // specified, put the trailing slash back
-      if (isSlashDropped && state.regex && state.regex.source.slice(-5) === "(.+)$") {
+      if (isSlashDropped && state.pattern && state.pattern.slice(-5) === "(.+)$") {
         originalPath = originalPath + "/";
       }
       results = findHandler(state, originalPath, queryParams);

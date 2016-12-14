@@ -4,6 +4,14 @@
     (global.RouteRecognizer = factory());
 }(this, (function () { 'use strict';
 
+var createObject = Object.create;
+function createMap() {
+    var map = createObject(null);
+    map["__"] = undefined;
+    delete map["__"];
+    return map;
+}
+
 var Target = function Target(path, matcher, delegate) {
     this.path = path;
     this.matcher = matcher;
@@ -23,8 +31,8 @@ Target.prototype.to = function to (target, callback) {
     }
 };
 var Matcher = function Matcher(target) {
-    this.routes = {};
-    this.children = {};
+    this.routes = createMap();
+    this.children = createMap();
     this.target = target;
 };
 Matcher.prototype.add = function add (path, target) {
@@ -63,17 +71,17 @@ function addRoute(routeArray, path, handler) {
 }
 function eachRoute(baseRoute, matcher, callback, binding) {
     var routes = matcher.routes;
-    for (var path in routes) {
-        if (routes.hasOwnProperty(path)) {
-            var routeArray = baseRoute.slice();
-            addRoute(routeArray, path, routes[path]);
-            var nested = matcher.children[path];
-            if (nested) {
-                eachRoute(routeArray, nested, callback, binding);
-            }
-            else {
-                callback.call(binding, routeArray);
-            }
+    var paths = Object.keys(routes);
+    for (var i = 0; i < paths.length; i++) {
+        var path = paths[i];
+        var routeArray = baseRoute.slice();
+        addRoute(routeArray, path, routes[path]);
+        var nested = matcher.children[path];
+        if (nested) {
+            eachRoute(routeArray, nested, callback, binding);
+        }
+        else {
+            callback.call(binding, routeArray);
         }
     }
 }
@@ -105,6 +113,8 @@ function normalizePath(path) {
 // decoding the rest of the path
 var SEGMENT_RESERVED_CHARS = /%|\//g;
 function normalizeSegment(segment) {
+    if (segment.length < 3 || segment.indexOf("%") === -1)
+        { return segment; }
     return decodeURIComponent(segment).replace(SEGMENT_RESERVED_CHARS, encodeURIComponent);
 }
 // We do not want to encode these characters when generating dynamic path segments
@@ -117,24 +127,19 @@ function normalizeSegment(segment) {
 // The chars "!", "'", "(", ")", "*" do not get changed by `encodeURIComponent`,
 // so the possible encoded chars are:
 // ['%24', '%26', '%2B', '%2C', '%3B', '%3D', '%3A', '%40'].
-var PATH_SEGMENT_ENCODINGS = /%(?:24|26|2B|2C|3B|3D|3A|40)/g;
+var PATH_SEGMENT_ENCODINGS = /%(?:2(?:4|6|B|C)|3(?:B|D|A)|40)/g;
 function encodePathSegment(str) {
     return encodeURIComponent(str).replace(PATH_SEGMENT_ENCODINGS, decodeURIComponent);
 }
 
-var specials = [
-    "/", ".", "*", "+", "?", "|",
-    "(", ")", "[", "]", "{", "}", "\\"
-];
-var escapeRegex = new RegExp("(\\" + specials.join("|\\") + ")", "g");
-var isArray = Array.isArray || function isArray(arg) {
-    return Object.prototype.toString.call(arg) === "[object Array]";
-};
+var escapeRegex = /(\/|\.|\*|\+|\?|\||\(|\)|\[|\]|\{|\}|\\)/g;
+var isArray = Array.isArray;
+var hasOwnProperty = Object.prototype.hasOwnProperty;
 function getParam(params, key) {
     if (typeof params !== "object" || params === null) {
         throw new Error("You must pass an object as the second argument to `generate`.");
     }
-    if (!params.hasOwnProperty(key)) {
+    if (!hasOwnProperty.call(params, key)) {
         throw new Error("You must provide param `" + key + "` to `generate`.");
     }
     var value = params[key];
@@ -161,10 +166,11 @@ function getParam(params, key) {
 // * `invalidChars`: a String with a list of all invalid characters
 // * `repeat`: true if the character specification can repeat
 var StaticSegment = function StaticSegment(str) {
-    this.string = normalizeSegment(str);
+    this.type = 0 /* Static */;
+    this.value = normalizeSegment(str);
 };
 StaticSegment.prototype.eachChar = function eachChar (currentState) {
-    var str = this.string, ch;
+    var str = this.value, ch;
     for (var i = 0; i < str.length; i++) {
         ch = str.charAt(i);
         currentState = currentState.put({ invalidChars: undefined, repeat: false, validChars: ch });
@@ -172,13 +178,14 @@ StaticSegment.prototype.eachChar = function eachChar (currentState) {
     return currentState;
 };
 StaticSegment.prototype.regex = function regex () {
-    return this.string.replace(escapeRegex, "\\$1");
+    return this.value.replace(escapeRegex, "\\$1");
 };
 StaticSegment.prototype.generate = function generate (_) {
-    return this.string;
+    return this.value;
 };
 var DynamicSegment = function DynamicSegment(name) {
-    this.name = normalizeSegment(name);
+    this.type = 1 /* Dynamic */;
+    this.value = normalizeSegment(name);
 };
 DynamicSegment.prototype.eachChar = function eachChar (currentState) {
     return currentState.put({ invalidChars: "/", repeat: true, validChars: undefined });
@@ -187,7 +194,7 @@ DynamicSegment.prototype.regex = function regex () {
     return "([^/]+)";
 };
 DynamicSegment.prototype.generate = function generate (params) {
-    var value = getParam(params, this.name);
+    var value = getParam(params, this.value);
     if (RouteRecognizer.ENCODE_AND_DECODE_PATH_SEGMENTS) {
         return encodePathSegment(value);
     }
@@ -196,7 +203,8 @@ DynamicSegment.prototype.generate = function generate (params) {
     }
 };
 var StarSegment = function StarSegment(name) {
-    this.name = name;
+    this.type = 2 /* Star */;
+    this.value = name;
 };
 StarSegment.prototype.eachChar = function eachChar (currentState) {
     return currentState.put({
@@ -209,10 +217,12 @@ StarSegment.prototype.regex = function regex () {
     return "(.+)";
 };
 StarSegment.prototype.generate = function generate (params) {
-    return getParam(params, this.name);
+    return getParam(params, this.value);
 };
-var EpsilonSegment = function EpsilonSegment () {};
-
+var EpsilonSegment = function EpsilonSegment() {
+    this.type = 3 /* Epsilon */;
+    this.value = undefined;
+};
 EpsilonSegment.prototype.eachChar = function eachChar (currentState) {
     return currentState;
 };
@@ -225,37 +235,37 @@ EpsilonSegment.prototype.generate = function generate () {
 // The `names` will be populated with the paramter name for each dynamic/star
 // segment. `shouldDecodes` will be populated with a boolean for each dyanamic/star
 // segment, indicating whether it should be decoded during recognition.
-function parse(route, names, types, shouldDecodes) {
+function parse(segments, route, names, types, shouldDecodes) {
     // normalize route as not starting with a "/". Recognition will
     // also normalize.
-    if (route.charAt(0) === "/") {
+    if (route.length > 0 && route.charCodeAt(0) === 47 /* SLASH */) {
         route = route.substr(1);
     }
-    var segments = route.split("/");
-    var results = new Array(segments.length);
-    for (var i = 0; i < segments.length; i++) {
-        var segment = segments[i], match = (void 0);
-        if (match = segment.match(/^:([^\/]+)$/)) {
-            results[i] = new DynamicSegment(match[1]);
-            names.push(match[1]);
+    var parts = route.split("/");
+    for (var i = 0; i < parts.length; i++) {
+        var part = parts[i];
+        if (part === "") {
+            segments.push(new EpsilonSegment());
+        }
+        else if (part.charCodeAt(0) === 58 /* COLON */) {
+            var name = part.slice(1);
+            segments.push(new DynamicSegment(name));
+            names.push(name);
             shouldDecodes.push(true);
             types.dynamics++;
         }
-        else if (match = segment.match(/^\*([^\/]+)$/)) {
-            results[i] = new StarSegment(match[1]);
-            names.push(match[1]);
+        else if (part.charCodeAt(0) === 42 /* STAR */) {
+            var name$1 = part.slice(1);
+            segments.push(new StarSegment(name$1));
+            names.push(name$1);
             shouldDecodes.push(false);
             types.stars++;
         }
-        else if (segment === "") {
-            results[i] = new EpsilonSegment();
-        }
         else {
-            results[i] = new StaticSegment(segment);
+            segments.push(new StaticSegment(part));
             types.statics++;
         }
     }
-    return results;
 }
 function isEqualCharSpec(specA, specB) {
     return specA && specA.validChars === specB.validChars &&
@@ -280,9 +290,16 @@ function isEqualCharSpec(specA, specB) {
 var State = function State(charSpec) {
     this.charSpec = charSpec;
     this.nextStates = [];
-    this.regex = undefined;
+    this.pattern = "";
+    this._regex = undefined;
     this.handlers = undefined;
     this.types = undefined;
+};
+State.prototype.regex = function regex () {
+    if (!this._regex) {
+        this._regex = new RegExp(this.pattern);
+    }
+    return this._regex;
 };
 State.prototype.get = function get (charSpec) {
     var nextStates = this.nextStates;
@@ -380,16 +397,16 @@ function recognizeChar(states, ch) {
     return nextStates;
 }
 var RecognizeResults = function RecognizeResults(queryParams) {
-    this.splice = Array.prototype.splice;
-    this.slice = Array.prototype.slice;
-    this.push = Array.prototype.push;
     this.length = 0;
     this.queryParams = queryParams || {};
 };
 ;
+RecognizeResults.prototype.splice = Array.prototype.splice;
+RecognizeResults.prototype.slice = Array.prototype.slice;
+RecognizeResults.prototype.push = Array.prototype.push;
 function findHandler(state, originalPath, queryParams) {
     var handlers = state.handlers;
-    var regex = state.regex;
+    var regex = state.regex();
     if (!regex || !handlers)
         { throw new Error("state not initialized"); }
     var captures = originalPath.match(regex);
@@ -401,20 +418,11 @@ function findHandler(state, originalPath, queryParams) {
         var names = handler.names;
         var shouldDecodes = handler.shouldDecodes;
         var params = {};
-        var name = (void 0), shouldDecode = (void 0), capture = (void 0);
         for (var j = 0; j < names.length; j++) {
-            name = names[j];
-            shouldDecode = shouldDecodes[j];
-            if (!captures)
-                { throw Error("expected params"); }
-            capture = captures[currentCapture++];
-            if (RouteRecognizer.ENCODE_AND_DECODE_PATH_SEGMENTS) {
-                if (shouldDecode) {
-                    params[name] = decodeURIComponent(capture);
-                }
-                else {
-                    params[name] = capture;
-                }
+            var name = names[j];
+            var capture = captures && captures[currentCapture++];
+            if (RouteRecognizer.ENCODE_AND_DECODE_PATH_SEGMENTS && shouldDecodes[j]) {
+                params[name] = capture && decodeURIComponent(capture);
             }
             else {
                 params[name] = capture;
@@ -437,51 +445,51 @@ function decodeQueryParamPart(part) {
     return result;
 }
 var RouteRecognizer = function RouteRecognizer() {
-    this.map = map;
     this.rootState = new State();
-    this.names = {};
+    this.names = createMap();
+    this.map = map;
 };
 RouteRecognizer.prototype.add = function add (routes, options) {
     var currentState = this.rootState;
-    var regex = "^";
+    var pattern = "^";
     var types = { statics: 0, dynamics: 0, stars: 0 };
     var handlers = new Array(routes.length);
     var allSegments = [];
     var name;
     var isEmpty = true;
+    var j = 0;
     for (var i = 0; i < routes.length; i++) {
         var route = routes[i];
         var names = [];
         var shouldDecodes = [];
-        var segments = parse(route.path, names, types, shouldDecodes);
-        allSegments = allSegments.concat(segments);
-        for (var j = 0; j < segments.length; j++) {
-            var segment = segments[j];
-            if (segment instanceof EpsilonSegment) {
+        parse(allSegments, route.path, names, types, shouldDecodes);
+        for (; j < allSegments.length; j++) {
+            var segment = allSegments[j];
+            if (segment.type === 3 /* Epsilon */) {
                 continue;
             }
             isEmpty = false;
             // Add a "/" for the new segment
             currentState = currentState.put({ invalidChars: undefined, repeat: false, validChars: "/" });
-            regex += "/";
+            pattern += "/";
             // Add a representation of the segment to the NFA and regex
             currentState = segment.eachChar(currentState);
-            regex += segment.regex();
+            pattern += segment.regex();
         }
         var handler = { handler: route.handler, names: names, shouldDecodes: shouldDecodes };
         handlers[i] = handler;
     }
     if (isEmpty) {
         currentState = currentState.put({ invalidChars: undefined, repeat: false, validChars: "/" });
-        regex += "/";
+        pattern += "/";
     }
     currentState.handlers = handlers;
-    currentState.regex = new RegExp(regex + "$");
+    currentState.pattern = pattern + "$";
     currentState.types = types;
-    if (typeof options === "object" && options !== null && options.hasOwnProperty("as")) {
+    if (typeof options === "object" && options !== null && hasOwnProperty.call(options, "as")) {
         name = options.as;
     }
-    if (name && this.names.hasOwnProperty(name)) {
+    if (name && hasOwnProperty.call(this.names, name)) {
         throw new Error("You may not add a duplicate route named `" + name + "`.");
     }
     if (name = options && options.as) {
@@ -530,23 +538,18 @@ RouteRecognizer.prototype.generate = function generate (name, params) {
 };
 RouteRecognizer.prototype.generateQueryString = function generateQueryString (params) {
     var pairs = [];
-    var keys = [];
-    for (var key in params) {
-        if (params.hasOwnProperty(key)) {
-            keys.push(key);
-        }
-    }
+    var keys = Object.keys(params);
     keys.sort();
     for (var i = 0; i < keys.length; i++) {
-        var key$1 = keys[i];
-        var value = params[key$1];
+        var key = keys[i];
+        var value = params[key];
         if (value == null) {
             continue;
         }
-        var pair = encodeURIComponent(key$1);
+        var pair = encodeURIComponent(key);
         if (isArray(value)) {
             for (var j = 0; j < value.length; j++) {
-                var arrayPair = key$1 + "[]" + "=" + encodeURIComponent(value[j]);
+                var arrayPair = key + "[]" + "=" + encodeURIComponent(value[j]);
                 pairs.push(arrayPair);
             }
         }
@@ -637,7 +640,7 @@ RouteRecognizer.prototype.recognize = function recognize (path) {
     if (state && state.handlers) {
         // if a trailing slash was dropped and a star segment is the last segment
         // specified, put the trailing slash back
-        if (isSlashDropped && state.regex && state.regex.source.slice(-5) === "(.+)$") {
+        if (isSlashDropped && state.pattern && state.pattern.slice(-5) === "(.+)$") {
             originalPath = originalPath + "/";
         }
         results = findHandler(state, originalPath, queryParams);
