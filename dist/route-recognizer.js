@@ -154,16 +154,16 @@ eachChar[0 /* Static */] = function (segment, currentState) {
     var state = currentState;
     var value = segment.value;
     for (var i = 0; i < value.length; i++) {
-        var ch = value.charAt(i);
-        state = state.put({ invalidChars: undefined, repeat: false, validChars: ch });
+        var ch = value.charCodeAt(i);
+        state = state.put({ negate: false, repeat: false, char: ch });
     }
     return state;
 };
 eachChar[1 /* Dynamic */] = function (_, currentState) {
-    return currentState.put({ invalidChars: "/", repeat: true, validChars: undefined });
+    return currentState.put({ negate: true, repeat: true, char: 47 /* SLASH */ });
 };
 eachChar[2 /* Star */] = function (_, currentState) {
-    return currentState.put({ invalidChars: "", repeat: true, validChars: undefined });
+    return currentState.put({ negate: false, repeat: true, char: -1 /* ANY */ });
 };
 eachChar[4 /* Epsilon */] = function (_, currentState) {
     return currentState;
@@ -239,8 +239,8 @@ function parse(segments, route, names, types, shouldDecodes) {
     }
 }
 function isEqualCharSpec(specA, specB) {
-    return specA && specA.validChars === specB.validChars &&
-        specA.invalidChars === specB.invalidChars;
+    return specA && specA.char === specB.char &&
+        specA.negate === specB.negate;
 }
 // A State has a character specification and (`charSpec`) and a list of possible
 // subsequent states (`nextStates`).
@@ -303,20 +303,15 @@ State.prototype.put = function put (charSpec) {
 };
 // Find a list of child states matching the next character
 State.prototype.match = function match (ch) {
-    var nextStates = this.nextStates, child, charSpec, chars;
+    var nextStates = this.nextStates;
     var returned = [];
     for (var i = 0; i < nextStates.length; i++) {
-        child = nextStates[i];
-        charSpec = child.charSpec;
-        if (typeof (chars = charSpec && charSpec.validChars) !== "undefined") {
-            if (chars.indexOf(ch) !== -1) {
-                returned.push(child);
-            }
-        }
-        else if (typeof (chars = charSpec && charSpec.invalidChars) !== "undefined") {
-            if (chars.indexOf(ch) === -1) {
-                returned.push(child);
-            }
+        var child = nextStates[i];
+        var charSpec = child.charSpec;
+        if (!charSpec)
+            { continue; }
+        if (charSpec.negate ? charSpec.char !== ch && charSpec.char !== -1 /* ANY */ : charSpec.char === ch || charSpec.char === -1 /* ANY */) {
+            returned.push(child);
         }
     }
     return returned;
@@ -420,7 +415,6 @@ function decodeQueryParamPart(part) {
 var RouteRecognizer = function RouteRecognizer() {
     this.rootState = new State();
     this.names = createMap();
-    this.map = map;
 };
 RouteRecognizer.prototype.add = function add (routes, options) {
     var currentState = this.rootState;
@@ -443,7 +437,7 @@ RouteRecognizer.prototype.add = function add (routes, options) {
             }
             isEmpty = false;
             // Add a "/" for the new segment
-            currentState = currentState.put({ invalidChars: undefined, repeat: false, validChars: "/" });
+            currentState = currentState.put({ negate: false, repeat: false, char: 47 /* SLASH */ });
             pattern += "/";
             // Add a representation of the segment to the NFA and regex
             currentState = eachChar[segment.type](segment, currentState);
@@ -453,7 +447,7 @@ RouteRecognizer.prototype.add = function add (routes, options) {
         handlers[i] = handler;
     }
     if (isEmpty) {
-        currentState = currentState.put({ invalidChars: undefined, repeat: false, validChars: "/" });
+        currentState = currentState.put({ negate: false, repeat: false, char: 47 /* SLASH */ });
         pattern += "/";
     }
     currentState.handlers = handlers;
@@ -597,7 +591,7 @@ RouteRecognizer.prototype.recognize = function recognize (path) {
         isSlashDropped = true;
     }
     for (var i = 0; i < path.length; i++) {
-        states = recognizeChar(states, path.charAt(i));
+        states = recognizeChar(states, path.charCodeAt(i));
         if (!states.length) {
             break;
         }
@@ -627,6 +621,7 @@ RouteRecognizer.ENCODE_AND_DECODE_PATH_SEGMENTS = true;
 RouteRecognizer.Normalizer = {
     normalizeSegment: normalizeSegment, normalizePath: normalizePath, encodePathSegment: encodePathSegment
 };
+RouteRecognizer.prototype.map = map;
 
 return RouteRecognizer;
 

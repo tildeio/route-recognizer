@@ -3,6 +3,7 @@ import map, { Delegate, Route, Opaque, MatchDSL } from "./route-recognizer/dsl";
 import { normalizePath, normalizeSegment, encodePathSegment } from "./route-recognizer/normalizer";
 
 const enum CHARS {
+  ANY = -1,
   STAR = 42,
   SLASH = 47,
   COLON = 58
@@ -52,16 +53,16 @@ eachChar[SegmentType.Static] = function (segment: Segment, currentState: State) 
   let state = currentState;
   let value = segment.value;
   for (let i = 0; i < value.length; i++) {
-    let ch = value.charAt(i);
-    state = state.put({ invalidChars: undefined, repeat: false, validChars: ch });
+    let ch = value.charCodeAt(i);
+    state = state.put({ negate: false, repeat: false, char: ch });
   }
   return state;
 };
 eachChar[SegmentType.Dynamic] = function (_: Segment, currentState: State) {
-  return currentState.put({ invalidChars: "/", repeat: true, validChars: undefined });
+  return currentState.put({ negate: true, repeat: true, char: CHARS.SLASH });
 };
 eachChar[SegmentType.Star] = function (_: Segment, currentState: State) {
-  return currentState.put({ invalidChars: "", repeat: true, validChars: undefined });
+  return currentState.put({ negate: false, repeat: true, char: CHARS.ANY });
 };
 eachChar[SegmentType.Epsilon] = function (_: Segment, currentState: State) {
   return currentState;
@@ -169,8 +170,8 @@ function parse(segments: Segment[], route: string, names: string[], types: [numb
 }
 
 function isEqualCharSpec(specA: CharSpec | undefined, specB: CharSpec) {
-  return specA && specA.validChars === specB.validChars &&
-         specA.invalidChars === specB.invalidChars;
+  return specA && specA.char === specB.char &&
+         specA.negate === specB.negate;
 }
 
 interface Handler {
@@ -256,21 +257,19 @@ class State {
   }
 
   // Find a list of child states matching the next character
-  match(ch: string) {
-    let nextStates = this.nextStates,
-        child, charSpec, chars;
+  match(ch: number) {
+    let nextStates = this.nextStates;
 
     let returned: State[] = [];
 
     for (let i = 0; i < nextStates.length; i++) {
-      child = nextStates[i];
+      let child = nextStates[i];
 
-      charSpec = child.charSpec;
+      let charSpec = child.charSpec;
+      if (!charSpec) continue;
 
-      if (typeof (chars = charSpec && charSpec.validChars) !== "undefined") {
-        if (chars.indexOf(ch) !== -1) { returned.push(child); }
-      } else if (typeof (chars = charSpec && charSpec.invalidChars) !== "undefined") {
-        if (chars.indexOf(ch) === -1) { returned.push(child); }
+      if (charSpec.negate ? charSpec.char !== ch && charSpec.char !== CHARS.ANY : charSpec.char === ch || charSpec.char === CHARS.ANY) {
+        returned.push(child);
       }
     }
 
@@ -306,7 +305,7 @@ function sortSolutions(states: State[]) {
   });
 }
 
-function recognizeChar(states: State[], ch: string) {
+function recognizeChar(states: State[], ch: number) {
   let nextStates: State[] = [];
 
   for (let i = 0, l = states.length; i < l; i++) {
@@ -406,7 +405,7 @@ class RouteRecognizer {
   private names: {
     [name: string]: NamedRoute | undefined;
   } = createMap<NamedRoute>();
-  map: (context: (match: MatchDSL) => void, addCallback?: (router: this, routes: Route[]) => void) => void = map;
+  map: (context: (match: MatchDSL) => void, addCallback?: (router: this, routes: Route[]) => void) => void;
 
   delegate: Delegate | undefined;
 
@@ -443,7 +442,7 @@ class RouteRecognizer {
         isEmpty = false;
 
         // Add a "/" for the new segment
-        currentState = currentState.put({ invalidChars: undefined, repeat: false, validChars: "/" });
+        currentState = currentState.put({ negate: false, repeat: false, char: CHARS.SLASH });
         pattern += "/";
 
         // Add a representation of the segment to the NFA and regex
@@ -455,7 +454,7 @@ class RouteRecognizer {
     }
 
     if (isEmpty) {
-      currentState = currentState.put({ invalidChars: undefined, repeat: false, validChars: "/" });
+      currentState = currentState.put({ negate: false, repeat: false, char: CHARS.SLASH });
       pattern += "/";
     }
 
@@ -617,7 +616,7 @@ class RouteRecognizer {
     }
 
     for (let i = 0; i < path.length; i++) {
-      states = recognizeChar(states, path.charAt(i));
+      states = recognizeChar(states, path.charCodeAt(i));
       if (!states.length) { break; }
     }
 
@@ -643,10 +642,12 @@ class RouteRecognizer {
   }
 }
 
+RouteRecognizer.prototype.map = map;
+
 export default RouteRecognizer;
 
 interface CharSpec {
-  validChars: string | undefined;
-  invalidChars: string | undefined;
+  negate: boolean;
+  char: number;
   repeat: boolean;
 }
