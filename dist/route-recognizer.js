@@ -149,52 +149,44 @@ function getParam(params, key) {
     }
     return str;
 }
-// A Segment represents a segment in the original route description.
-// Each Segment type provides an `eachChar` and `regex` method.
-//
-// The `eachChar` method invokes the callback with one or more character
-// specifications. A character specification consumes one or more input
-// characters.
-//
-// The `regex` method returns a regex fragment for the segment. If the
-// segment is a dynamic of star segment, the regex fragment also includes
-// a capture.
-//
-// A character specification contains:
-//
-// * `validChars`: a String with a list of all valid characters, or
-// * `invalidChars`: a String with a list of all invalid characters
-// * `repeat`: true if the character specification can repeat
-var StaticSegment = function StaticSegment(str) {
-    this.type = 0 /* Static */;
-    this.value = normalizeSegment(str);
-};
-StaticSegment.prototype.eachChar = function eachChar (currentState) {
-    var str = this.value, ch;
-    for (var i = 0; i < str.length; i++) {
-        ch = str.charAt(i);
-        currentState = currentState.put({ invalidChars: undefined, repeat: false, validChars: ch });
+var eachChar = [];
+eachChar[0 /* Static */] = function (segment, currentState) {
+    var state = currentState;
+    var value = segment.value;
+    for (var i = 0; i < value.length; i++) {
+        var ch = value.charAt(i);
+        state = state.put({ invalidChars: undefined, repeat: false, validChars: ch });
     }
-    return currentState;
+    return state;
 };
-StaticSegment.prototype.regex = function regex () {
-    return this.value.replace(escapeRegex, "\\$1");
-};
-StaticSegment.prototype.generate = function generate (_) {
-    return this.value;
-};
-var DynamicSegment = function DynamicSegment(name) {
-    this.type = 1 /* Dynamic */;
-    this.value = normalizeSegment(name);
-};
-DynamicSegment.prototype.eachChar = function eachChar (currentState) {
+eachChar[1 /* Dynamic */] = function (_, currentState) {
     return currentState.put({ invalidChars: "/", repeat: true, validChars: undefined });
 };
-DynamicSegment.prototype.regex = function regex () {
+eachChar[2 /* Star */] = function (_, currentState) {
+    return currentState.put({ invalidChars: "", repeat: true, validChars: undefined });
+};
+eachChar[4 /* Epsilon */] = function (_, currentState) {
+    return currentState;
+};
+var regex = [];
+regex[0 /* Static */] = function (segment) {
+    return segment.value.replace(escapeRegex, "\\$1");
+};
+regex[1 /* Dynamic */] = function () {
     return "([^/]+)";
 };
-DynamicSegment.prototype.generate = function generate (params) {
-    var value = getParam(params, this.value);
+regex[2 /* Star */] = function () {
+    return "(.+)";
+};
+regex[4 /* Epsilon */] = function () {
+    return "";
+};
+var generate = [];
+generate[0 /* Static */] = function (segment) {
+    return segment.value;
+};
+generate[1 /* Dynamic */] = function (segment, params) {
+    var value = getParam(params, segment.value);
     if (RouteRecognizer.ENCODE_AND_DECODE_PATH_SEGMENTS) {
         return encodePathSegment(value);
     }
@@ -202,34 +194,10 @@ DynamicSegment.prototype.generate = function generate (params) {
         return value;
     }
 };
-var StarSegment = function StarSegment(name) {
-    this.type = 2 /* Star */;
-    this.value = name;
+generate[2 /* Star */] = function (segment, params) {
+    return getParam(params, segment.value);
 };
-StarSegment.prototype.eachChar = function eachChar (currentState) {
-    return currentState.put({
-        invalidChars: "",
-        repeat: true,
-        validChars: undefined
-    });
-};
-StarSegment.prototype.regex = function regex () {
-    return "(.+)";
-};
-StarSegment.prototype.generate = function generate (params) {
-    return getParam(params, this.value);
-};
-var EpsilonSegment = function EpsilonSegment() {
-    this.type = 3 /* Epsilon */;
-    this.value = undefined;
-};
-EpsilonSegment.prototype.eachChar = function eachChar (currentState) {
-    return currentState;
-};
-EpsilonSegment.prototype.regex = function regex () {
-    return "";
-};
-EpsilonSegment.prototype.generate = function generate () {
+generate[4 /* Epsilon */] = function () {
     return "";
 };
 // The `names` will be populated with the paramter name for each dynamic/star
@@ -244,27 +212,30 @@ function parse(segments, route, names, types, shouldDecodes) {
     var parts = route.split("/");
     for (var i = 0; i < parts.length; i++) {
         var part = parts[i];
+        var flags = 0;
+        var type = 0;
         if (part === "") {
-            segments.push(new EpsilonSegment());
+            type = 4 /* Epsilon */;
         }
         else if (part.charCodeAt(0) === 58 /* COLON */) {
-            var name = part.slice(1);
-            segments.push(new DynamicSegment(name));
-            names.push(name);
-            shouldDecodes.push(true);
-            types.dynamics++;
+            type = 1 /* Dynamic */;
         }
         else if (part.charCodeAt(0) === 42 /* STAR */) {
-            var name$1 = part.slice(1);
-            segments.push(new StarSegment(name$1));
-            names.push(name$1);
-            shouldDecodes.push(false);
-            types.stars++;
+            type = 2 /* Star */;
         }
         else {
-            segments.push(new StaticSegment(part));
-            types.statics++;
+            type = 0 /* Static */;
         }
+        flags = 2 << type;
+        if (flags & 12 /* Named */) {
+            part = part.slice(1);
+            names.push(part);
+            shouldDecodes.push((flags & 4 /* Decoded */) !== 0);
+        }
+        if (flags & 14 /* Counted */) {
+            types[type]++;
+        }
+        segments.push({ type: type, value: normalizeSegment(part) });
     }
 }
 function isEqualCharSpec(specA, specB) {
@@ -295,7 +266,7 @@ var State = function State(charSpec) {
     this.handlers = undefined;
     this.types = undefined;
 };
-State.prototype.regex = function regex () {
+State.prototype.regex = function regex$1 () {
     if (!this._regex) {
         this._regex = new RegExp(this.pattern);
     }
@@ -362,28 +333,30 @@ State.prototype.match = function match (ch) {
 //  * prefers more static segments to more
 function sortSolutions(states) {
     return states.sort(function (a, b) {
-        if (!a.types) {
-            return b.types ? -1 : 0;
+        var ref = a.types || [0, 0, 0];
+        var astatics = ref[0];
+        var adynamics = ref[1];
+        var astars = ref[2];
+        var ref$1 = b.types || [0, 0, 0];
+        var bstatics = ref$1[0];
+        var bdynamics = ref$1[1];
+        var bstars = ref$1[2];
+        if (astars !== bstars) {
+            return astars - bstars;
         }
-        else if (!b.types) {
-            return 1;
-        }
-        if (a.types.stars !== b.types.stars) {
-            return a.types.stars - b.types.stars;
-        }
-        if (a.types.stars) {
-            if (a.types.statics !== b.types.statics) {
-                return b.types.statics - a.types.statics;
+        if (astars) {
+            if (astatics !== bstatics) {
+                return bstatics - astatics;
             }
-            if (a.types.dynamics !== b.types.dynamics) {
-                return b.types.dynamics - a.types.dynamics;
+            if (adynamics !== bdynamics) {
+                return bdynamics - astatics;
             }
         }
-        if (a.types.dynamics !== b.types.dynamics) {
-            return a.types.dynamics - b.types.dynamics;
+        if (adynamics !== bdynamics) {
+            return adynamics - bdynamics;
         }
-        if (a.types.statics !== b.types.statics) {
-            return b.types.statics - a.types.statics;
+        if (astatics !== bstatics) {
+            return bstatics - astatics;
         }
         return 0;
     });
@@ -452,7 +425,7 @@ var RouteRecognizer = function RouteRecognizer() {
 RouteRecognizer.prototype.add = function add (routes, options) {
     var currentState = this.rootState;
     var pattern = "^";
-    var types = { statics: 0, dynamics: 0, stars: 0 };
+    var types = [0, 0, 0];
     var handlers = new Array(routes.length);
     var allSegments = [];
     var name;
@@ -465,7 +438,7 @@ RouteRecognizer.prototype.add = function add (routes, options) {
         parse(allSegments, route.path, names, types, shouldDecodes);
         for (; j < allSegments.length; j++) {
             var segment = allSegments[j];
-            if (segment.type === 3 /* Epsilon */) {
+            if (segment.type === 4 /* Epsilon */) {
                 continue;
             }
             isEmpty = false;
@@ -473,8 +446,8 @@ RouteRecognizer.prototype.add = function add (routes, options) {
             currentState = currentState.put({ invalidChars: undefined, repeat: false, validChars: "/" });
             pattern += "/";
             // Add a representation of the segment to the NFA and regex
-            currentState = segment.eachChar(currentState);
-            pattern += segment.regex();
+            currentState = eachChar[segment.type](segment, currentState);
+            pattern += regex[segment.type](segment);
         }
         var handler = { handler: route.handler, names: names, shouldDecodes: shouldDecodes };
         handlers[i] = handler;
@@ -513,7 +486,7 @@ RouteRecognizer.prototype.handlersFor = function handlersFor (name) {
 RouteRecognizer.prototype.hasRoute = function hasRoute (name) {
     return !!this.names[name];
 };
-RouteRecognizer.prototype.generate = function generate (name, params) {
+RouteRecognizer.prototype.generate = function generate$1 (name, params) {
     var route = this.names[name];
     var output = "";
     if (!route) {
@@ -522,11 +495,11 @@ RouteRecognizer.prototype.generate = function generate (name, params) {
     var segments = route.segments;
     for (var i = 0; i < segments.length; i++) {
         var segment = segments[i];
-        if (segment instanceof EpsilonSegment) {
+        if (segment.type === 4 /* Epsilon */) {
             continue;
         }
         output += "/";
-        output += segment.generate(params);
+        output += generate[segment.type](segment, params);
     }
     if (output.charAt(0) !== "/") {
         output = "/" + output;

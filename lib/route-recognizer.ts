@@ -31,11 +31,74 @@ function getParam(params: Params | null | undefined, key: string): string {
 }
 
 const enum SegmentType {
-  Static,
-  Dynamic,
-  Star,
-  Epsilon
+  Static  = 0,
+  Dynamic = 1,
+  Star    = 2,
+  Epsilon = 4
 }
+
+const enum SegmentFlags {
+  Static  = 2 << SegmentType.Static,
+  Dynamic = 2 << SegmentType.Dynamic,
+  Star    = 2 << SegmentType.Star,
+  Epsilon = 2 << SegmentType.Epsilon,
+  Named = Dynamic | Star,
+  Decoded = Dynamic,
+  Counted = Static | Dynamic | Star
+}
+
+const eachChar: ((segment: Segment, currentState: State) => State)[] = [];
+eachChar[SegmentType.Static] = function (segment: Segment, currentState: State) {
+  let state = currentState;
+  let value = segment.value;
+  for (let i = 0; i < value.length; i++) {
+    let ch = value.charAt(i);
+    state = state.put({ invalidChars: undefined, repeat: false, validChars: ch });
+  }
+  return state;
+};
+eachChar[SegmentType.Dynamic] = function (_: Segment, currentState: State) {
+  return currentState.put({ invalidChars: "/", repeat: true, validChars: undefined });
+};
+eachChar[SegmentType.Star] = function (_: Segment, currentState: State) {
+  return currentState.put({ invalidChars: "", repeat: true, validChars: undefined });
+};
+eachChar[SegmentType.Epsilon] = function (_: Segment, currentState: State) {
+  return currentState;
+};
+
+const regex: ((segment: Segment) => string)[] = [];
+regex[SegmentType.Static] = function (segment: Segment) {
+  return segment.value.replace(escapeRegex, "\\$1");
+};
+regex[SegmentType.Dynamic] = function () {
+  return "([^/]+)";
+};
+regex[SegmentType.Star] = function () {
+  return "(.+)";
+};
+regex[SegmentType.Epsilon] = function () {
+  return "";
+};
+
+const generate: ((segment: Segment, params?: Params | null) => string)[] = [];
+generate[SegmentType.Static] = function (segment: Segment) {
+  return segment.value;
+};
+generate[SegmentType.Dynamic] = function (segment: Segment, params?: Params) {
+  let value = getParam(params, segment.value);
+  if (RouteRecognizer.ENCODE_AND_DECODE_PATH_SEGMENTS) {
+    return encodePathSegment(value);
+  } else {
+    return value;
+  }
+};
+generate[SegmentType.Star] = function (segment: Segment, params?: Params) {
+  return getParam(params, segment.value);
+};
+generate[SegmentType.Epsilon] = function () {
+  return "";
+};
 
 // A Segment represents a segment in the original route description.
 // Each Segment type provides an `eachChar` and `regex` method.
@@ -53,95 +116,9 @@ const enum SegmentType {
 // * `validChars`: a String with a list of all valid characters, or
 // * `invalidChars`: a String with a list of all invalid characters
 // * `repeat`: true if the character specification can repeat
-class StaticSegment {
-  type: SegmentType.Static = SegmentType.Static;
+interface Segment {
+  type: SegmentType;
   value: string;
-
-  constructor(str: string) {
-    this.value = normalizeSegment(str);
-  }
-
-  eachChar(currentState: State) {
-    let str = this.value, ch;
-
-    for (let i = 0; i < str.length; i++) {
-      ch = str.charAt(i);
-      currentState = currentState.put({ invalidChars: undefined, repeat: false, validChars: ch });
-    }
-
-    return currentState;
-  }
-
-  regex() {
-    return this.value.replace(escapeRegex, "\\$1");
-  }
-
-  generate(_?: Params | null) {
-    return this.value;
-  }
-}
-
-class DynamicSegment {
-  type: SegmentType.Dynamic = SegmentType.Dynamic;
-  value: string;
-  constructor(name: string) {
-    this.value = normalizeSegment(name);
-  }
-
-  eachChar(currentState: State) {
-    return currentState.put({ invalidChars: "/", repeat: true, validChars: undefined });
-  }
-
-  regex() {
-    return "([^/]+)";
-  }
-
-  generate(params?: Params | null) {
-    let value = getParam(params, this.value);
-    if (RouteRecognizer.ENCODE_AND_DECODE_PATH_SEGMENTS) {
-      return encodePathSegment(value);
-    } else {
-      return value;
-    }
-  }
-}
-
-class StarSegment {
-  type: SegmentType.Star = SegmentType.Star;
-  value: string;
-  constructor(name: string) {
-    this.value = name;
-  }
-
-  eachChar(currentState: State) {
-    return currentState.put({
-      invalidChars: "",
-      repeat: true,
-      validChars: undefined
-    });
-  }
-
-  regex() {
-    return "(.+)";
-  }
-
-  generate(params?: Params | null): string {
-    return getParam(params, this.value);
-  }
-}
-
-class EpsilonSegment {
-  type: SegmentType.Epsilon = SegmentType.Epsilon;
-  value = undefined;
-  eachChar(currentState: State) {
-    return currentState;
-  }
-  regex(): string {
-    return "";
-  }
-  generate(): string {
-    return "";
-  }
 }
 
 export interface Params {
@@ -150,12 +127,10 @@ export interface Params {
   queryParams?: QueryParams | null;
 }
 
-type Segment = StaticSegment | DynamicSegment | StarSegment | EpsilonSegment;
-
 // The `names` will be populated with the paramter name for each dynamic/star
 // segment. `shouldDecodes` will be populated with a boolean for each dyanamic/star
 // segment, indicating whether it should be decoded during recognition.
-function parse(segments: Segment[], route: string, names: string[], types: Types, shouldDecodes: boolean[]): void {
+function parse(segments: Segment[], route: string, names: string[], types: [number, number, number], shouldDecodes: boolean[]): void {
   // normalize route as not starting with a "/". Recognition will
   // also normalize.
   if (route.length > 0 && route.charCodeAt(0) === CHARS.SLASH) { route = route.substr(1); }
@@ -164,25 +139,32 @@ function parse(segments: Segment[], route: string, names: string[], types: Types
 
   for (let i = 0; i < parts.length; i++) {
     let part = parts[i];
+    let flags: SegmentFlags = 0;
+    let type: SegmentType = 0;
 
     if (part === "") {
-      segments.push(new EpsilonSegment());
+      type = SegmentType.Epsilon;
     } else if (part.charCodeAt(0) === CHARS.COLON) {
-      let name = part.slice(1);
-      segments.push(new DynamicSegment(name));
-      names.push(name);
-      shouldDecodes.push(true);
-      types.dynamics++;
+      type = SegmentType.Dynamic;
     } else if (part.charCodeAt(0) === CHARS.STAR) {
-      let name = part.slice(1);
-      segments.push(new StarSegment(name));
-      names.push(name);
-      shouldDecodes.push(false);
-      types.stars++;
+      type = SegmentType.Star;
     }  else {
-      segments.push(new StaticSegment(part));
-      types.statics++;
+      type = SegmentType.Static;
     }
+
+    flags = 2 << type;
+
+    if (flags & SegmentFlags.Named) {
+      part = part.slice(1);
+      names.push(part);
+      shouldDecodes.push((flags & SegmentFlags.Decoded) !== 0);
+    }
+
+    if (flags & SegmentFlags.Counted) {
+      types[type]++;
+    }
+
+    segments.push({ type, value: normalizeSegment(part) });
   }
 }
 
@@ -218,7 +200,7 @@ class State {
   charSpec: CharSpec | undefined;
   pattern: string;
   handlers: Handler[] | undefined;
-  types: Types | undefined;
+  types: [number, number, number] | undefined;
   _regex: RegExp | undefined;
 
   constructor (charSpec?: CharSpec) {
@@ -308,20 +290,17 @@ class State {
 //  * prefers more static segments to more
 function sortSolutions(states: State[]) {
   return states.sort(function(a, b) {
-    if (!a.types) {
-      return b.types ? -1 : 0;
-    } else if (!b.types) {
-      return 1;
-    }
-    if (a.types.stars !== b.types.stars) { return a.types.stars - b.types.stars; }
+    let [ astatics, adynamics, astars ] = a.types || [0, 0, 0];
+    let [ bstatics, bdynamics, bstars ] = b.types || [0, 0, 0];
+    if (astars !== bstars) { return astars - bstars; }
 
-    if (a.types.stars) {
-      if (a.types.statics !== b.types.statics) { return b.types.statics - a.types.statics; }
-      if (a.types.dynamics !== b.types.dynamics) { return b.types.dynamics - a.types.dynamics; }
+    if (astars) {
+      if (astatics !== bstatics) { return bstatics - astatics; }
+      if (adynamics !== bdynamics) { return bdynamics - astatics; }
     }
 
-    if (a.types.dynamics !== b.types.dynamics) { return a.types.dynamics - b.types.dynamics; }
-    if (a.types.statics !== b.types.statics) { return b.types.statics - a.types.statics; }
+    if (adynamics !== bdynamics) { return adynamics - bdynamics; }
+    if (astatics !== bstatics) { return bstatics - astatics; }
 
     return 0;
   });
@@ -442,7 +421,7 @@ class RouteRecognizer {
   add(routes: Route[], options?: { as: string }) {
     let currentState = this.rootState;
     let pattern = "^";
-    let types = { statics: 0, dynamics: 0, stars: 0 };
+    let types: [number, number, number] = [0, 0, 0];
     let handlers: Handler[] = new Array(routes.length);
     let allSegments: Segment[] = [];
     let name: string | undefined;
@@ -468,8 +447,8 @@ class RouteRecognizer {
         pattern += "/";
 
         // Add a representation of the segment to the NFA and regex
-        currentState = segment.eachChar(currentState);
-        pattern += segment.regex();
+        currentState = eachChar[segment.type](segment, currentState);
+        pattern += regex[segment.type](segment);
       }
       let handler = { handler: route.handler, names: names, shouldDecodes: shouldDecodes };
       handlers[i] = handler;
@@ -528,12 +507,12 @@ class RouteRecognizer {
     for (let i = 0; i < segments.length; i++) {
       let segment: Segment = segments[i];
 
-      if (segment instanceof EpsilonSegment) {
+      if (segment.type === SegmentType.Epsilon) {
         continue;
       }
 
       output += "/";
-      output += segment.generate(params);
+      output += generate[segment.type](segment, params);
     }
 
     if (output.charAt(0) !== "/") { output = "/" + output; }
@@ -665,12 +644,6 @@ class RouteRecognizer {
 }
 
 export default RouteRecognizer;
-
-interface Types {
-  statics: number;
-  dynamics: number;
-  stars: number;
-}
 
 interface CharSpec {
   validChars: string | undefined;
