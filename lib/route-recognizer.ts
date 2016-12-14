@@ -296,7 +296,7 @@ function sortSolutions(states: State[]) {
 
     if (astars) {
       if (astatics !== bstatics) { return bstatics - astatics; }
-      if (adynamics !== bdynamics) { return bdynamics - astatics; }
+      if (adynamics !== bdynamics) { return bdynamics - adynamics; }
     }
 
     if (adynamics !== bdynamics) { return adynamics - bdynamics; }

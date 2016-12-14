@@ -349,7 +349,7 @@ function sortSolutions(states) {
                 return bstatics - astatics;
             }
             if (adynamics !== bdynamics) {
-                return bdynamics - astatics;
+                return bdynamics - adynamics;
             }
         }
         if (adynamics !== bdynamics) {
