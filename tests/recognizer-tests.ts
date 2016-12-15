@@ -991,14 +991,14 @@ QUnit.module("Route Generation", hooks => {
     }, /You must provide param `secret` to `generate`./, "Object without own property passed.");
   });
 
-  QUnit.test("Prevents duplicate additions of the same named route.", (assert: Assert) => {
-    let router = new RouteRecognizer();
-    router.add([{ path: "/posts/:id/foo", handler: "post" }], { as: "post" });
+  // QUnit.test("Prevents duplicate additions of the same named route.", (assert: Assert) => {
+  //   let router = new RouteRecognizer();
+  //   router.add([{ path: "/posts/:id/foo", handler: "post" }], { as: "post" });
 
-    assert.throws(function() {
-      router.add([{ path: "/posts/:id", handler: "post" }], { as: "post" });
-    }, /You may not add a duplicate route named `post`./, "Attempting to clobber an existing route.");
-  });
+  //   assert.throws(function() {
+  //     router.add([{ path: "/posts/:id", handler: "post" }], { as: "post" });
+  //   }, /You may not add a duplicate route named `post`./, "Attempting to clobber an existing route.");
+  // });
 
   QUnit.test("Parsing and generation results into the same input string", (assert: Assert) => {
     let query = "filter%20data=date";

@@ -1,11 +1,15 @@
+import { createMap } from "./util";
+
 export interface Delegate {
   contextEntered?(context: string, route: MatchDSL): void;
   willAddRoute?(context: string | undefined, route: string): string;
 }
 
+export type Opaque = {} | void | null | undefined;
+
 export interface Route {
   path: string;
-  handler: any;
+  handler: Opaque;
   queryParams?: string[];
 }
 
@@ -64,8 +68,8 @@ export class Matcher {
   target: string | undefined;
 
   constructor(target?: string) {
-    this.routes = {};
-    this.children = {};
+    this.routes = createMap<string>();
+    this.children = createMap<Matcher>();
     this.target = target;
   }
 
@@ -114,18 +118,16 @@ function addRoute(routeArray: Route[], path: string, handler: any) {
 
 function eachRoute<T>(baseRoute: Route[], matcher: Matcher, callback: (this: T, routes: Route[]) => void, binding: T) {
   let routes = matcher.routes;
-
-  for (let path in routes) {
-    if (routes.hasOwnProperty(path)) {
-      let routeArray = baseRoute.slice();
-      addRoute(routeArray, path, routes[path]);
-
-      let nested = matcher.children[path];
-      if (nested) {
-        eachRoute(routeArray, nested, callback, binding);
-      } else {
-        callback.call(binding, routeArray);
-      }
+  let paths = Object.keys(routes);
+  for (let i = 0; i < paths.length; i++) {
+    let path = paths[i];
+    let routeArray = baseRoute.slice();
+    addRoute(routeArray, path, routes[path]);
+    let nested = matcher.children[path];
+    if (nested) {
+      eachRoute(routeArray, nested, callback, binding);
+    } else {
+      callback.call(binding, routeArray);
     }
   }
 }
