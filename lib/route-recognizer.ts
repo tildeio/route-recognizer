@@ -54,15 +54,15 @@ eachChar[SegmentType.Static] = function (segment: Segment, currentState: State) 
   let value = segment.value;
   for (let i = 0; i < value.length; i++) {
     let ch = value.charCodeAt(i);
-    state = state.put({ negate: false, repeat: false, char: ch });
+    state = state.put(ch, false, false);
   }
   return state;
 };
 eachChar[SegmentType.Dynamic] = function (_: Segment, currentState: State) {
-  return currentState.put({ negate: true, repeat: true, char: CHARS.SLASH });
+  return currentState.put(CHARS.SLASH, true, true);
 };
 eachChar[SegmentType.Star] = function (_: Segment, currentState: State) {
-  return currentState.put({ negate: false, repeat: true, char: CHARS.ANY });
+  return currentState.put(CHARS.ANY, false, true);
 };
 eachChar[SegmentType.Epsilon] = function (_: Segment, currentState: State) {
   return currentState;
@@ -169,9 +169,8 @@ function parse(segments: Segment[], route: string, names: string[], types: [numb
   }
 }
 
-function isEqualCharSpec(specA: CharSpec | undefined, specB: CharSpec) {
-  return specA && specA.char === specB.char &&
-         specA.negate === specB.negate;
+function isEqualCharSpec(spec: CharSpec, char: number, negate: boolean) {
+  return spec.char === char && spec.negate === negate;
 }
 
 interface Handler {
@@ -196,17 +195,23 @@ interface Handler {
 // Currently, State is implemented naively by looping over `nextStates` and
 // comparing a character specification against a character. A more efficient
 // implementation would use a hash of keys pointing at one or more next states.
-class State {
-  nextStates: State[];
-  charSpec: CharSpec | undefined;
+class State implements CharSpec {
+  states: State[];
+  id: number;
+  negate: boolean;
+  char: number;
+  nextStates: number[] | number | null;
   pattern: string;
+  _regex: RegExp | undefined;
   handlers: Handler[] | undefined;
   types: [number, number, number] | undefined;
-  _regex: RegExp | undefined;
 
-  constructor (charSpec?: CharSpec) {
-    this.charSpec = charSpec;
-    this.nextStates = [];
+  constructor(states: State[], id: number, char: number, negate: boolean, repeat: boolean) {
+    this.states = states;
+    this.id = id;
+    this.char = char;
+    this.negate = negate;
+    this.nextStates = repeat ? id : null;
     this.pattern = "";
     this._regex = undefined;
     this.handlers = undefined;
@@ -220,36 +225,43 @@ class State {
     return this._regex;
   }
 
-  get(charSpec: CharSpec): State | void {
+  get(char: number, negate: boolean): State | void {
     let nextStates = this.nextStates;
-
-    for (let i = 0; i < nextStates.length; i++) {
-      let child = nextStates[i];
-
-      if (isEqualCharSpec(child.charSpec, charSpec)) {
+    if (nextStates === null) return;
+    if (isArray(nextStates)) {
+      for (let i = 0; i < nextStates.length; i++) {
+        let child = this.states[nextStates[i]];
+        if (isEqualCharSpec(child, char, negate)) {
+          return child;
+        }
+      }
+    } else {
+      let child = this.states[nextStates];
+      if (isEqualCharSpec(child, char, negate)) {
         return child;
       }
     }
   }
 
-  put(charSpec: CharSpec) {
-    let state;
+  put(char: number, negate: boolean, repeat: boolean) {
+    let state: State | void;
 
     // If the character specification already exists in a child of the current
     // state, just return that state.
-    if (state = this.get(charSpec)) { return state; }
+    if (state = this.get(char, negate)) { return state; }
 
     // Make a new state for the character spec
-    state = new State(charSpec);
+    let states = this.states;
+    state = new State(states, states.length, char, negate, repeat);
+    states[states.length] = state;
 
     // Insert the new state as a child of the current state
-    this.nextStates.push(state);
-
-    // If this character specification repeats, insert the new state as a child
-    // of itself. Note that this will not trigger an infinite loop because each
-    // transition during recognition consumes a character.
-    if (charSpec.repeat) {
-      state.nextStates.push(state);
+    if (this.nextStates == null) {
+      this.nextStates = state.id;
+    } else if (isArray(this.nextStates)) {
+      this.nextStates.push(state.id);
+    } else {
+      this.nextStates = [this.nextStates, state.id];
     }
 
     // Return the new state
@@ -257,24 +269,31 @@ class State {
   }
 
   // Find a list of child states matching the next character
-  match(ch: number) {
+  match(ch: number): State[] {
     let nextStates = this.nextStates;
+    if (!nextStates) return [];
 
     let returned: State[] = [];
+    if (isArray(nextStates)) {
+      for (let i = 0; i < nextStates.length; i++) {
+        let child = this.states[nextStates[i]];
 
-    for (let i = 0; i < nextStates.length; i++) {
-      let child = nextStates[i];
-
-      let charSpec = child.charSpec;
-      if (!charSpec) continue;
-
-      if (charSpec.negate ? charSpec.char !== ch && charSpec.char !== CHARS.ANY : charSpec.char === ch || charSpec.char === CHARS.ANY) {
+        if (isMatch(child, ch)) {
+          returned.push(child);
+        }
+      }
+    } else {
+      let child = this.states[nextStates];
+      if (isMatch(child, ch)) {
         returned.push(child);
       }
     }
-
     return returned;
   }
+}
+
+function isMatch(spec: CharSpec, char: number) {
+  return spec.negate ? spec.char !== char && spec.char !== CHARS.ANY : spec.char === char || spec.char === CHARS.ANY;
 }
 
 // This is a somewhat naive strategy, but should work in a lot of cases
@@ -401,13 +420,21 @@ interface NamedRoute {
 }
 
 class RouteRecognizer {
-  private rootState: State = new State();
+  private states: State[];
+  private rootState: State;
   private names: {
     [name: string]: NamedRoute | undefined;
   } = createMap<NamedRoute>();
   map: (context: (match: MatchDSL) => void, addCallback?: (router: this, routes: Route[]) => void) => void;
-
   delegate: Delegate | undefined;
+
+  constructor() {
+    let states: State[] = [];
+    let state = new State(states, 0, CHARS.ANY, true, false);
+    states[0] = state;
+    this.states = states;
+    this.rootState = state;
+  }
 
   static VERSION = "VERSION_STRING_PLACEHOLDER";
   // Set to false to opt-out of encoding and decoding path segments.
@@ -423,7 +450,6 @@ class RouteRecognizer {
     let types: [number, number, number] = [0, 0, 0];
     let handlers: Handler[] = new Array(routes.length);
     let allSegments: Segment[] = [];
-    let name: string | undefined;
 
     let isEmpty = true;
     let j = 0;
@@ -442,7 +468,7 @@ class RouteRecognizer {
         isEmpty = false;
 
         // Add a "/" for the new segment
-        currentState = currentState.put({ negate: false, repeat: false, char: CHARS.SLASH });
+        currentState = currentState.put(CHARS.SLASH, false, false);
         pattern += "/";
 
         // Add a representation of the segment to the NFA and regex
@@ -454,7 +480,7 @@ class RouteRecognizer {
     }
 
     if (isEmpty) {
-      currentState = currentState.put({ negate: false, repeat: false, char: CHARS.SLASH });
+        currentState = currentState.put(CHARS.SLASH, false, false);
       pattern += "/";
     }
 
@@ -462,15 +488,16 @@ class RouteRecognizer {
     currentState.pattern = pattern + "$";
     currentState.types = types;
 
-    if (typeof options === "object" && options !== null && hasOwnProperty.call(options, "as")) {
+    let name: string | undefined;
+    if (typeof options === "object" && options !== null && options.as) {
       name = options.as;
     }
 
-    if (name && hasOwnProperty.call(this.names, name)) {
-      throw new Error("You may not add a duplicate route named `" + name + "`.");
-    }
+    if (name) {
+      // if (this.names[name]) {
+      //   throw new Error("You may not add a duplicate route named `" + name + "`.");
+      // }
 
-    if (name = options && options.as) {
       this.names[name] = {
         segments: allSegments,
         handlers: handlers
@@ -649,5 +676,4 @@ export default RouteRecognizer;
 interface CharSpec {
   negate: boolean;
   char: number;
-  repeat: boolean;
 }

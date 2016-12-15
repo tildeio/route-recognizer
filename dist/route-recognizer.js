@@ -155,15 +155,15 @@ eachChar[0 /* Static */] = function (segment, currentState) {
     var value = segment.value;
     for (var i = 0; i < value.length; i++) {
         var ch = value.charCodeAt(i);
-        state = state.put({ negate: false, repeat: false, char: ch });
+        state = state.put(ch, false, false);
     }
     return state;
 };
 eachChar[1 /* Dynamic */] = function (_, currentState) {
-    return currentState.put({ negate: true, repeat: true, char: 47 /* SLASH */ });
+    return currentState.put(47 /* SLASH */, true, true);
 };
 eachChar[2 /* Star */] = function (_, currentState) {
-    return currentState.put({ negate: false, repeat: true, char: -1 /* ANY */ });
+    return currentState.put(-1 /* ANY */, false, true);
 };
 eachChar[4 /* Epsilon */] = function (_, currentState) {
     return currentState;
@@ -238,9 +238,8 @@ function parse(segments, route, names, types, shouldDecodes) {
         segments.push({ type: type, value: normalizeSegment(part) });
     }
 }
-function isEqualCharSpec(specA, specB) {
-    return specA && specA.char === specB.char &&
-        specA.negate === specB.negate;
+function isEqualCharSpec(spec, char, negate) {
+    return spec.char === char && spec.negate === negate;
 }
 // A State has a character specification and (`charSpec`) and a list of possible
 // subsequent states (`nextStates`).
@@ -258,9 +257,12 @@ function isEqualCharSpec(specA, specB) {
 // Currently, State is implemented naively by looping over `nextStates` and
 // comparing a character specification against a character. A more efficient
 // implementation would use a hash of keys pointing at one or more next states.
-var State = function State(charSpec) {
-    this.charSpec = charSpec;
-    this.nextStates = [];
+var State = function State(states, id, char, negate, repeat) {
+    this.states = states;
+    this.id = id;
+    this.char = char;
+    this.negate = negate;
+    this.nextStates = repeat ? id : null;
     this.pattern = "";
     this._regex = undefined;
     this.handlers = undefined;
@@ -272,50 +274,78 @@ State.prototype.regex = function regex$1 () {
     }
     return this._regex;
 };
-State.prototype.get = function get (charSpec) {
+State.prototype.get = function get (char, negate) {
+        var this$1 = this;
+
     var nextStates = this.nextStates;
-    for (var i = 0; i < nextStates.length; i++) {
-        var child = nextStates[i];
-        if (isEqualCharSpec(child.charSpec, charSpec)) {
-            return child;
+    if (nextStates === null)
+        { return; }
+    if (isArray(nextStates)) {
+        for (var i = 0; i < nextStates.length; i++) {
+            var child = this$1.states[nextStates[i]];
+            if (isEqualCharSpec(child, char, negate)) {
+                return child;
+            }
+        }
+    }
+    else {
+        var child$1 = this.states[nextStates];
+        if (isEqualCharSpec(child$1, char, negate)) {
+            return child$1;
         }
     }
 };
-State.prototype.put = function put (charSpec) {
+State.prototype.put = function put (char, negate, repeat) {
     var state;
     // If the character specification already exists in a child of the current
     // state, just return that state.
-    if (state = this.get(charSpec)) {
+    if (state = this.get(char, negate)) {
         return state;
     }
     // Make a new state for the character spec
-    state = new State(charSpec);
+    var states = this.states;
+    state = new State(states, states.length, char, negate, repeat);
+    states[states.length] = state;
     // Insert the new state as a child of the current state
-    this.nextStates.push(state);
-    // If this character specification repeats, insert the new state as a child
-    // of itself. Note that this will not trigger an infinite loop because each
-    // transition during recognition consumes a character.
-    if (charSpec.repeat) {
-        state.nextStates.push(state);
+    if (this.nextStates == null) {
+        this.nextStates = state.id;
+    }
+    else if (isArray(this.nextStates)) {
+        this.nextStates.push(state.id);
+    }
+    else {
+        this.nextStates = [this.nextStates, state.id];
     }
     // Return the new state
     return state;
 };
 // Find a list of child states matching the next character
 State.prototype.match = function match (ch) {
+        var this$1 = this;
+
     var nextStates = this.nextStates;
+    if (!nextStates)
+        { return []; }
     var returned = [];
-    for (var i = 0; i < nextStates.length; i++) {
-        var child = nextStates[i];
-        var charSpec = child.charSpec;
-        if (!charSpec)
-            { continue; }
-        if (charSpec.negate ? charSpec.char !== ch && charSpec.char !== -1 /* ANY */ : charSpec.char === ch || charSpec.char === -1 /* ANY */) {
-            returned.push(child);
+    if (isArray(nextStates)) {
+        for (var i = 0; i < nextStates.length; i++) {
+            var child = this$1.states[nextStates[i]];
+            if (isMatch(child, ch)) {
+                returned.push(child);
+            }
+        }
+    }
+    else {
+        var child$1 = this.states[nextStates];
+        if (isMatch(child$1, ch)) {
+            returned.push(child$1);
         }
     }
     return returned;
 };
+function isMatch(spec, char) {
+    return spec.negate ? spec.char !== char && spec.char !== -1 /* ANY */ : spec.char === char || spec.char === -1 /* ANY */;
+}
 // This is a somewhat naive strategy, but should work in a lot of cases
 // A better strategy would properly resolve /posts/:id/new and /posts/edit/:id.
 //
@@ -413,8 +443,12 @@ function decodeQueryParamPart(part) {
     return result;
 }
 var RouteRecognizer = function RouteRecognizer() {
-    this.rootState = new State();
     this.names = createMap();
+    var states = [];
+    var state = new State(states, 0, -1 /* ANY */, true, false);
+    states[0] = state;
+    this.states = states;
+    this.rootState = state;
 };
 RouteRecognizer.prototype.add = function add (routes, options) {
     var currentState = this.rootState;
@@ -422,7 +456,6 @@ RouteRecognizer.prototype.add = function add (routes, options) {
     var types = [0, 0, 0];
     var handlers = new Array(routes.length);
     var allSegments = [];
-    var name;
     var isEmpty = true;
     var j = 0;
     for (var i = 0; i < routes.length; i++) {
@@ -437,7 +470,7 @@ RouteRecognizer.prototype.add = function add (routes, options) {
             }
             isEmpty = false;
             // Add a "/" for the new segment
-            currentState = currentState.put({ negate: false, repeat: false, char: 47 /* SLASH */ });
+            currentState = currentState.put(47 /* SLASH */, false, false);
             pattern += "/";
             // Add a representation of the segment to the NFA and regex
             currentState = eachChar[segment.type](segment, currentState);
@@ -447,19 +480,20 @@ RouteRecognizer.prototype.add = function add (routes, options) {
         handlers[i] = handler;
     }
     if (isEmpty) {
-        currentState = currentState.put({ negate: false, repeat: false, char: 47 /* SLASH */ });
+        currentState = currentState.put(47 /* SLASH */, false, false);
         pattern += "/";
     }
     currentState.handlers = handlers;
     currentState.pattern = pattern + "$";
     currentState.types = types;
-    if (typeof options === "object" && options !== null && hasOwnProperty.call(options, "as")) {
+    var name;
+    if (typeof options === "object" && options !== null && options.as) {
         name = options.as;
     }
-    if (name && hasOwnProperty.call(this.names, name)) {
-        throw new Error("You may not add a duplicate route named `" + name + "`.");
-    }
-    if (name = options && options.as) {
+    if (name) {
+        // if (this.names[name]) {
+        //   throw new Error("You may not add a duplicate route named `" + name + "`.");
+        // }
         this.names[name] = {
             segments: allSegments,
             handlers: handlers
