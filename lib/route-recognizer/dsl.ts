@@ -91,8 +91,6 @@ export class Matcher {
   }
 }
 
-
-
 function generateMatch(startingPath: string, matcher: Matcher, delegate: Delegate | undefined): MatchDSL {
   function match(path: string): ToDSL;
   function match(path: string, callback: MatchCallback): void;
@@ -122,7 +120,7 @@ function eachRoute<T>(baseRoute: Route[], matcher: Matcher, callback: (this: T, 
   let routes = matcher.routes;
   let paths = Object.keys(routes);
   for (let i = 0; i < paths.length; i++) {
-    let  path = paths[i];
+    let path = paths[i];
     let routeArray = baseRoute.slice();
     addRoute(routeArray, path, routes[path]);
     let nested = matcher.children[path];

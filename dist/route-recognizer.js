@@ -463,6 +463,7 @@ RouteRecognizer.prototype.add = function add (routes, options) {
         var names = [];
         var shouldDecodes = [];
         parse(allSegments, route.path, names, types, shouldDecodes);
+        // preserve j so it points to the start of newly added segments
         for (; j < allSegments.length; j++) {
             var segment = allSegments[j];
             if (segment.type === 4 /* Epsilon */) {

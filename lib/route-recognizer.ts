@@ -460,6 +460,7 @@ class RouteRecognizer {
 
       parse(allSegments, route.path, names, types, shouldDecodes);
 
+      // preserve j so it points to the start of newly added segments
       for (; j < allSegments.length; j++) {
         let segment = allSegments[j];
 
