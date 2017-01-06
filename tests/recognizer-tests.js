@@ -984,15 +984,6 @@ test("Fails reasonably when bad params passed to dynamic segment", function() {
   }, /You must provide param `secret` to `generate`./, "Object without own property passed.");
 });
 
-test("Prevents duplicate additions of the same named route.", function() {
-  var router = new RouteRecognizer();
-  router.add([{ path: "/posts/:id/foo", handler: "post" }], { as: "post" });
-
-  QUnit.throws(function() {
-    router.add([{ path: "/posts/:id", handler: "post" }], { as: "post" });
-  }, /You may not add a duplicate route named `post`./, "Attempting to clobber an existing route.");
-});
-
 test("Parsing and generation results into the same input string", function() {
   var query = "filter%20data=date";
   equal(router.generateQueryString(router.parseQueryString(query)), '?' + query);
