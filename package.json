@@ -23,9 +23,10 @@
     "url": "https://github.com/tildeio/route-recognizer/issues"
   },
   "homepage": "https://github.com/tildeio/route-recognizer",
-  "directories": {
-    "test": "tests"
-  },
+  "files": [
+    "dist/*",
+    "!dist/tests"
+  ],
   "scripts": {
     "test": "ember test",
     "start": "ember test --server",
