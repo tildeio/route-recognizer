@@ -12,23 +12,9 @@ const enum CHARS {
 const escapeRegex = /(\/|\.|\*|\+|\?|\||\(|\)|\[|\]|\{|\}|\\)/g;
 
 const isArray = Array.isArray;
-const hasOwnProperty = Object.prototype.hasOwnProperty;
 
 function getParam(params: Params | null | undefined, key: string): string {
-  if (typeof params !== "object" || params === null) {
-    throw new Error("You must pass an object as the second argument to `generate`.");
-  }
-
-  if (!hasOwnProperty.call(params, key)) {
-    throw new Error("You must provide param `" + key + "` to `generate`.");
-  }
-
-  let value = params[key];
-  let str = typeof value === "string" ? value : "" + value;
-  if (str.length === 0) {
-    throw new Error("You must provide a param `" + key + "`.");
-  }
-  return str;
+  return "" + (params && params[key]);
 }
 
 const enum SegmentType {
