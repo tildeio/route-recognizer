@@ -265,22 +265,41 @@ QUnit.module("The match DSL", hooks => {
 
   QUnit.test("supports add-route callback", (assert: Assert) => {
 
-    let called = false;
+    const invocations: string[] = [];
 
     router.map(function(match) {
-      match("/posts/new").to("newPost");
+      match("/").to("application", function(match) {
+        match("/loading").to("loading");
+        match("/_unused_dummy_error_path_route_application/:error").to("error");
+        match("/lobby").to("lobby", function(match) {
+          match("/loading").to("lobby.loading");
+          match("/_unused_dummy_error_path_route_lobby/:error").to("lobby.error");
+          match(":lobby_id").to("lobby.index");
+          match("/list").to("lobby.list");
+        });
+        match("/").to("index");
+      });
     }, function (router, route) {
+      invocations.push(route.map(e => e.handler).join("."));
       router.add(route);
     });
 
-    router.map(function(match) {
-      match("/posts/edit").to("showPost");
-    }, function () {
-      called = true;
-    });
+    const expected = [
+      "application.loading",
+      "application.error",
+      "application.lobby.lobby.loading",
+      "application.lobby.lobby.error",
+      "application.lobby.lobby.index",
+      "application.lobby.lobby.list",
+      "application.index"
+    ];
 
-    matchesRoute(assert, "/posts/new", [{ handler: "newPost", params: {}, isDynamic: false }]);
-    assert.ok(called, "The add-route callback was called.");
+    assert.deepEqual(expected, invocations, "invokes for the correct set of routes");
+    matchesRoute(assert, "/lobby/loading", [
+      { handler: "application", params: {}, isDynamic: false },
+      { handler: "lobby", params: {}, isDynamic: false },
+      { handler: "lobby.loading", params: {}, isDynamic: false }
+    ]);
   });
 
 });
