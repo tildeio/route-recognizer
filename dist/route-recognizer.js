@@ -1,7 +1,7 @@
 (function (global, factory) {
-  typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
-  typeof define === 'function' && define.amd ? define('route-recognizer', factory) :
-  (global.RouteRecognizer = factory());
+	typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
+	typeof define === 'function' && define.amd ? define('route-recognizer', factory) :
+	(global.RouteRecognizer = factory());
 }(this, (function () { 'use strict';
 
 function Target(path, matcher, delegate) {
@@ -93,7 +93,7 @@ function eachRoute(baseRoute, matcher, callback, binding) {
   }
 }
 
-function map(callback, addRouteCallback) {
+var map = function(callback, addRouteCallback) {
   var matcher = new Matcher();
 
   callback(generateMatch("", matcher, this.delegate));
@@ -102,7 +102,7 @@ function map(callback, addRouteCallback) {
     if (addRouteCallback) { addRouteCallback(this, route); }
     else { this.add(route); }
   }, this);
-}
+};
 
 // Normalizes percent-encoded values in `path` to upper-case and decodes percent-encoded
 // values that are not reserved (i.e., unicode characters, emoji, etc). The reserved
@@ -525,9 +525,6 @@ RouteRecognizer.prototype = {
     if (typeof options === "object" && options !== null && options.hasOwnProperty("as")) {
       name = options.as;
     }
-    if (this.names.hasOwnProperty(name)) {
-      throw new Error("You may not add a duplicate route named `" + name + "`.");
-    }
 
     if (name = options && options.as) {
       this.names[name] = {
@@ -703,7 +700,7 @@ RouteRecognizer.prototype = {
 
 RouteRecognizer.prototype.map = map;
 
-RouteRecognizer.VERSION = '0.2.8';
+RouteRecognizer.VERSION = '0.2.10';
 
 // Set to false to opt-out of encoding and decoding path segments.
 // See https://github.com/tildeio/route-recognizer/pull/55
