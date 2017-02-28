@@ -24,6 +24,14 @@ QUnit.test("A simple route recognizes", (assert: Assert) => {
   assert.equal(router.recognize("/foo/baz"), null);
 });
 
+QUnit.test("A simple route with double trailing slashes recognizes", (assert: Assert) => {
+  let handler = {};
+  let router = new RouteRecognizer();
+  router.add([{ path: "/foo/bar", handler: handler }]);
+  
+  resultsMatch(assert, router.recognize("/foo/bar//"), [{ handler: handler, params: {}, isDynamic: false }]);
+});
+
 const slashStaticExpectations = [{
   // leading only, trailing only, both, neither
   routes: ["/foo/bar", "foo/bar/", "/foo/bar/", "foo/bar"],
