@@ -636,8 +636,9 @@ class RouteRecognizer {
       originalPath = decodeURI(originalPath);
     }
 
-    while (path.length > 1 && path.charAt(path.length - 1) === "/") {
-      path = path.substr(0, path.length - 1);
+    let pathLen = path.length;
+    if (pathLen > 1 && path.charAt(pathLen - 1) === "/") {
+      path = path.substr(0, pathLen - 1);
       originalPath = originalPath.substr(0, originalPath.length - 1);
       isSlashDropped = true;
     }
