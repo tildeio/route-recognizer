@@ -133,15 +133,18 @@ interface PopulatedParsedHandlers {
   shouldDecodes: any[];
 }
 
+const EmptyObject = Object.freeze({});
+type EmptyObject = Readonly<{}>
+
+const EmptyArray = Object.freeze([]) as ReadonlyArray<any>;
+type EmptyArray = ReadonlyArray<any>;
+
 interface EmptyParsedHandlers {
-  names: ReadonlyArray<any>;
-  shouldDecodes: ReadonlyArray<any>;
+  names: EmptyArray;
+  shouldDecodes: EmptyArray;
 }
 
 type ParsedHandler = PopulatedParsedHandlers | EmptyParsedHandlers;
-
-const EmptyArray = Object.freeze([]) as ReadonlyArray<any>;
-
 
 // The `names` will be populated with the paramter name for each dynamic/star
 // segment. `shouldDecodes` will be populated with a boolean for each dyanamic/star
@@ -175,8 +178,9 @@ function parse(segments: Segment[], route: string, types: [number, number, numbe
     if (flags & SegmentFlags.Named) {
       part = part.slice(1);
       names = names || [];
-      shouldDecodes = shouldDecodes || [];
       names.push(part);
+
+      shouldDecodes = shouldDecodes || [];
       shouldDecodes.push((flags & SegmentFlags.Decoded) !== 0);
     }
 
@@ -192,7 +196,7 @@ function parse(segments: Segment[], route: string, types: [number, number, numbe
 
   return {
     names: names || EmptyArray,
-    shouldDecodes: names || EmptyArray,
+    shouldDecodes: shouldDecodes || EmptyArray,
   } as ParsedHandler;
 }
 
@@ -200,11 +204,19 @@ function isEqualCharSpec(spec: CharSpec, char: number, negate: boolean) {
   return spec.char === char && spec.negate === negate;
 }
 
-interface Handler {
+interface EmptyHandler {
   handler: Opaque;
-  names: ReadonlyArray<any> | string[];
-  shouldDecodes: ReadonlyArray<any> | boolean[];
+  names: EmptyArray;
+  shouldDecodes: EmptyArray;
 }
+
+interface PopulatedHandler {
+  handler: Opaque;
+  names: string [];
+  shouldDecodes: boolean[];
+}
+
+type Handler = EmptyHandler | PopulatedHandler;
 
 // A State has a character specification and (`charSpec`) and a list of possible
 // subsequent states (`nextStates`).
@@ -412,20 +424,24 @@ function findHandler(state: State, originalPath: string, queryParams: QueryParam
     let handler = handlers[i];
     let names = handler.names;
     let shouldDecodes = handler.shouldDecodes;
-    let params: Params = {};
+    let params: EmptyObject | Params = EmptyObject;
 
     let isDynamic = false;
 
-    if (names !== undefined && shouldDecodes !== undefined) {
+    if (names !== EmptyArray && shouldDecodes !== EmptyArray) {
       for (let j = 0; j < names.length; j++) {
         isDynamic = true;
         let name = names[j];
         let capture = captures && captures[currentCapture++];
 
+        if (params === EmptyObject) {
+          params = {};
+        }
+
         if (RouteRecognizer.ENCODE_AND_DECODE_PATH_SEGMENTS && shouldDecodes[j]) {
-          params[name] = capture && decodeURIComponent(capture);
+          (<Params>params)[name] = capture && decodeURIComponent(capture);
         } else {
-          params[name] = capture;
+          (<Params>params)[name] = capture;
         }
       }
     }
@@ -550,7 +566,8 @@ class RouteRecognizer {
     let result = new Array(route.handlers.length);
 
     for (let i = 0; i < route.handlers.length; i++) {
-      result[i] = route.handlers[i];
+      let handler = route.handlers[i];
+      result[i] = handler;
     }
 
     return result;
