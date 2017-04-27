@@ -39,6 +39,7 @@
     "test": "ember test",
     "start": "ember test --server",
     "build": "ember build",
+    "prepublish": "ember build --environment=production",
     "tsc": "tsc",
     "bench": "ember build && node ./bench/index.js",
     "lint": "tslint lib/**/*.ts tests/**/*.ts && jshint ember-cli-build.js"
