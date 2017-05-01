@@ -7,6 +7,7 @@
     "type": "git",
     "url": "https://github.com/tildeio/route-recognizer.git"
   },
+  "main": "dist/route-recognizer.cjs.js",
   "devDependencies": {
     "@types/qunit": "^2.0.31",
     "broccoli-funnel": "^1.0.6",
