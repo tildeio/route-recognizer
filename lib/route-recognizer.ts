@@ -128,15 +128,35 @@ export interface Params {
   queryParams?: QueryParams | null;
 }
 
+interface PopulatedParsedHandlers {
+  names: string[];
+  shouldDecodes: any[];
+}
+
+const EmptyObject = Object.freeze({});
+type EmptyObject = Readonly<{}>
+
+const EmptyArray = Object.freeze([]) as ReadonlyArray<any>;
+type EmptyArray = ReadonlyArray<any>;
+
+interface EmptyParsedHandlers {
+  names: EmptyArray;
+  shouldDecodes: EmptyArray;
+}
+
+type ParsedHandler = PopulatedParsedHandlers | EmptyParsedHandlers;
+
 // The `names` will be populated with the paramter name for each dynamic/star
 // segment. `shouldDecodes` will be populated with a boolean for each dyanamic/star
 // segment, indicating whether it should be decoded during recognition.
-function parse(segments: Segment[], route: string, names: string[], types: [number, number, number], shouldDecodes: boolean[]): void {
+function parse(segments: Segment[], route: string, types: [number, number, number]) {
   // normalize route as not starting with a "/". Recognition will
   // also normalize.
   if (route.length > 0 && route.charCodeAt(0) === CHARS.SLASH) { route = route.substr(1); }
 
   let parts = route.split("/");
+  let names: void | string[] = undefined;
+  let shouldDecodes: void | any[] = undefined;
 
   for (let i = 0; i < parts.length; i++) {
     let part = parts[i];
@@ -157,7 +177,10 @@ function parse(segments: Segment[], route: string, names: string[], types: [numb
 
     if (flags & SegmentFlags.Named) {
       part = part.slice(1);
+      names = names || [];
       names.push(part);
+
+      shouldDecodes = shouldDecodes || [];
       shouldDecodes.push((flags & SegmentFlags.Decoded) !== 0);
     }
 
@@ -165,19 +188,35 @@ function parse(segments: Segment[], route: string, names: string[], types: [numb
       types[type]++;
     }
 
-    segments.push({ type, value: normalizeSegment(part) });
+    segments.push({
+      type,
+      value: normalizeSegment(part)
+    });
   }
+
+  return {
+    names: names || EmptyArray,
+    shouldDecodes: shouldDecodes || EmptyArray,
+  } as ParsedHandler;
 }
 
 function isEqualCharSpec(spec: CharSpec, char: number, negate: boolean) {
   return spec.char === char && spec.negate === negate;
 }
 
-interface Handler {
+interface EmptyHandler {
   handler: Opaque;
-  names: string[];
+  names: EmptyArray;
+  shouldDecodes: EmptyArray;
+}
+
+interface PopulatedHandler {
+  handler: Opaque;
+  names: string [];
   shouldDecodes: boolean[];
 }
+
+type Handler = EmptyHandler | PopulatedHandler;
 
 // A State has a character specification and (`charSpec`) and a list of possible
 // subsequent states (`nextStates`).
@@ -385,20 +424,33 @@ function findHandler(state: State, originalPath: string, queryParams: QueryParam
     let handler = handlers[i];
     let names = handler.names;
     let shouldDecodes = handler.shouldDecodes;
-    let params: Params = {};
+    let params: EmptyObject | Params = EmptyObject;
 
-    for (let j = 0; j < names.length; j++) {
-      let name = names[j];
-      let capture = captures && captures[currentCapture++];
+    let isDynamic = false;
 
-      if (RouteRecognizer.ENCODE_AND_DECODE_PATH_SEGMENTS && shouldDecodes[j]) {
-        params[name] = capture && decodeURIComponent(capture);
-      } else {
-        params[name] = capture;
+    if (names !== EmptyArray && shouldDecodes !== EmptyArray) {
+      for (let j = 0; j < names.length; j++) {
+        isDynamic = true;
+        let name = names[j];
+        let capture = captures && captures[currentCapture++];
+
+        if (params === EmptyObject) {
+          params = {};
+        }
+
+        if (RouteRecognizer.ENCODE_AND_DECODE_PATH_SEGMENTS && shouldDecodes[j]) {
+          (<Params>params)[name] = capture && decodeURIComponent(capture);
+        } else {
+          (<Params>params)[name] = capture;
+        }
       }
     }
 
-    result[i] = { handler: handler.handler, params: params, isDynamic: !!names.length };
+    result[i] = {
+      handler: handler.handler,
+      params,
+      isDynamic
+    };
   }
 
   return result;
@@ -416,7 +468,7 @@ function decodeQueryParamPart(part: string): string {
 
 interface NamedRoute {
   segments: Segment[];
-  handlers: Opaque[];
+  handlers: Handler[];
 }
 
 class RouteRecognizer {
@@ -455,10 +507,7 @@ class RouteRecognizer {
     let j = 0;
     for (let i = 0; i < routes.length; i++) {
       let route = routes[i];
-      let names: string[] = [];
-      let shouldDecodes: boolean[] = [];
-
-      parse(allSegments, route.path, names, types, shouldDecodes);
+      let { names, shouldDecodes } = parse(allSegments, route.path, types);
 
       // preserve j so it points to the start of newly added segments
       for (; j < allSegments.length; j++) {
@@ -476,8 +525,11 @@ class RouteRecognizer {
         currentState = eachChar[segment.type](segment, currentState);
         pattern += regex[segment.type](segment);
       }
-      let handler = { handler: route.handler, names: names, shouldDecodes: shouldDecodes };
-      handlers[i] = handler;
+      handlers[i] = {
+        handler: route.handler,
+        names,
+        shouldDecodes
+      };
     }
 
     if (isEmpty) {
@@ -501,7 +553,7 @@ class RouteRecognizer {
 
       this.names[name] = {
         segments: allSegments,
-        handlers: handlers
+        handlers
       };
     }
   }
@@ -514,7 +566,8 @@ class RouteRecognizer {
     let result = new Array(route.handlers.length);
 
     for (let i = 0; i < route.handlers.length; i++) {
-      result[i] = route.handlers[i];
+      let handler = route.handlers[i];
+      result[i] = handler;
     }
 
     return result;
