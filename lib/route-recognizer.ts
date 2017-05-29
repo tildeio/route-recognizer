@@ -178,6 +178,10 @@ function parse(segments: Segment[], route: string, types: [number, number, numbe
     if (flags & SegmentFlags.Named) {
       part = part.slice(1);
       names = names || [];
+      if (part === '') {
+        throw new Error(`Missing name for dynamic segment in '/${route}', please provide a name (e.g. \`path: '${type === SegmentType.Star ? '*' : ':'}nameHere'\`)`);
+      }
+
       names.push(part);
 
       shouldDecodes = shouldDecodes || [];

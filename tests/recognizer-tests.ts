@@ -896,6 +896,13 @@ QUnit.module("Route Generation", hooks => {
     });
   });
 
+  QUnit.test("Throws when adding dynamic segment without name", (assert: Assert) => {
+    let router = new RouteRecognizer();
+    assert.throws(() => {
+      router.add([{ "path": "/:/create", "handler": "create" }], { as: "create" });
+    }, /Missing name for dynamic segment in '\/\:\/create'/);
+  });
+
   let globGenerationValues = [
     "abc/def",
     "abc%2Fdef",
@@ -914,6 +921,13 @@ QUnit.module("Route Generation", hooks => {
     QUnit.test("Generating a star segment glob route with param '" + value + "' passes value through without modification", (assert: Assert) => {
       assert.equal(router.generate("catchall", { catchall: value }), "/" + value);
     });
+  });
+
+  QUnit.test("Throws when adding glob route without name", (assert: Assert) => {
+    let router = new RouteRecognizer();
+    assert.throws(() => {
+      router.add([{ "path": "/*/create", "handler": "create" }], { as: "create" });
+    }, /Missing name for dynamic segment in '\/\*\/create'/);
   });
 
   QUnit.test("Throws when generating dynamic routes with an empty string", (assert: Assert) => {
