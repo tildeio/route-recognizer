@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/tildeio/route-recognizer.png)](https://travis-ci.org/tildeio/route-recognizer)
+[![Build Status](https://travis-ci.org/tildeio/route-recognizer.svg)](https://travis-ci.org/tildeio/route-recognizer)
 
 # About
 `route-recognizer` is a lightweight JavaScript library (under 2k!) that
