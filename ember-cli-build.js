@@ -61,6 +61,7 @@ module.exports = function () {
       annotation: 'route-recognizer.js',
       rollup: {
         entry: 'route-recognizer.js',
+        exports: 'named',
         plugins: [ loadWithInlineMap(), buble() ],
         sourceMap: true,
         targets: [{
