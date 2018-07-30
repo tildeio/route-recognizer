@@ -1,7 +1,7 @@
 import { createMap } from "./route-recognizer/util";
-import map, { Delegate, Route, Opaque, MatchDSL } from "./route-recognizer/dsl";
+import map, { Delegate, Route, Opaque, MatchCallback } from "./route-recognizer/dsl";
 import { normalizePath, normalizeSegment, encodePathSegment } from "./route-recognizer/normalizer";
-export { Delegate } from './route-recognizer/dsl';
+export { Delegate, MatchCallback } from './route-recognizer/dsl';
 
 const enum CHARS {
   ANY = -1,
@@ -478,7 +478,7 @@ class RouteRecognizer {
   private names: {
     [name: string]: NamedRoute | undefined;
   } = createMap<NamedRoute>();
-  map: (context: (match: MatchDSL) => void, addCallback?: (router: this, routes: Route[]) => void) => void;
+  map: (context: MatchCallback, addCallback?: (router: this, routes: Route[]) => void) => void;
   delegate: Delegate | undefined;
 
   constructor() {
