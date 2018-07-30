@@ -1,6 +1,7 @@
 import { createMap } from "./route-recognizer/util";
 import map, { Delegate, Route, Opaque, MatchDSL } from "./route-recognizer/dsl";
 import { normalizePath, normalizeSegment, encodePathSegment } from "./route-recognizer/normalizer";
+export { Delegate } from './route-recognizer/dsl';
 
 const enum CHARS {
   ANY = -1,
