@@ -118,11 +118,7 @@ Run the following commands to get going:
 
 ```bash
 npm install
-bower install
 ```
-
-The above assumes that you have `bower` installed globally (you can install
-via `npm install -g bower` if you do not).
 
 ## Running Tests
 
