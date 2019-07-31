@@ -20,7 +20,7 @@ QUnit.test("A simple route recognizes", (assert: Assert) => {
   let router = new RouteRecognizer();
   router.add([{ path: "/foo/bar", handler: handler }]);
 
-  resultsMatch(assert, router.recognize("/foo/bar"), [{ handler: handler, params: {}, isDynamic: false }]);
+  resultsMatch(assert, router.recognize("/foo/bar"), [{ handler: handler, params: {}, isDynamic: false, metadata: undefined }]);
   assert.equal(router.recognize("/foo/baz"), null);
 });
 
@@ -114,7 +114,7 @@ staticExpectations.forEach(function(expectation) {
         let handler = {};
         let router = new RouteRecognizer();
         router.add([{ path: route, handler: handler }]);
-        resultsMatch(assert, router.recognize(match), [{ handler: handler, params: {}, isDynamic: false }]);
+        resultsMatch(assert, router.recognize(match), [{ handler: handler, params: {}, isDynamic: false, metadata: undefined }]);
       });
     });
 
@@ -136,8 +136,8 @@ QUnit.test("Escaping works for path length with trailing slashes.", (assert: Ass
   let router = new RouteRecognizer();
   router.add([{ path: "/foo/:query", handler: handler }]);
 
-  resultsMatch(assert, router.recognize("/foo/%e8%81%8c%e4%bd%8d"), [{ handler: handler, params: { query: "职位" }, isDynamic: true }]);
-  resultsMatch(assert, router.recognize("/foo/%e8%81%8c%e4%bd%8d/"), [{ handler: handler, params: { query: "职位" }, isDynamic: true }]);
+  resultsMatch(assert, router.recognize("/foo/%e8%81%8c%e4%bd%8d"), [{ handler: handler, params: { query: "职位" }, isDynamic: true, metadata: undefined }]);
+  resultsMatch(assert, router.recognize("/foo/%e8%81%8c%e4%bd%8d/"), [{ handler: handler, params: { query: "职位" }, isDynamic: true, metadata: undefined }]);
 });
 
 QUnit.test("A simple route with query params recognizes", (assert: Assert) => {
@@ -145,8 +145,8 @@ QUnit.test("A simple route with query params recognizes", (assert: Assert) => {
   let router = new RouteRecognizer();
   router.add([{ path: "/foo/bar", handler: handler}]);
 
-  resultsMatch(assert, router.recognize("/foo/bar?sort=date&other=something"), [{ handler: handler, params: {}, isDynamic: false }], { sort: "date", other: "something" });
-  resultsMatch(assert, router.recognize("/foo/bar?other=something"), [{ handler: handler, params: {}, isDynamic: false }], { other: "something" });
+  resultsMatch(assert, router.recognize("/foo/bar?sort=date&other=something"), [{ handler: handler, params: {}, isDynamic: false, metadata: undefined }], { sort: "date", other: "something" });
+  resultsMatch(assert, router.recognize("/foo/bar?other=something"), [{ handler: handler, params: {}, isDynamic: false, metadata: undefined }], { other: "something" });
 });
 
 QUnit.test("False query params = 'false'", (assert: Assert) => {
@@ -217,7 +217,7 @@ QUnit.test("A `/` route recognizes", (assert: Assert) => {
   let router = new RouteRecognizer();
   router.add([{ path: "/", handler: handler }]);
 
-  resultsMatch(assert, router.recognize("/"), [{ handler: handler, params: {}, isDynamic: false }]);
+  resultsMatch(assert, router.recognize("/"), [{ handler: handler, params: {}, isDynamic: false, metadata: undefined }]);
 });
 
 QUnit.test("A `/` route with query params recognizes", (assert: Assert) => {
@@ -225,7 +225,7 @@ QUnit.test("A `/` route with query params recognizes", (assert: Assert) => {
   let router = new RouteRecognizer();
   router.add([{ path: "/", handler: handler }]);
 
-  resultsMatch(assert, router.recognize("/?lemon=jello"), [{ handler: handler, params: {}, isDynamic: false }], { lemon: "jello" });
+  resultsMatch(assert, router.recognize("/?lemon=jello"), [{ handler: handler, params: {}, isDynamic: false, metadata: undefined }], { lemon: "jello" });
 });
 
 QUnit.test("A dynamic route recognizes", (assert: Assert) => {
@@ -233,8 +233,8 @@ QUnit.test("A dynamic route recognizes", (assert: Assert) => {
   let router = new RouteRecognizer();
   router.add([{ path: "/foo/:bar", handler: handler }]);
 
-  resultsMatch(assert, router.recognize("/foo/bar"), [{ handler: handler, params: { bar: "bar" }, isDynamic: true }]);
-  resultsMatch(assert, router.recognize("/foo/1"), [{ handler: handler, params: { bar: "1" }, isDynamic: true }]);
+  resultsMatch(assert, router.recognize("/foo/bar"), [{ handler: handler, params: { bar: "bar" }, isDynamic: true, metadata: undefined }]);
+  resultsMatch(assert, router.recognize("/foo/1"), [{ handler: handler, params: { bar: "1" }, isDynamic: true, metadata: undefined }]);
   assert.equal(router.recognize("/zoo/baz"), null);
 });
 
@@ -318,7 +318,7 @@ dynamicExpectations.forEach(expectation => {
       let handler = {};
       let router = new RouteRecognizer();
       router.add([{ path: route, handler: handler }]);
-      resultsMatch(assert, router.recognize(path), [{ handler: handler, params: { bar: match }, isDynamic: true }]);
+      resultsMatch(assert, router.recognize(path), [{ handler: handler, params: { bar: match }, isDynamic: true, metadata: undefined }]);
     });
 
     QUnit.test("When RouteRecognizer.ENCODE_AND_DECODE_PATH_SEGMENTS is false, single-segment dynamic route '" + route + "' recognizes path '" + path + "'", (assert: Assert) => {
@@ -327,7 +327,7 @@ dynamicExpectations.forEach(expectation => {
       let handler = {};
       let router = new RouteRecognizer();
       router.add([{ path: route, handler: handler }]);
-      resultsMatch(assert, router.recognize(path), [{ handler: handler, params: { bar: unencodedMatch }, isDynamic: true }]);
+      resultsMatch(assert, router.recognize(path), [{ handler: handler, params: { bar: unencodedMatch }, isDynamic: true, metadata: undefined }]);
 
       RouteRecognizer.ENCODE_AND_DECODE_PATH_SEGMENTS = true;
     });
@@ -384,7 +384,7 @@ multiSegmentDynamicExpectations.forEach(expectation => {
       let router = new RouteRecognizer();
       router.add([{ path: route, handler: handler }]);
 
-      resultsMatch(assert, router.recognize(path), [{ handler: handler, params: match, isDynamic: true }]);
+      resultsMatch(assert, router.recognize(path), [{ handler: handler, params: match, isDynamic: true, metadata: undefined }]);
     });
 
     QUnit.test("When RouteRecognizer.ENCODE_AND_DECODE_PATH_SEGMENTS is false, multi-segment dynamic route '" + route + "' recognizes path '" + path + "'", (assert: Assert) => {
@@ -394,7 +394,7 @@ multiSegmentDynamicExpectations.forEach(expectation => {
       let router = new RouteRecognizer();
       router.add([{ path: route, handler: handler }]);
 
-      resultsMatch(assert, router.recognize(path), [{ handler: handler, params: unencodedMatch, isDynamic: true }]);
+      resultsMatch(assert, router.recognize(path), [{ handler: handler, params: unencodedMatch, isDynamic: true, metadata: undefined }]);
 
       RouteRecognizer.ENCODE_AND_DECODE_PATH_SEGMENTS = true;
     });
@@ -408,7 +408,7 @@ QUnit.test("A dynamic route with unicode match parameters recognizes", (assert: 
   let path = "/foo/bar/baz";
 
   let expectedParams = { föo: "foo", bäz: "baz" };
-  resultsMatch(assert, router.recognize(path), [{ handler: handler, params: expectedParams, isDynamic: true }]);
+  resultsMatch(assert, router.recognize(path), [{ handler: handler, params: expectedParams, isDynamic: true, metadata: undefined }]);
 });
 
 let starSimpleExpectations = [
@@ -439,7 +439,7 @@ starSimpleExpectations.forEach(function(value) {
     let handler = {};
     let router = new RouteRecognizer();
     router.add([{ path: route, handler: handler }]);
-    resultsMatch(assert, router.recognize(path), [{ handler: handler, params: { bar: value }, isDynamic: true }]);
+    resultsMatch(assert, router.recognize(path), [{ handler: handler, params: { bar: value }, isDynamic: true, metadata: undefined }]);
   });
 });
 
@@ -467,7 +467,7 @@ starComplexExpectations.forEach(function(expectation) {
     let handler = {};
     router.add([{ path: route, handler: handler }]);
 
-    resultsMatch(assert, router.recognize(path), [{ handler: handler, params: params, isDynamic: true }]);
+    resultsMatch(assert, router.recognize(path), [{ handler: handler, params: params, isDynamic: true, metadata: undefined }]);
   });
 });
 
@@ -479,8 +479,8 @@ QUnit.test("Multiple routes recognize", (assert: Assert) => {
   router.add([{ path: "/foo/:bar", handler: handler1 }]);
   router.add([{ path: "/bar/:baz", handler: handler2 }]);
 
-  resultsMatch(assert, router.recognize("/foo/bar"), [{ handler: handler1, params: { bar: "bar" }, isDynamic: true }]);
-  resultsMatch(assert, router.recognize("/bar/1"), [{ handler: handler2, params: { baz: "1" }, isDynamic: true }]);
+  resultsMatch(assert, router.recognize("/foo/bar"), [{ handler: handler1, params: { bar: "bar" }, isDynamic: true, metadata: undefined }]);
+  resultsMatch(assert, router.recognize("/bar/1"), [{ handler: handler2, params: { baz: "1" }, isDynamic: true, metadata: undefined }]);
 });
 
 QUnit.test("Object metadata returned in recognize", (assert: Assert) => {
@@ -492,40 +492,40 @@ QUnit.test("Object metadata returned in recognize", (assert: Assert) => {
   resultsMatch(assert, router.recognize("/foo/bar"), [{ handler: handler, params: {}, isDynamic: false, metadata: metadata]);
 });
 
-QUnit.test("Undefined metadata not returned in recognize", (assert: Assert) => {
+QUnit.test("Undefined metadata returned in recognize", (assert: Assert) => {
   let handler = {};
   let metadata = undefined;
   let router = new RouteRecognizer();
   router.add([{ path: "/foo/bar", handler: handler, metadata: metadata }]);
 
-  resultsMatch(assert, router.recognize("/foo/bar"), [{ handler: handler, params: {}, isDynamic: false}]);
+  resultsMatch(assert, router.recognize("/foo/bar"), [{ handler: handler, params: {}, isDynamic: false, metadata: metadata }]);
 });
 
-QUnit.test("Null metadata not returned in recognize", (assert: Assert) => {
+QUnit.test("Null metadata returned in recognize", (assert: Assert) => {
   let handler = {};
   let metadata = null;
   let router = new RouteRecognizer();
   router.add([{ path: "/foo/bar", handler: handler, metadata: metadata }]);
 
-  resultsMatch(assert, router.recognize("/foo/bar"), [{ handler: handler, params: {}, isDynamic: false}]);
+  resultsMatch(assert, router.recognize("/foo/bar"), [{ handler: handler, params: {}, isDynamic: false, metadata: metadata }]);
 });
 
-QUnit.test("Boolean true metadata not returned in recognize", (assert: Assert) => {
+QUnit.test("Boolean true metadata returned in recognize", (assert: Assert) => {
   let handler = {};
   let metadata = true;
   let router = new RouteRecognizer();
   router.add([{ path: "/foo/bar", handler: handler, metadata: metadata }]);
 
-  resultsMatch(assert, router.recognize("/foo/bar"), [{ handler: handler, params: {}, isDynamic: false}]);
+  resultsMatch(assert, router.recognize("/foo/bar"), [{ handler: handler, params: {}, isDynamic: false, metadata: metadata }]);
 });
 
-QUnit.test("Boolean false metadata not returned in recognize", (assert: Assert) => {
+QUnit.test("Boolean false metadata returned in recognize", (assert: Assert) => {
   let handler = {};
   let metadata = false;
   let router = new RouteRecognizer();
   router.add([{ path: "/foo/bar", handler: handler, metadata: metadata }]);
 
-  resultsMatch(assert, router.recognize("/foo/bar"), [{ handler: handler, params: {}, isDynamic: false}]);
+  resultsMatch(assert, router.recognize("/foo/bar"), [{ handler: handler, params: {}, isDynamic: false, metadata: metadata }]);
 });
 
 QUnit.test("query params ignore the URI malformed error", (assert: Assert) => {
@@ -589,7 +589,7 @@ QUnit.test("Multiple `/` routes recognize", (assert: Assert) => {
   let router = new RouteRecognizer();
 
   router.add([{ path: "/", handler: handler1 }, { path: "/", handler: handler2 }]);
-  resultsMatch(assert, router.recognize("/"), [{ handler: handler1, params: {}, isDynamic: false }, { handler: handler2, params: {}, isDynamic: false }]);
+  resultsMatch(assert, router.recognize("/"), [{ handler: handler1, params: {}, isDynamic: false, metadata: undefined }, { handler: handler2, params: {}, isDynamic: false, metadata: undefined }]);
 });
 
 QUnit.test("Overlapping routes recognize", (assert: Assert) => {
@@ -600,8 +600,8 @@ QUnit.test("Overlapping routes recognize", (assert: Assert) => {
   router.add([{ path: "/foo/:baz", handler: handler2 }]);
   router.add([{ path: "/foo/bar/:bar", handler: handler1 }]);
 
-  resultsMatch(assert, router.recognize("/foo/bar/1"), [{ handler: handler1, params: { bar: "1" }, isDynamic: true }]);
-  resultsMatch(assert, router.recognize("/foo/1"), [{ handler: handler2, params: { baz: "1" }, isDynamic: true }]);
+  resultsMatch(assert, router.recognize("/foo/bar/1"), [{ handler: handler1, params: { bar: "1" }, isDynamic: true, metadata: undefined }]);
+  resultsMatch(assert, router.recognize("/foo/1"), [{ handler: handler2, params: { baz: "1" }, isDynamic: true, metadata: undefined }]);
 });
 
 QUnit.test("Overlapping star routes recognize", (assert: Assert) => {
@@ -612,8 +612,8 @@ QUnit.test("Overlapping star routes recognize", (assert: Assert) => {
   router.add([{ path: "/foo/*bar", handler: handler2 }]);
   router.add([{ path: "/*foo", handler: handler1 }]);
 
-  resultsMatch(assert, router.recognize("/foo/1"), [{ handler: handler2, params: { bar: "1" }, isDynamic: true }]);
-  resultsMatch(assert, router.recognize("/1"), [{ handler: handler1, params: { foo: "1" }, isDynamic: true }]);
+  resultsMatch(assert, router.recognize("/foo/1"), [{ handler: handler2, params: { bar: "1" }, isDynamic: true, metadata: undefined }]);
+  resultsMatch(assert, router.recognize("/1"), [{ handler: handler1, params: { foo: "1" }, isDynamic: true, metadata: undefined }]);
 });
 
 QUnit.test("Prefers single dynamic segments over stars", (assert: Assert) => {
@@ -624,9 +624,9 @@ QUnit.test("Prefers single dynamic segments over stars", (assert: Assert) => {
   router.add([{ path: "/foo/*star", handler: handler1 }]);
   router.add([{ path: "/foo/*star/:dynamic", handler: handler2 }]);
 
-  resultsMatch(assert, router.recognize("/foo/1"), [{ handler: handler1, params: { star: "1" }, isDynamic: true }]);
-  resultsMatch(assert, router.recognize("/foo/suffix"), [{ handler: handler1, params: { star: "suffix" }, isDynamic: true }]);
-  resultsMatch(assert, router.recognize("/foo/bar/suffix"), [{ handler: handler2, params: { star: "bar", dynamic: "suffix" }, isDynamic: true }]);
+  resultsMatch(assert, router.recognize("/foo/1"), [{ handler: handler1, params: { star: "1" }, isDynamic: true, metadata: undefined }]);
+  resultsMatch(assert, router.recognize("/foo/suffix"), [{ handler: handler1, params: { star: "suffix" }, isDynamic: true, metadata: undefined }]);
+  resultsMatch(assert, router.recognize("/foo/bar/suffix"), [{ handler: handler2, params: { star: "bar", dynamic: "suffix" }, isDynamic: true, metadata: undefined }]);
 });
 
 QUnit.test("Handle star routes last when there are trailing `/` routes.", (assert: Assert) => {
@@ -641,9 +641,9 @@ QUnit.test("Handle star routes last when there are trailing `/` routes.", (asser
   router.add([{ path: "/foo/:dynamic", handler: handler1 }, { path: "/*wildcard", handler: handlerWildcard }]);
 
   resultsMatch(assert, router.recognize("/foo/r3/baz/w10"), [
-    { handler: handler1, params: { dynamic: "r3" }, isDynamic: true },
-    { handler: handler2, params: { dynamic: "w10" }, isDynamic: true },
-    { handler: handler3, params: { }, isDynamic: false }
+    { handler: handler1, params: { dynamic: "r3" }, isDynamic: true, metadata: undefined },
+    { handler: handler2, params: { dynamic: "w10" }, isDynamic: true, metadata: undefined },
+    { handler: handler3, params: { }, isDynamic: false, metadata: undefined }
   ]);
 });
 
@@ -656,11 +656,11 @@ QUnit.test("Handle `/` before globs when the route is empty.", (assert: Assert) 
   router.add([{ path: "/*notFound", handler: handler2 }]);
 
   resultsMatch(assert, router.recognize("/"), [
-    { handler: handler1, params: { }, isDynamic: false }
+    { handler: handler1, params: { }, isDynamic: false, metadata: undefined }
   ]);
 
   resultsMatch(assert, router.recognize("/hello"), [
-    { handler: handler2, params: { notFound: "hello" }, isDynamic: true }
+    { handler: handler2, params: { notFound: "hello" }, isDynamic: true, metadata: undefined }
   ]);
 });
 
@@ -669,7 +669,7 @@ QUnit.test("Routes with trailing `/` recognize", (assert: Assert) => {
   let router = new RouteRecognizer();
 
   router.add([{ path: "/foo/bar", handler: handler }]);
-  resultsMatch(assert, router.recognize("/foo/bar/"), [{ handler: handler, params: {}, isDynamic: false }]);
+  resultsMatch(assert, router.recognize("/foo/bar/"), [{ handler: handler, params: {}, isDynamic: false, metadata: undefined }]);
 });
 
 QUnit.test("Nested routes recognize", (assert: Assert) => {
@@ -679,7 +679,7 @@ QUnit.test("Nested routes recognize", (assert: Assert) => {
   let router = new RouteRecognizer();
   router.add([{ path: "/foo/:bar", handler: handler1 }, { path: "/baz/:bat", handler: handler2 }], { as: "foo" });
 
-  resultsMatch(assert, router.recognize("/foo/1/baz/2"), [{ handler: handler1, params: { bar: "1" }, isDynamic: true }, { handler: handler2, params: { bat: "2" }, isDynamic: true }]);
+  resultsMatch(assert, router.recognize("/foo/1/baz/2"), [{ handler: handler1, params: { bar: "1" }, isDynamic: true, metadata: undefined }, { handler: handler2, params: { bat: "2" }, isDynamic: true, metadata: undefined }]);
 
   assert.equal(router.hasRoute("foo"), true);
   assert.equal(router.hasRoute("bar"), false);
@@ -692,7 +692,7 @@ QUnit.test("Nested epsilon routes recognize.", (assert: Assert) => {
   router.add([{"path": "/", "handler": "application"}, {"path": "/", "handler": "test1"}, {"path": "/", "handler": "test1.index"}]);
   router.add([{"path": "/", "handler": "application"}, {"path": "/:param", "handler": "misc"}], {"as": "misc"});
 
-  resultsMatch(assert, router.recognize("/test2"), [{ "handler": "application", "isDynamic": false, "params": {} }, { "handler": "test1", "isDynamic": false, "params": {} }, { "handler": "test1.test2", "isDynamic": false, "params": {} }]);
+  resultsMatch(assert, router.recognize("/test2"), [{ "handler": "application", "isDynamic": false, "params": {}, metadata: undefined }, { "handler": "test1", "isDynamic": false, "params": {}, metadata: undefined }, { "handler": "test1.test2", "isDynamic": false, "params": {}, metadata: undefined }]);
 });
 
 QUnit.test("Nested routes with query params recognize", (assert: Assert) => {
@@ -703,17 +703,17 @@ QUnit.test("Nested routes with query params recognize", (assert: Assert) => {
   router.add([{ path: "/foo/:bar", handler: handler1, queryParams: ["a", "b"] }, { path: "/baz/:bat", handler: handler2, queryParams: ["b", "c"] }], { as: "foo" });
 
   resultsMatch(assert, router.recognize("/foo/4/baz/5?a=1"),
-    [{ handler: handler1, params: { bar: "4" }, isDynamic: true }, { handler: handler2, params: { bat: "5" }, isDynamic: true }], { a: "1" });
+    [{ handler: handler1, params: { bar: "4" }, isDynamic: true, metadata: undefined }, { handler: handler2, params: { bat: "5" }, isDynamic: true, metadata: undefined }], { a: "1" });
   resultsMatch(assert, router.recognize("/foo/4/baz/5?a=1&b=2"),
-    [{ handler: handler1, params: { bar: "4" }, isDynamic: true }, { handler: handler2, params: { bat: "5" }, isDynamic: true }], { a: "1", b: "2" });
+    [{ handler: handler1, params: { bar: "4" }, isDynamic: true, metadata: undefined }, { handler: handler2, params: { bat: "5" }, isDynamic: true, metadata: undefined }], { a: "1", b: "2" });
   resultsMatch(assert, router.recognize("/foo/4/baz/5?a=1&b=2&c=3"),
-    [{ handler: handler1, params: { bar: "4" }, isDynamic: true }, { handler: handler2, params: { bat: "5" }, isDynamic: true }], { a: "1", b: "2", c: "3" });
+    [{ handler: handler1, params: { bar: "4" }, isDynamic: true, metadata: undefined }, { handler: handler2, params: { bat: "5" }, isDynamic: true, metadata: undefined }], { a: "1", b: "2", c: "3" });
   resultsMatch(assert, router.recognize("/foo/4/baz/5?b=2&c=3"),
-    [{ handler: handler1, params: { bar: "4" }, isDynamic: true }, { handler: handler2, params: { bat: "5" }, isDynamic: true }], { b: "2", c: "3" });
+    [{ handler: handler1, params: { bar: "4" }, isDynamic: true, metadata: undefined }, { handler: handler2, params: { bat: "5" }, isDynamic: true, metadata: undefined }], { b: "2", c: "3" });
   resultsMatch(assert, router.recognize("/foo/4/baz/5?c=3"),
-    [{ handler: handler1, params: { bar: "4" }, isDynamic: true }, { handler: handler2, params: { bat: "5" }, isDynamic: true }], { c: "3" });
+    [{ handler: handler1, params: { bar: "4" }, isDynamic: true, metadata: undefined }, { handler: handler2, params: { bat: "5" }, isDynamic: true, metadata: undefined }], { c: "3" });
   resultsMatch(assert, router.recognize("/foo/4/baz/5?a=1&c=3"),
-    [{ handler: handler1, params: { bar: "4" }, isDynamic: true }, { handler: handler2, params: { bat: "5" }, isDynamic: true }], { a: "1", c: "3" });
+    [{ handler: handler1, params: { bar: "4" }, isDynamic: true, metadata: undefined }, { handler: handler2, params: { bat: "5" }, isDynamic: true, metadata: undefined }], { a: "1", c: "3" });
 
   assert.equal(router.hasRoute("foo"), true);
   assert.equal(router.hasRoute("bar"), false);
@@ -729,9 +729,9 @@ QUnit.test("If there are multiple matches, the route with the least dynamic segm
   router.add([{ path: "/posts/:id", handler: handler2 }]);
   router.add([{ path: "/posts/edit", handler: handler3 }]);
 
-  resultsMatch(assert, router.recognize("/posts/new"), [{ handler: handler1, params: {}, isDynamic: false }]);
-  resultsMatch(assert, router.recognize("/posts/1"), [{ handler: handler2, params: { id: "1" }, isDynamic: true }]);
-  resultsMatch(assert, router.recognize("/posts/edit"), [{ handler: handler3, params: {}, isDynamic: false }]);
+  resultsMatch(assert, router.recognize("/posts/new"), [{ handler: handler1, params: {}, isDynamic: false, metadata: undefined }]);
+  resultsMatch(assert, router.recognize("/posts/1"), [{ handler: handler2, params: { id: "1" }, isDynamic: true, metadata: undefined }]);
+  resultsMatch(assert, router.recognize("/posts/edit"), [{ handler: handler3, params: {}, isDynamic: false, metadata: undefined }]);
 });
 
 QUnit.test("Empty paths", (assert: Assert) => {
@@ -744,8 +744,8 @@ QUnit.test("Empty paths", (assert: Assert) => {
   router.add([{ path: "/foo", handler: handler1 }, { path: "/", handler: handler2 }, { path: "/bar", handler: handler3 }]);
   router.add([{ path: "/foo", handler: handler1 }, { path: "/", handler: handler2 }, { path: "/baz", handler: handler4 }]);
 
-  resultsMatch(assert, router.recognize("/foo/bar"), [{ handler: handler1, params: {}, isDynamic: false }, { handler: handler2, params: {}, isDynamic: false }, { handler: handler3, params: {}, isDynamic: false }]);
-  resultsMatch(assert, router.recognize("/foo/baz"), [{ handler: handler1, params: {}, isDynamic: false }, { handler: handler2, params: {}, isDynamic: false }, { handler: handler4, params: {}, isDynamic: false }]);
+  resultsMatch(assert, router.recognize("/foo/bar"), [{ handler: handler1, params: {}, isDynamic: false, metadata: undefined }, { handler: handler2, params: {}, isDynamic: false, metadata: undefined }, { handler: handler3, params: {}, isDynamic: false, metadata: undefined }]);
+  resultsMatch(assert, router.recognize("/foo/baz"), [{ handler: handler1, params: {}, isDynamic: false, metadata: undefined }, { handler: handler2, params: {}, isDynamic: false, metadata: undefined }, { handler: handler4, params: {}, isDynamic: false, metadata: undefined }]);
 });
 
 QUnit.test("Repeated empty segments don't confuse the recognizer", (assert: Assert) => {
@@ -758,10 +758,10 @@ QUnit.test("Repeated empty segments don't confuse the recognizer", (assert: Asse
   router.add([{ path: "/", handler: handler1 }, { path: "/", handler: handler2 }, { path: "/", handler: handler3 }]);
   router.add([{ path: "/", handler: handler1 }, { path: "/", handler: handler2 }, { path: "/foo", handler: handler4 }]);
 
-  resultsMatch(assert, router.recognize("/"), [{ handler: handler1, params: {}, isDynamic: false }, { handler: handler2, params: {}, isDynamic: false }, { handler: handler3, params: {}, isDynamic: false }]);
-  resultsMatch(assert, router.recognize(""), [{ handler: handler1, params: {}, isDynamic: false }, { handler: handler2, params: {}, isDynamic: false }, { handler: handler3, params: {}, isDynamic: false }]);
-  resultsMatch(assert, router.recognize("/foo"), [{ handler: handler1, params: {}, isDynamic: false }, { handler: handler2, params: {}, isDynamic: false }, { handler: handler4, params: {}, isDynamic: false }]);
-  resultsMatch(assert, router.recognize("foo"), [{ handler: handler1, params: {}, isDynamic: false }, { handler: handler2, params: {}, isDynamic: false }, { handler: handler4, params: {}, isDynamic: false }]);
+  resultsMatch(assert, router.recognize("/"), [{ handler: handler1, params: {}, isDynamic: false, metadata: undefined }, { handler: handler2, params: {}, isDynamic: false, metadata: undefined }, { handler: handler3, params: {}, isDynamic: false, metadata: undefined }]);
+  resultsMatch(assert, router.recognize(""), [{ handler: handler1, params: {}, isDynamic: false, metadata: undefined }, { handler: handler2, params: {}, isDynamic: false, metadata: undefined }, { handler: handler3, params: {}, isDynamic: false, metadata: undefined }]);
+  resultsMatch(assert, router.recognize("/foo"), [{ handler: handler1, params: {}, isDynamic: false, metadata: undefined }, { handler: handler2, params: {}, isDynamic: false, metadata: undefined }, { handler: handler4, params: {}, isDynamic: false, metadata: undefined }]);
+  resultsMatch(assert, router.recognize("foo"), [{ handler: handler1, params: {}, isDynamic: false, metadata: undefined }, { handler: handler2, params: {}, isDynamic: false, metadata: undefined }, { handler: handler4, params: {}, isDynamic: false, metadata: undefined }]);
 });
 
 // BUG - https://github.com/emberjs/ember.js/issues/2559
@@ -770,7 +770,7 @@ QUnit.test("Dynamic routes without leading `/` and single length param are recog
   let router = new RouteRecognizer();
 
   router.add([{ path: "/foo/:id", handler: handler }]);
-  resultsMatch(assert, router.recognize("foo/1"), [{ handler: handler, params: { id: "1" }, isDynamic: true }]);
+  resultsMatch(assert, router.recognize("foo/1"), [{ handler: handler, params: { id: "1" }, isDynamic: true, metadata: undefined }]);
 });
 
 
@@ -1093,11 +1093,11 @@ QUnit.module("Route Generation", hooks => {
   });
 
   QUnit.test("Getting the handlers for a named route", (assert: Assert) => {
-    assert.deepEqual(router.handlersFor("post"), [ { handler: handlers[0], names: ["id"], shouldDecodes: [true] } ]);
-    assert.deepEqual(router.handlersFor("posts"), [ { handler: handlers[1], names: [], shouldDecodes: [] } ]);
-    assert.deepEqual(router.handlersFor("new_post"), [ { handler: handlers[2], names: [], shouldDecodes: [] } ]);
-    assert.deepEqual(router.handlersFor("edit_post"), [ { handler: handlers[3], names: ["id"], shouldDecodes: [true] } ]);
-    assert.deepEqual(router.handlersFor("catchall"), [ { handler: handlers[5], names: ["catchall"], shouldDecodes: [false] } ]);
+    assert.deepEqual(router.handlersFor("post"), [ { handler: handlers[0], names: ["id"], shouldDecodes: [true], metadata: undefined } ]);
+    assert.deepEqual(router.handlersFor("posts"), [ { handler: handlers[1], names: [], shouldDecodes: [], metadata: undefined } ]);
+    assert.deepEqual(router.handlersFor("new_post"), [ { handler: handlers[2], names: [], shouldDecodes: [], metadata: undefined } ]);
+    assert.deepEqual(router.handlersFor("edit_post"), [ { handler: handlers[3], names: ["id"], shouldDecodes: [true], metadata: undefined } ]);
+    assert.deepEqual(router.handlersFor("catchall"), [ { handler: handlers[5], names: ["catchall"], shouldDecodes: [false], metadata: undefined } ]);
   });
 
   QUnit.test("Getting a handler for an invalid named route raises", (assert: Assert) => {
@@ -1115,8 +1115,8 @@ QUnit.module("Route Generation", hooks => {
     router.add([{ path: "/:dynamic", handler: handler1 }, { path: "/", handler: handler1 }]);
 
     resultsMatch(assert, router.recognize("/static"), [
-      { handler: handler2, params: { }, isDynamic: false },
-      { handler: handler2, params: { }, isDynamic: false }
+      { handler: handler2, params: { }, isDynamic: false, metadata: undefined },
+      { handler: handler2, params: { }, isDynamic: false, metadata: undefined }
     ]);
   });
 
@@ -1144,21 +1144,21 @@ QUnit.module("Route Generation", hooks => {
     ]);
 
     resultsMatch(assert, router.recognize("/5"), [
-      { handler: handler1, params: { }, isDynamic: false },
-      { handler: handler1, params: { }, isDynamic: false },
-      { handler: handler1, params: { post_id: "5" }, isDynamic: true }
+      { handler: handler1, params: { }, isDynamic: false, metadata: undefined },
+      { handler: handler1, params: { }, isDynamic: false, metadata: undefined },
+      { handler: handler1, params: { post_id: "5" }, isDynamic: true, metadata: undefined }
     ]);
 
     resultsMatch(assert, router.recognize("/team"), [
-      { handler: handler2, params: { }, isDynamic: false },
-      { handler: handler2, params: { }, isDynamic: false },
-      { handler: handler2, params: { }, isDynamic: false }
+      { handler: handler2, params: { }, isDynamic: false, metadata: undefined },
+      { handler: handler2, params: { }, isDynamic: false, metadata: undefined },
+      { handler: handler2, params: { }, isDynamic: false, metadata: undefined }
     ]);
 
     resultsMatch(assert, router.recognize("/team/eww_slugs"), [
-      { handler: handler3, params: { }, isDynamic: false },
-      { handler: handler3, params: { }, isDynamic: false },
-      { handler: handler3, params: { user_slug: "eww_slugs" }, isDynamic: true }
+      { handler: handler3, params: { }, isDynamic: false, metadata: undefined },
+      { handler: handler3, params: { }, isDynamic: false, metadata: undefined },
+      { handler: handler3, params: { user_slug: "eww_slugs" }, isDynamic: true, metadata: undefined }
     ]);
   });
 });

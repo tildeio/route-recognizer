@@ -88,8 +88,6 @@ result = router.recognize("/post/1");
 result === [{ handler: page, params: {}, metadata: { test: 123 } }];
 ```
 
-Optionally you can pass in metadata for a given route
-
 # Sorting
 
 If multiple routes all match a path, `route-recognizer`

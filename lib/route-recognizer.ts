@@ -209,14 +209,14 @@ interface EmptyHandler {
   handler: Opaque;
   names: EmptyArray;
   shouldDecodes: EmptyArray;
-  metadata?: Opaque;
+  metadata: Opaque;
 }
 
 interface PopulatedHandler {
   handler: Opaque;
   names: string [];
   shouldDecodes: boolean[];
-  metadata?: Opaque;
+  metadata: Opaque;
 }
 
 type Handler = EmptyHandler | PopulatedHandler;
@@ -387,7 +387,7 @@ export interface Result {
   handler: Opaque;
   params: Params;
   isDynamic: boolean;
-  metadata?: Opaque;
+  metadata: Opaque;
 }
 
 export interface Results extends ArrayLike<Result | undefined> {
@@ -450,17 +450,12 @@ function findHandler(state: State, originalPath: string, queryParams: QueryParam
       }
     }
 
-    let compiledResult: Result = {
+    result[i] = {
       handler: handler.handler,
+      metadata: handler.metadata,
       params,
       isDynamic
     };
-
-    if (handler.metadata) {
-      compiledResult.metadata = handler.metadata;
-    }
-
-    result[i] = compiledResult;
   }
 
   return result;
@@ -535,17 +530,13 @@ class RouteRecognizer {
         currentState = eachChar[segment.type](segment, currentState);
         pattern += regex[segment.type](segment);
       }
-      let compiledHandler: Handler = {
+
+      handlers[i] = {
         handler: route.handler,
+        metadata: route.metadata,
         names,
         shouldDecodes
       };
-
-      if (typeof route.metadata === "object") {
-        compiledHandler.metadata = route.metadata;
-      }
-
-      handlers[i] = compiledHandler;
     }
 
     if (isEmpty) {

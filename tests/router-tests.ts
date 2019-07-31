@@ -28,9 +28,9 @@ QUnit.module("The match DSL", hooks => {
       match("/posts/edit").to("editPost");
     });
 
-    matchesRoute(assert, "/posts/new", [{ handler: "newPost", params: {}, isDynamic: false }]);
-    matchesRoute(assert, "/posts/1", [{ handler: "showPost", params: { id: "1" }, isDynamic: true }]);
-    matchesRoute(assert, "/posts/edit", [{ handler: "editPost", params: {}, isDynamic: false }]);
+    matchesRoute(assert, "/posts/new", [{ handler: "newPost", params: {}, isDynamic: false, metadata: undefined }]);
+    matchesRoute(assert, "/posts/1", [{ handler: "showPost", params: { id: "1" }, isDynamic: true, metadata: undefined }]);
+    matchesRoute(assert, "/posts/edit", [{ handler: "editPost", params: {}, isDynamic: false, metadata: undefined }]);
   });
 
   QUnit.test("supports multiple calls to match with query params", (assert: Assert) => {
@@ -40,9 +40,9 @@ QUnit.module("The match DSL", hooks => {
       match("/posts/edit").to("editPost");
     });
 
-    matchesRoute(assert, "/posts/new?foo=1&bar=2", [{ handler: "newPost", params: {}, isDynamic: false }], {foo: "1", bar: "2"});
-    matchesRoute(assert, "/posts/1?baz=3", [{ handler: "showPost", params: { id: "1" }, isDynamic: true }], {baz: "3"});
-    matchesRoute(assert, "/posts/edit", [{ handler: "editPost", params: {}, isDynamic: false }], {});
+    matchesRoute(assert, "/posts/new?foo=1&bar=2", [{ handler: "newPost", params: {}, isDynamic: false, metadata: undefined }], {foo: "1", bar: "2"});
+    matchesRoute(assert, "/posts/1?baz=3", [{ handler: "showPost", params: { id: "1" }, isDynamic: true, metadata: undefined }], {baz: "3"});
+    matchesRoute(assert, "/posts/edit", [{ handler: "editPost", params: {}, isDynamic: false, metadata: undefined }], {});
   });
 
   QUnit.test("supports nested match", (assert: Assert) => {
@@ -54,9 +54,9 @@ QUnit.module("The match DSL", hooks => {
       });
     });
 
-    matchesRoute(assert, "/posts/new", [{ handler: "newPost", params: {}, isDynamic: false }]);
-    matchesRoute(assert, "/posts/1", [{ handler: "showPost", params: { id: "1" }, isDynamic: true }]);
-    matchesRoute(assert, "/posts/edit", [{ handler: "editPost", params: {}, isDynamic: false }]);
+    matchesRoute(assert, "/posts/new", [{ handler: "newPost", params: {}, isDynamic: false, metadata: undefined }]);
+    matchesRoute(assert, "/posts/1", [{ handler: "showPost", params: { id: "1" }, isDynamic: true, metadata: undefined }]);
+    matchesRoute(assert, "/posts/edit", [{ handler: "editPost", params: {}, isDynamic: false, metadata: undefined }]);
   });
 
   QUnit.test("support nested dynamic routes and star route", (assert: Assert) => {
@@ -70,18 +70,18 @@ QUnit.module("The match DSL", hooks => {
 
     // fails because it incorrectly matches the wildcard route
     matchesRoute(assert, "/abc", [
-      {handler: "routeId", params: { routeId: "abc" }, isDynamic: true},
-      {handler: "routeId.index", params: {}, isDynamic: false},
+      {handler: "routeId", params: { routeId: "abc" }, isDynamic: true, metadata: undefined},
+      {handler: "routeId.index", params: {}, isDynamic: false, metadata: undefined},
     ]);
 
     // passes
     matchesRoute(assert, "/abc/def", [
-      {handler: "routeId", params: {routeId: "abc"}, isDynamic: true},
-      {handler: "subRouteId", params: {"subRouteId": "def"}, isDynamic: true}
+      {handler: "routeId", params: {routeId: "abc"}, isDynamic: true, metadata: undefined},
+      {handler: "subRouteId", params: {"subRouteId": "def"}, isDynamic: true, metadata: undefined}
     ]);
 
     // fails because no route is recognized
-    matchesRoute(assert, "/abc/def/ghi", [{handler: "wildcard", params: { wildcard: "abc/def/ghi"}, isDynamic: true}]);
+    matchesRoute(assert, "/abc/def/ghi", [{handler: "wildcard", params: { wildcard: "abc/def/ghi"}, isDynamic: true, metadata: undefined}]);
   });
 
   QUnit.test("supports nested match with query params", (assert: Assert) => {
@@ -93,9 +93,9 @@ QUnit.module("The match DSL", hooks => {
       });
     });
 
-    matchesRoute(assert, "/posts/new?foo=1&bar=2", [{ handler: "newPost", params: {}, isDynamic: false }], {foo: "1", bar: "2"});
-    matchesRoute(assert, "/posts/1?baz=3", [{ handler: "showPost", params: { id: "1" }, isDynamic: true }], {baz: "3"});
-    matchesRoute(assert, "/posts/edit", [{ handler: "editPost", params: {}, isDynamic: false }], {});
+    matchesRoute(assert, "/posts/new?foo=1&bar=2", [{ handler: "newPost", params: {}, isDynamic: false, metadata: undefined }], {foo: "1", bar: "2"});
+    matchesRoute(assert, "/posts/1?baz=3", [{ handler: "showPost", params: { id: "1" }, isDynamic: true, metadata: undefined }], {baz: "3"});
+    matchesRoute(assert, "/posts/edit", [{ handler: "editPost", params: {}, isDynamic: false, metadata: undefined }], {});
   });
 
   QUnit.test("not passing a function with `match` as a parameter raises", (assert: Assert) => {
@@ -117,9 +117,9 @@ QUnit.module("The match DSL", hooks => {
       });
     });
 
-    matchesRoute(assert, "/posts/new", [{ handler: "posts", params: {}, isDynamic: false }, { handler: "newPost", params: {}, isDynamic: false }]);
-    matchesRoute(assert, "/posts/1", [{ handler: "posts", params: {}, isDynamic: false }, { handler: "showPost", params: { id: "1" }, isDynamic: true }]);
-    matchesRoute(assert, "/posts/edit", [{ handler: "posts", params: {}, isDynamic: false }, { handler: "editPost", params: {}, isDynamic: false }]);
+    matchesRoute(assert, "/posts/new", [{ handler: "posts", params: {}, isDynamic: false, metadata: undefined }, { handler: "newPost", params: {}, isDynamic: false, metadata: undefined }]);
+    matchesRoute(assert, "/posts/1", [{ handler: "posts", params: {}, isDynamic: false, metadata: undefined }, { handler: "showPost", params: { id: "1" }, isDynamic: true, metadata: undefined }]);
+    matchesRoute(assert, "/posts/edit", [{ handler: "posts", params: {}, isDynamic: false, metadata: undefined }, { handler: "editPost", params: {}, isDynamic: false, metadata: undefined }]);
   });
 
   QUnit.test("supports deeply nested handlers", (assert: Assert) => {
@@ -134,11 +134,11 @@ QUnit.module("The match DSL", hooks => {
       });
     });
 
-    matchesRoute(assert, "/posts/new", [{ handler: "posts", params: {}, isDynamic: false }, { handler: "newPost", params: {}, isDynamic: false }]);
-    matchesRoute(assert, "/posts/1/index", [{ handler: "posts", params: {}, isDynamic: false }, { handler: "showPost", params: { id: "1" }, isDynamic: true }, { handler: "postIndex", params: {}, isDynamic: false }]);
-    matchesRoute(assert, "/posts/1/comments", [{ handler: "posts", params: {}, isDynamic: false }, { handler: "showPost", params: { id: "1" }, isDynamic: true }, { handler: "postComments", params: {}, isDynamic: false }]);
-    matchesRoute(assert, "/posts/ne/comments", [{ handler: "posts", params: {}, isDynamic: false }, { handler: "showPost", params: { id: "ne" }, isDynamic: true }, { handler: "postComments", params: {}, isDynamic: false }]);
-    matchesRoute(assert, "/posts/edit", [{ handler: "posts", params: {}, isDynamic: false }, { handler: "editPost", params: {}, isDynamic: false }]);
+    matchesRoute(assert, "/posts/new", [{ handler: "posts", params: {}, isDynamic: false, metadata: undefined }, { handler: "newPost", params: {}, isDynamic: false, metadata: undefined }]);
+    matchesRoute(assert, "/posts/1/index", [{ handler: "posts", params: {}, isDynamic: false, metadata: undefined }, { handler: "showPost", params: { id: "1" }, isDynamic: true, metadata: undefined }, { handler: "postIndex", params: {}, isDynamic: false, metadata: undefined }]);
+    matchesRoute(assert, "/posts/1/comments", [{ handler: "posts", params: {}, isDynamic: false, metadata: undefined }, { handler: "showPost", params: { id: "1" }, isDynamic: true, metadata: undefined }, { handler: "postComments", params: {}, isDynamic: false, metadata: undefined }]);
+    matchesRoute(assert, "/posts/ne/comments", [{ handler: "posts", params: {}, isDynamic: false, metadata: undefined }, { handler: "showPost", params: { id: "ne" }, isDynamic: true, metadata: undefined }, { handler: "postComments", params: {}, isDynamic: false, metadata: undefined }]);
+    matchesRoute(assert, "/posts/edit", [{ handler: "posts", params: {}, isDynamic: false, metadata: undefined }, { handler: "editPost", params: {}, isDynamic: false, metadata: undefined }]);
   });
 
   QUnit.test("supports index-style routes", (assert: Assert) => {
@@ -153,10 +153,10 @@ QUnit.module("The match DSL", hooks => {
       });
     });
 
-    matchesRoute(assert, "/posts/new", [{ handler: "posts", params: {}, isDynamic: false }, { handler: "newPost", params: {}, isDynamic: false }]);
-    matchesRoute(assert, "/posts/1", [{ handler: "posts", params: {}, isDynamic: false }, { handler: "showPost", params: { id: "1" }, isDynamic: true }, { handler: "postIndex", params: {}, isDynamic: false }]);
-    matchesRoute(assert, "/posts/1/comments", [{ handler: "posts", params: {}, isDynamic: false }, { handler: "showPost", params: { id: "1" }, isDynamic: true }, { handler: "postComments", params: {}, isDynamic: false }]);
-    matchesRoute(assert, "/posts/edit", [{ handler: "posts", params: {}, isDynamic: false }, { handler: "editPost", params: {}, isDynamic: false }]);
+    matchesRoute(assert, "/posts/new", [{ handler: "posts", params: {}, isDynamic: false, metadata: undefined }, { handler: "newPost", params: {}, isDynamic: false, metadata: undefined }]);
+    matchesRoute(assert, "/posts/1", [{ handler: "posts", params: {}, isDynamic: false, metadata: undefined }, { handler: "showPost", params: { id: "1" }, isDynamic: true, metadata: undefined }, { handler: "postIndex", params: {}, isDynamic: false, metadata: undefined }]);
+    matchesRoute(assert, "/posts/1/comments", [{ handler: "posts", params: {}, isDynamic: false, metadata: undefined }, { handler: "showPost", params: { id: "1" }, isDynamic: true, metadata: undefined }, { handler: "postComments", params: {}, isDynamic: false, metadata: undefined }]);
+    matchesRoute(assert, "/posts/edit", [{ handler: "posts", params: {}, isDynamic: false, metadata: undefined }, { handler: "editPost", params: {}, isDynamic: false, metadata: undefined }]);
   });
 
   QUnit.test("supports single `/` routes", (assert: Assert) => {
@@ -164,7 +164,7 @@ QUnit.module("The match DSL", hooks => {
       match("/").to("posts");
     });
 
-    matchesRoute(assert, "/", [{ handler: "posts", params: {}, isDynamic: false }]);
+    matchesRoute(assert, "/", [{ handler: "posts", params: {}, isDynamic: false, metadata: undefined }]);
   });
 
   QUnit.test("supports star routes", (assert: Assert) => {
@@ -175,7 +175,7 @@ QUnit.module("The match DSL", hooks => {
 
     // randomly generated strings
     ["w6PCXxJn20PCSievuP", "v2y0gaByxHjHYJw0pVT1TeqbEJLllVq-3", "DFCR4rm7XMbT6CPZq-d8AU7k", "d3vYEg1AoYaPlM9QbOAxEK6u/H_S-PYH1aYtt"].forEach(function(r) {
-      matchesRoute(assert, "/" + r, [{ handler: "404", params: {everything: r}, isDynamic: true}]);
+      matchesRoute(assert, "/" + r, [{ handler: "404", params: {everything: r}, isDynamic: true, metadata: undefined }]);
     });
   });
 
@@ -188,7 +188,7 @@ QUnit.module("The match DSL", hooks => {
     });
 
     r = "folder1/folder2/folder3/";
-    matchesRoute(assert, "/" + r, [{ handler: "glob", params: {everything: r}, isDynamic: true}]);
+    matchesRoute(assert, "/" + r, [{ handler: "glob", params: {everything: r}, isDynamic: true, metadata: undefined }]);
   });
 
   QUnit.test("support star route before other segment", (assert: Assert) => {
@@ -197,7 +197,7 @@ QUnit.module("The match DSL", hooks => {
     });
 
     ["folder1/folder2/folder3//the-extra-stuff/", "folder1/folder2/folder3//the-extra-stuff"].forEach(function(r) {
-      matchesRoute(assert, "/" + r, [{ handler: "glob", params: {everything: "folder1/folder2/folder3/", extra: "the-extra-stuff"}, isDynamic: true}]);
+      matchesRoute(assert, "/" + r, [{ handler: "glob", params: {everything: "folder1/folder2/folder3/", extra: "the-extra-stuff"}, isDynamic: true, metadata: undefined }]);
     });
   });
 
@@ -209,7 +209,7 @@ QUnit.module("The match DSL", hooks => {
     });
 
     ["folder1/folder2/folder3//the-extra-stuff/", "folder1/folder2/folder3//the-extra-stuff"].forEach(function(r) {
-      matchesRoute(assert, "/" + r, [{ handler: "glob", params: {everything: "folder1/folder2/folder3/"}, isDynamic: true}, { handler: "extra", params: {extra: "the-extra-stuff"}, isDynamic: true}]);
+      matchesRoute(assert, "/" + r, [{ handler: "glob", params: {everything: "folder1/folder2/folder3/"}, isDynamic: true, metadata: undefined }, { handler: "extra", params: {extra: "the-extra-stuff"}, isDynamic: true, metadata: undefined }]);
     });
   });
 
@@ -234,7 +234,7 @@ QUnit.module("The match DSL", hooks => {
 
     assert.deepEqual(passedArguments, ["application", "posts"], "The entered contexts were passed to contextEntered");
 
-    matchesRoute(assert, "/posts", [{ handler: "application", params: {}, isDynamic: false }, { handler: "posts", params: {}, isDynamic: false }, { handler: "index", params: {}, isDynamic: false }]);
+    matchesRoute(assert, "/posts", [{ handler: "application", params: {}, isDynamic: false, metadata: undefined }, { handler: "posts", params: {}, isDynamic: false, metadata: undefined }, { handler: "index", params: {}, isDynamic: false, metadata: undefined }]);
   });
 
   QUnit.test("delegate can change added routes", (assert: Assert) => {
@@ -259,8 +259,8 @@ QUnit.module("The match DSL", hooks => {
       });
     });
 
-    matchesRoute(assert, "/posts", [{ handler: "application", params: {}, isDynamic: false }, { handler: "application.posts", params: {}, isDynamic: false }, { handler: "posts.index", params: {}, isDynamic: false }]);
-    matchesRoute(assert, "/posts/1", [{ handler: "application", params: {}, isDynamic: false }, { handler: "application.posts", params: {}, isDynamic: false }, { handler: "posts.post", params: { post_id: "1" }, isDynamic: true }]);
+    matchesRoute(assert, "/posts", [{ handler: "application", params: {}, isDynamic: false, metadata: undefined }, { handler: "application.posts", params: {}, isDynamic: false, metadata: undefined }, { handler: "posts.index", params: {}, isDynamic: false, metadata: undefined }]);
+    matchesRoute(assert, "/posts/1", [{ handler: "application", params: {}, isDynamic: false, metadata: undefined }, { handler: "application.posts", params: {}, isDynamic: false, metadata: undefined }, { handler: "posts.post", params: { post_id: "1" }, isDynamic: true, metadata: undefined }]);
   });
 
   QUnit.test("supports add-route callback", (assert: Assert) => {
@@ -296,9 +296,9 @@ QUnit.module("The match DSL", hooks => {
 
     assert.deepEqual(expected, invocations, "invokes for the correct set of routes");
     matchesRoute(assert, "/lobby/loading", [
-      { handler: "application", params: {}, isDynamic: false },
-      { handler: "lobby", params: {}, isDynamic: false },
-      { handler: "lobby.loading", params: {}, isDynamic: false }
+      { handler: "application", params: {}, isDynamic: false, metadata: undefined },
+      { handler: "lobby", params: {}, isDynamic: false, metadata: undefined },
+      { handler: "lobby.loading", params: {}, isDynamic: false, metadata: undefined }
     ]);
   });
 
