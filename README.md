@@ -79,6 +79,17 @@ result = router.recognize("/pages/hello/world");
 result === [{ handler: page, params: { path: "hello/world" } }];
 ```
 
+Metadata:
+
+```javascript
+router.add([{ path: "/post/1", handler: page, metadata: { test: 123 } }]);
+
+result = router.recognize("/post/1");
+result === [{ handler: page, params: {}, metadata: { test: 123 } }];
+```
+
+Optionally you can pass in metadata for a given route
+
 # Sorting
 
 If multiple routes all match a path, `route-recognizer`
