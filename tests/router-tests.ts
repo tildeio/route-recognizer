@@ -279,9 +279,9 @@ QUnit.module("The match DSL", hooks => {
         });
         match("/").to("index");
       });
-    }, function (router, route) {
-      invocations.push(route.map(e => e.handler).join("."));
-      router.add(route);
+    }, function (recognizer, routes) {
+      invocations.push(routes.map(e => e.handler).join("."));
+      recognizer.add(routes);
     });
 
     const expected = [
@@ -302,6 +302,20 @@ QUnit.module("The match DSL", hooks => {
     ]);
   });
 
+  QUnit.test("supports passing metadata in route", (assert: Assert) => {
+    let metadata = {};
+
+    router.map(function(match) {
+      match("/posts/new").to("newPost");
+    }, function (recognizer, routes) {
+      recognizer.add(routes.map(e => {
+        e.metadata = metadata;
+        return e;
+      }));
+    });
+
+    matchesRoute(assert, "/posts/new", [{ handler: "newPost", params: {}, isDynamic: false, metadata: metadata }]);
+  });
 });
 
 
