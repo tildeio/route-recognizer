@@ -209,12 +209,14 @@ interface EmptyHandler {
   handler: Opaque;
   names: EmptyArray;
   shouldDecodes: EmptyArray;
+  metadata: Opaque;
 }
 
 interface PopulatedHandler {
   handler: Opaque;
   names: string [];
   shouldDecodes: boolean[];
+  metadata: Opaque;
 }
 
 type Handler = EmptyHandler | PopulatedHandler;
@@ -385,6 +387,7 @@ export interface Result {
   handler: Opaque;
   params: Params;
   isDynamic: boolean;
+  metadata: Opaque;
 }
 
 export interface Results extends ArrayLike<Result | undefined> {
@@ -449,6 +452,7 @@ function findHandler(state: State, originalPath: string, queryParams: QueryParam
 
     result[i] = {
       handler: handler.handler,
+      metadata: handler.metadata,
       params,
       isDynamic
     };
@@ -526,8 +530,10 @@ class RouteRecognizer {
         currentState = eachChar[segment.type](segment, currentState);
         pattern += regex[segment.type](segment);
       }
+
       handlers[i] = {
         handler: route.handler,
+        metadata: route.metadata,
         names,
         shouldDecodes
       };

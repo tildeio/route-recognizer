@@ -10,6 +10,7 @@ export type Opaque = {} | void | null | undefined;
 export interface Route {
   path: string;
   handler: Opaque;
+  metadata?: Opaque;
   queryParams?: string[];
 }
 
@@ -105,14 +106,14 @@ function generateMatch(startingPath: string, matcher: Matcher, delegate: Delegat
   return match;
 }
 
-function addRoute(routeArray: Route[], path: string, handler: any) {
+function addRoute(routeArray: Route[], path: string, handler: any, metadata: any) {
   let len = 0;
   for (let i = 0; i < routeArray.length; i++) {
     len += routeArray[i].path.length;
   }
 
   path = path.substr(len);
-  let route = { path: path, handler: handler };
+  let route = { path: path, handler: handler, metadata: metadata };
   routeArray.push(route);
 }
 
@@ -122,7 +123,7 @@ function eachRoute<T>(baseRoute: Route[], matcher: Matcher, callback: (this: T, 
   for (let i = 0; i < paths.length; i++) {
     let path = paths[i];
     let routeArray = baseRoute.slice();
-    addRoute(routeArray, path, routes[path]);
+    addRoute(routeArray, path, routes[path], routes.metadata);
     let nested = matcher.children[path];
     if (nested) {
       eachRoute(routeArray, nested, callback, binding);
