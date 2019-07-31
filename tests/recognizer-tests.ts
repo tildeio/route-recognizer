@@ -483,6 +483,51 @@ QUnit.test("Multiple routes recognize", (assert: Assert) => {
   resultsMatch(assert, router.recognize("/bar/1"), [{ handler: handler2, params: { baz: "1" }, isDynamic: true }]);
 });
 
+QUnit.test("Object metadata returned in recognize", (assert: Assert) => {
+  let handler = {};
+  let metadata = { test: 1 };
+  let router = new RouteRecognizer();
+  router.add([{ path: "/foo/bar", handler: handler, metadata: metadata }]);
+
+  resultsMatch(assert, router.recognize("/foo/bar"), [{ handler: handler, params: {}, isDynamic: false, metadata: metadata]);
+});
+
+QUnit.test("Undefined metadata not returned in recognize", (assert: Assert) => {
+  let handler = {};
+  let metadata = undefined;
+  let router = new RouteRecognizer();
+  router.add([{ path: "/foo/bar", handler: handler, metadata: metadata }]);
+
+  resultsMatch(assert, router.recognize("/foo/bar"), [{ handler: handler, params: {}, isDynamic: false}]);
+});
+
+QUnit.test("Null metadata not returned in recognize", (assert: Assert) => {
+  let handler = {};
+  let metadata = null;
+  let router = new RouteRecognizer();
+  router.add([{ path: "/foo/bar", handler: handler, metadata: metadata }]);
+
+  resultsMatch(assert, router.recognize("/foo/bar"), [{ handler: handler, params: {}, isDynamic: false}]);
+});
+
+QUnit.test("Boolean true metadata not returned in recognize", (assert: Assert) => {
+  let handler = {};
+  let metadata = true;
+  let router = new RouteRecognizer();
+  router.add([{ path: "/foo/bar", handler: handler, metadata: metadata }]);
+
+  resultsMatch(assert, router.recognize("/foo/bar"), [{ handler: handler, params: {}, isDynamic: false}]);
+});
+
+QUnit.test("Boolean false metadata not returned in recognize", (assert: Assert) => {
+  let handler = {};
+  let metadata = false;
+  let router = new RouteRecognizer();
+  router.add([{ path: "/foo/bar", handler: handler, metadata: metadata }]);
+
+  resultsMatch(assert, router.recognize("/foo/bar"), [{ handler: handler, params: {}, isDynamic: false}]);
+});
+
 QUnit.test("query params ignore the URI malformed error", (assert: Assert) => {
   let handler1 = { handler: 1 };
   let router = new RouteRecognizer();
