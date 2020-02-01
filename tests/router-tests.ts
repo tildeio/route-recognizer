@@ -1,5 +1,4 @@
 /* globals RouteRecognizer,QUnit */
-
 import RouteRecognizer, { Results, Result, QueryParams } from "../lib/route-recognizer";
 
 let router: RouteRecognizer;
@@ -203,7 +202,7 @@ QUnit.module("The match DSL", hooks => {
 
   QUnit.test("support nested star route", (assert: Assert) => {
     router.map(function(match) {
-      match("/*everything").to("glob", function(match){
+      match("/*everything").to("glob", function(match) {
         match("/:extra").to("extra");
       });
     });

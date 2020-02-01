@@ -6,10 +6,6 @@
     "declaration": true,
     "strict": true,
     "outDir": "dist",
-    "baseUrl": ".",
-    "paths": {
-      "route-recognizer": ["lib/route-recognizer"]
-    },
     "sourceMap": true
   },
   "files": [

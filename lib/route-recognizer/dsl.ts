@@ -99,7 +99,7 @@ function generateMatch(startingPath: string, matcher: Matcher, delegate: Delegat
     } else {
       return new Target(fullPath, matcher, delegate);
     }
-  };
+  }
   return match;
 }
 

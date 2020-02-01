@@ -1,4 +1,4 @@
-const Buffer = require('buffer').Buffer;
+/* globals __dirname */
 const path = require('path');
 const Rollup = require('broccoli-rollup');
 const funnel = require('broccoli-funnel');
@@ -16,7 +16,7 @@ class JsImportFix extends BroccoliPlugin {
     super([input], {
       persistentOutputFlag: true,
       needsCacheFlag: false,
-    })
+    });
   }
 
   build() {
