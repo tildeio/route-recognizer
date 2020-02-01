@@ -1,5 +1,5 @@
 import { createMap } from "./route-recognizer/util";
-import map, { Delegate, Route, Opaque, MatchCallback } from "./route-recognizer/dsl";
+import map, { Delegate, Route, MatchCallback } from "./route-recognizer/dsl";
 import { normalizePath, normalizeSegment, encodePathSegment } from "./route-recognizer/normalizer";
 export { Delegate, MatchCallback } from './route-recognizer/dsl';
 
@@ -40,14 +40,16 @@ const enum SegmentType {
 }
 
 const enum SegmentFlags {
-  Static  = 2 << SegmentType.Static,
-  Dynamic = 2 << SegmentType.Dynamic,
-  Star    = 2 << SegmentType.Star,
-  Epsilon = 2 << SegmentType.Epsilon,
+  Static  = SegmentType.Static,
+  Dynamic = SegmentType.Dynamic,
+  Star    = SegmentType.Star,
+  Epsilon = SegmentType.Epsilon,
   Named = Dynamic | Star,
   Decoded = Dynamic,
   Counted = Static | Dynamic | Star
 }
+
+type Counted = SegmentType.Static | SegmentType.Dynamic | SegmentType.Star;
 
 const eachChar: ((segment: Segment, currentState: State) => State)[] = [];
 eachChar[SegmentType.Static] = function (segment: Segment, currentState: State) {
@@ -87,7 +89,7 @@ const generate: ((segment: Segment, params?: Params | null) => string)[] = [];
 generate[SegmentType.Static] = function (segment: Segment) {
   return segment.value;
 };
-generate[SegmentType.Dynamic] = function (segment: Segment, params?: Params) {
+generate[SegmentType.Dynamic] = function (segment: Segment, params?: Params | null) {
   let value = getParam(params, segment.value);
   if (RouteRecognizer.ENCODE_AND_DECODE_PATH_SEGMENTS) {
     return encodePathSegment(value);
@@ -95,7 +97,7 @@ generate[SegmentType.Dynamic] = function (segment: Segment, params?: Params) {
     return value;
   }
 };
-generate[SegmentType.Star] = function (segment: Segment, params?: Params) {
+generate[SegmentType.Star] = function (segment: Segment, params?: Params | null) {
   return getParam(params, segment.value);
 };
 generate[SegmentType.Epsilon] = function () {
@@ -124,14 +126,14 @@ interface Segment {
 }
 
 export interface Params {
-  [key: string]: Opaque;
-  [key: number]: Opaque;
+  [key: string]: unknown;
+  [key: number]: unknown;
   queryParams?: QueryParams | null;
 }
 
 interface PopulatedParsedHandlers {
   names: string[];
-  shouldDecodes: any[];
+  shouldDecodes: boolean[];
 }
 
 const EmptyObject = Object.freeze({});
@@ -156,12 +158,11 @@ function parse(segments: Segment[], route: string, types: [number, number, numbe
   if (route.length > 0 && route.charCodeAt(0) === CHARS.SLASH) { route = route.substr(1); }
 
   let parts = route.split("/");
-  let names: void | string[] = undefined;
-  let shouldDecodes: void | any[] = undefined;
+  let names: undefined | string[] = undefined;
+  let shouldDecodes: undefined | any[] = undefined;
 
   for (let i = 0; i < parts.length; i++) {
     let part = parts[i];
-    let flags: SegmentFlags = 0;
     let type: SegmentType = 0;
 
     if (part === "") {
@@ -174,19 +175,17 @@ function parse(segments: Segment[], route: string, types: [number, number, numbe
       type = SegmentType.Static;
     }
 
-    flags = 2 << type;
-
-    if (flags & SegmentFlags.Named) {
+    if (type & SegmentFlags.Named) {
       part = part.slice(1);
       names = names || [];
       names.push(part);
 
       shouldDecodes = shouldDecodes || [];
-      shouldDecodes.push((flags & SegmentFlags.Decoded) !== 0);
+      shouldDecodes.push((type & SegmentFlags.Decoded) !== 0);
     }
 
-    if (flags & SegmentFlags.Counted) {
-      types[type]++;
+    if (type & SegmentFlags.Counted) {
+      types[type as Counted]++;
     }
 
     segments.push({
@@ -206,13 +205,13 @@ function isEqualCharSpec(spec: CharSpec, char: number, negate: boolean) {
 }
 
 interface EmptyHandler {
-  handler: Opaque;
+  handler: unknown;
   names: EmptyArray;
   shouldDecodes: EmptyArray;
 }
 
 interface PopulatedHandler {
-  handler: Opaque;
+  handler: unknown;
   names: string [];
   shouldDecodes: boolean[];
 }
@@ -382,7 +381,7 @@ export interface QueryParams {
 }
 
 export interface Result {
-  handler: Opaque;
+  handler: unknown;
   params: Params;
   isDynamic: boolean;
 }
@@ -398,9 +397,9 @@ class RecognizeResults implements Results {
   queryParams: QueryParams;
   length = 0;
   [index: number]: Result | undefined;
-  splice: (start: number, deleteCount: number, ...items: Result[]) => Result[];
-  slice: (start?: number, end?: number) => Result[];
-  push: (...results: Result[]) => number;
+  splice!: (start: number, deleteCount: number, ...items: Result[]) => Result[];
+  slice!: (start?: number, end?: number) => Result[];
+  push!: (...results: Result[]) => number;
 
   constructor(queryParams?: QueryParams) {
     this.queryParams = queryParams || {};
@@ -473,19 +472,17 @@ interface NamedRoute {
 }
 
 class RouteRecognizer {
-  private states: State[];
   private rootState: State;
   private names: {
     [name: string]: NamedRoute | undefined;
   } = createMap<NamedRoute>();
-  map: (context: MatchCallback, addCallback?: (router: this, routes: Route[]) => void) => void;
+  map!: (context: MatchCallback, addCallback?: (router: this, routes: Route[]) => void) => void;
   delegate: Delegate | undefined;
 
   constructor() {
     let states: State[] = [];
     let state = new State(states, 0, CHARS.ANY, true, false);
     states[0] = state;
-    this.states = states;
     this.rootState = state;
   }
 

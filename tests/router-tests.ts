@@ -1,6 +1,6 @@
 /* globals RouteRecognizer,QUnit */
 
-import RouteRecognizer, { Results, Result, QueryParams } from "route-recognizer";
+import RouteRecognizer, { Results, Result, QueryParams } from "../lib/route-recognizer";
 
 let router: RouteRecognizer;
 

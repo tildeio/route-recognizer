@@ -5,11 +5,9 @@ export interface Delegate {
   willAddRoute?(context: string | undefined, route: string): string;
 }
 
-export type Opaque = {} | void | null | undefined;
-
 export interface Route {
   path: string;
-  handler: Opaque;
+  handler: unknown;
   queryParams?: string[];
 }
 
