@@ -1,6 +1,5 @@
 /* globals QUnit */
-
-import RouteRecognizer, { QueryParams, Results, Result } from "route-recognizer";
+import RouteRecognizer, { QueryParams, Results, Result } from "../lib/route-recognizer";
 
 QUnit.module("Route Recognition");
 

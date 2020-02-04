@@ -1,6 +1,6 @@
 /* globals QUnit */
 
-import RouteRecognizer from "route-recognizer";
+import RouteRecognizer from "../lib/route-recognizer";
 
 const Normalizer = RouteRecognizer.Normalizer;
 

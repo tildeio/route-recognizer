@@ -1,12 +1,15 @@
 language: node_js
 node_js:
-  - "6"
-
+  - "lts/*"
+addons:
+  apt:
+    sources:
+      - sourceline: "deb http://dl.google.com/linux/chrome/deb/ stable main"
+        key_url: "https://dl-ssl.google.com/linux/linux_signing_key.pub"
+    packages:
+      - google-chrome-stable
 before_script:
-  - npm install
-
+  - yarn install
 script:
-  - npm run lint
-  - npm test
-
-sudo: false
+  - yarn run lint
+  - yarn test
