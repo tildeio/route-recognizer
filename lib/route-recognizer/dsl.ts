@@ -50,7 +50,11 @@ class Target implements ToDSL {
     this.matcher.add(this.path, target);
 
     if (callback) {
-      if (callback.length === 0) { throw new Error("You must have an argument in the function passed to `to`"); }
+      if (callback.length === 0) {
+        throw new Error(
+          "You must have an argument in the function passed to `to`"
+        );
+      }
       this.matcher.addChild(this.path, target, callback, this.delegate);
     }
   }
@@ -75,7 +79,12 @@ export class Matcher {
     this.routes[path] = target;
   }
 
-  addChild(path: string, target: string, callback: MatchCallback, delegate: Delegate | undefined) {
+  addChild(
+    path: string,
+    target: string,
+    callback: MatchCallback,
+    delegate: Delegate | undefined
+  ) {
     let matcher = new Matcher(target);
     this.children[path] = matcher;
 
@@ -89,7 +98,11 @@ export class Matcher {
   }
 }
 
-function generateMatch(startingPath: string, matcher: Matcher, delegate: Delegate | undefined): MatchDSL {
+function generateMatch(
+  startingPath: string,
+  matcher: Matcher,
+  delegate: Delegate | undefined
+): MatchDSL {
   function match(path: string): ToDSL;
   function match(path: string, callback: MatchCallback): void;
   function match(path: string, callback?: MatchCallback): ToDSL | void {
@@ -114,7 +127,12 @@ function addRoute(routeArray: Route[], path: string, handler: any) {
   routeArray.push(route);
 }
 
-function eachRoute<T>(baseRoute: Route[], matcher: Matcher, callback: (this: T, routes: Route[]) => void, binding: T) {
+function eachRoute<T>(
+  baseRoute: Route[],
+  matcher: Matcher,
+  callback: (this: T, routes: Route[]) => void,
+  binding: T
+) {
   let routes = matcher.routes;
   let paths = Object.keys(routes);
   for (let i = 0; i < paths.length; i++) {
@@ -130,13 +148,25 @@ function eachRoute<T>(baseRoute: Route[], matcher: Matcher, callback: (this: T, 
   }
 }
 
-export default function <T extends RouteRecognizer>(this: T, callback: MatchCallback, addRouteCallback?: (routeRecognizer: T, routes: Route[]) => void) {
+export default function<T extends RouteRecognizer>(
+  this: T,
+  callback: MatchCallback,
+  addRouteCallback?: (routeRecognizer: T, routes: Route[]) => void
+) {
   let matcher = new Matcher();
 
   callback(generateMatch("", matcher, this.delegate));
 
-  eachRoute([], matcher, function(routes: Route[]) {
-    if (addRouteCallback) { addRouteCallback(this, routes); }
-    else { this.add(routes); }
-  }, this);
+  eachRoute(
+    [],
+    matcher,
+    function(routes: Route[]) {
+      if (addRouteCallback) {
+        addRouteCallback(this, routes);
+      } else {
+        this.add(routes);
+      }
+    },
+    this
+  );
 }

@@ -1,7 +1,11 @@
 import { createMap } from "./route-recognizer/util";
 import map, { Delegate, Route, MatchCallback } from "./route-recognizer/dsl";
-import { normalizePath, normalizeSegment, encodePathSegment } from "./route-recognizer/normalizer";
-export { Delegate, MatchCallback } from './route-recognizer/dsl';
+import {
+  normalizePath,
+  normalizeSegment,
+  encodePathSegment
+} from "./route-recognizer/normalizer";
+export { Delegate, MatchCallback } from "./route-recognizer/dsl";
 
 const enum CHARS {
   ANY = -1,
@@ -17,7 +21,9 @@ const hasOwnProperty = Object.prototype.hasOwnProperty;
 
 function getParam(params: Params | null | undefined, key: string): string {
   if (typeof params !== "object" || params === null) {
-    throw new Error("You must pass an object as the second argument to `generate`.");
+    throw new Error(
+      "You must pass an object as the second argument to `generate`."
+    );
   }
 
   if (!hasOwnProperty.call(params, key)) {
@@ -33,16 +39,16 @@ function getParam(params: Params | null | undefined, key: string): string {
 }
 
 const enum SegmentType {
-  Static  = 0,
+  Static = 0,
   Dynamic = 1,
-  Star    = 2,
+  Star = 2,
   Epsilon = 4
 }
 
 const enum SegmentFlags {
-  Static  = SegmentType.Static,
+  Static = SegmentType.Static,
   Dynamic = SegmentType.Dynamic,
-  Star    = SegmentType.Star,
+  Star = SegmentType.Star,
   Epsilon = SegmentType.Epsilon,
   Named = Dynamic | Star,
   Decoded = Dynamic,
@@ -52,7 +58,7 @@ const enum SegmentFlags {
 type Counted = SegmentType.Static | SegmentType.Dynamic | SegmentType.Star;
 
 const eachChar: ((segment: Segment, currentState: State) => State)[] = [];
-eachChar[SegmentType.Static] = function (segment: Segment, currentState: State) {
+eachChar[SegmentType.Static] = function(segment: Segment, currentState: State) {
   let state = currentState;
   let value = segment.value;
   for (let i = 0; i < value.length; i++) {
@@ -61,35 +67,38 @@ eachChar[SegmentType.Static] = function (segment: Segment, currentState: State) 
   }
   return state;
 };
-eachChar[SegmentType.Dynamic] = function (_: Segment, currentState: State) {
+eachChar[SegmentType.Dynamic] = function(_: Segment, currentState: State) {
   return currentState.put(CHARS.SLASH, true, true);
 };
-eachChar[SegmentType.Star] = function (_: Segment, currentState: State) {
+eachChar[SegmentType.Star] = function(_: Segment, currentState: State) {
   return currentState.put(CHARS.ANY, false, true);
 };
-eachChar[SegmentType.Epsilon] = function (_: Segment, currentState: State) {
+eachChar[SegmentType.Epsilon] = function(_: Segment, currentState: State) {
   return currentState;
 };
 
 const regex: ((segment: Segment) => string)[] = [];
-regex[SegmentType.Static] = function (segment: Segment) {
+regex[SegmentType.Static] = function(segment: Segment) {
   return segment.value.replace(escapeRegex, "\\$1");
 };
-regex[SegmentType.Dynamic] = function () {
+regex[SegmentType.Dynamic] = function() {
   return "([^/]+)";
 };
-regex[SegmentType.Star] = function () {
+regex[SegmentType.Star] = function() {
   return "(.+)";
 };
-regex[SegmentType.Epsilon] = function () {
+regex[SegmentType.Epsilon] = function() {
   return "";
 };
 
 const generate: ((segment: Segment, params?: Params | null) => string)[] = [];
-generate[SegmentType.Static] = function (segment: Segment) {
+generate[SegmentType.Static] = function(segment: Segment) {
   return segment.value;
 };
-generate[SegmentType.Dynamic] = function (segment: Segment, params?: Params | null) {
+generate[SegmentType.Dynamic] = function(
+  segment: Segment,
+  params?: Params | null
+) {
   let value = getParam(params, segment.value);
   if (RouteRecognizer.ENCODE_AND_DECODE_PATH_SEGMENTS) {
     return encodePathSegment(value);
@@ -97,10 +106,13 @@ generate[SegmentType.Dynamic] = function (segment: Segment, params?: Params | nu
     return value;
   }
 };
-generate[SegmentType.Star] = function (segment: Segment, params?: Params | null) {
+generate[SegmentType.Star] = function(
+  segment: Segment,
+  params?: Params | null
+) {
   return getParam(params, segment.value);
 };
-generate[SegmentType.Epsilon] = function () {
+generate[SegmentType.Epsilon] = function() {
   return "";
 };
 
@@ -137,7 +149,7 @@ interface PopulatedParsedHandlers {
 }
 
 const EmptyObject = Object.freeze({});
-type EmptyObject = Readonly<{}>
+type EmptyObject = Readonly<{}>;
 
 const EmptyArray = Object.freeze([]) as ReadonlyArray<any>;
 type EmptyArray = ReadonlyArray<any>;
@@ -152,10 +164,16 @@ type ParsedHandler = PopulatedParsedHandlers | EmptyParsedHandlers;
 // The `names` will be populated with the paramter name for each dynamic/star
 // segment. `shouldDecodes` will be populated with a boolean for each dyanamic/star
 // segment, indicating whether it should be decoded during recognition.
-function parse(segments: Segment[], route: string, types: [number, number, number]) {
+function parse(
+  segments: Segment[],
+  route: string,
+  types: [number, number, number]
+) {
   // normalize route as not starting with a "/". Recognition will
   // also normalize.
-  if (route.length > 0 && route.charCodeAt(0) === CHARS.SLASH) { route = route.substr(1); }
+  if (route.length > 0 && route.charCodeAt(0) === CHARS.SLASH) {
+    route = route.substr(1);
+  }
 
   let parts = route.split("/");
   let names: undefined | string[] = undefined;
@@ -171,7 +189,7 @@ function parse(segments: Segment[], route: string, types: [number, number, numbe
       type = SegmentType.Dynamic;
     } else if (part.charCodeAt(0) === CHARS.STAR) {
       type = SegmentType.Star;
-    }  else {
+    } else {
       type = SegmentType.Static;
     }
 
@@ -196,7 +214,7 @@ function parse(segments: Segment[], route: string, types: [number, number, numbe
 
   return {
     names: names || EmptyArray,
-    shouldDecodes: shouldDecodes || EmptyArray,
+    shouldDecodes: shouldDecodes || EmptyArray
   } as ParsedHandler;
 }
 
@@ -212,7 +230,7 @@ interface EmptyHandler {
 
 interface PopulatedHandler {
   handler: unknown;
-  names: string [];
+  names: string[];
   shouldDecodes: boolean[];
 }
 
@@ -245,7 +263,13 @@ class State implements CharSpec {
   handlers: Handler[] | undefined;
   types: [number, number, number] | undefined;
 
-  constructor(states: State[], id: number, char: number, negate: boolean, repeat: boolean) {
+  constructor(
+    states: State[],
+    id: number,
+    char: number,
+    negate: boolean,
+    repeat: boolean
+  ) {
     this.states = states;
     this.id = id;
     this.char = char;
@@ -287,7 +311,9 @@ class State implements CharSpec {
 
     // If the character specification already exists in a child of the current
     // state, just return that state.
-    if (state = this.get(char, negate)) { return state; }
+    if ((state = this.get(char, negate))) {
+      return state;
+    }
 
     // Make a new state for the character spec
     let states = this.states;
@@ -332,7 +358,9 @@ class State implements CharSpec {
 }
 
 function isMatch(spec: CharSpec, char: number) {
-  return spec.negate ? spec.char !== char && spec.char !== CHARS.ANY : spec.char === char || spec.char === CHARS.ANY;
+  return spec.negate
+    ? spec.char !== char && spec.char !== CHARS.ANY
+    : spec.char === char || spec.char === CHARS.ANY;
 }
 
 // This is a somewhat naive strategy, but should work in a lot of cases
@@ -347,17 +375,27 @@ function isMatch(spec: CharSpec, char: number) {
 //  * prefers more static segments to more
 function sortSolutions(states: State[]) {
   return states.sort(function(a, b) {
-    let [ astatics, adynamics, astars ] = a.types || [0, 0, 0];
-    let [ bstatics, bdynamics, bstars ] = b.types || [0, 0, 0];
-    if (astars !== bstars) { return astars - bstars; }
-
-    if (astars) {
-      if (astatics !== bstatics) { return bstatics - astatics; }
-      if (adynamics !== bdynamics) { return bdynamics - adynamics; }
+    let [astatics, adynamics, astars] = a.types || [0, 0, 0];
+    let [bstatics, bdynamics, bstars] = b.types || [0, 0, 0];
+    if (astars !== bstars) {
+      return astars - bstars;
     }
 
-    if (adynamics !== bdynamics) { return adynamics - bdynamics; }
-    if (astatics !== bstatics) { return bstatics - astatics; }
+    if (astars) {
+      if (astatics !== bstatics) {
+        return bstatics - astatics;
+      }
+      if (adynamics !== bdynamics) {
+        return bdynamics - adynamics;
+      }
+    }
+
+    if (adynamics !== bdynamics) {
+      return adynamics - bdynamics;
+    }
+    if (astatics !== bstatics) {
+      return bstatics - astatics;
+    }
 
     return 0;
   });
@@ -374,7 +412,6 @@ function recognizeChar(states: State[], ch: number) {
 
   return nextStates;
 }
-
 
 export interface QueryParams {
   [param: string]: any[] | any | null | undefined;
@@ -404,13 +441,17 @@ class RecognizeResults implements Results {
   constructor(queryParams?: QueryParams) {
     this.queryParams = queryParams || {};
   }
-};
+}
 
 RecognizeResults.prototype.splice = Array.prototype.splice;
-RecognizeResults.prototype.slice =  Array.prototype.slice;
+RecognizeResults.prototype.slice = Array.prototype.slice;
 RecognizeResults.prototype.push = Array.prototype.push;
 
-function findHandler(state: State, originalPath: string, queryParams: QueryParams): Results {
+function findHandler(
+  state: State,
+  originalPath: string,
+  queryParams: QueryParams
+): Results {
   let handlers = state.handlers;
   let regex: RegExp = state.regex();
   if (!regex || !handlers) throw new Error("state not initialized");
@@ -438,7 +479,10 @@ function findHandler(state: State, originalPath: string, queryParams: QueryParam
           params = {};
         }
 
-        if (RouteRecognizer.ENCODE_AND_DECODE_PATH_SEGMENTS && shouldDecodes[j]) {
+        if (
+          RouteRecognizer.ENCODE_AND_DECODE_PATH_SEGMENTS &&
+          shouldDecodes[j]
+        ) {
           (<Params>params)[name] = capture && decodeURIComponent(capture);
         } else {
           (<Params>params)[name] = capture;
@@ -462,7 +506,9 @@ function decodeQueryParamPart(part: string): string {
   let result;
   try {
     result = decodeURIComponent(part);
-  } catch (error) {result = ""; }
+  } catch (error) {
+    result = "";
+  }
   return result;
 }
 
@@ -476,7 +522,10 @@ class RouteRecognizer {
   private names: {
     [name: string]: NamedRoute | undefined;
   } = createMap<NamedRoute>();
-  map!: (context: MatchCallback, addCallback?: (router: this, routes: Route[]) => void) => void;
+  map!: (
+    context: MatchCallback,
+    addCallback?: (router: this, routes: Route[]) => void
+  ) => void;
   delegate: Delegate | undefined;
 
   constructor() {
@@ -491,7 +540,9 @@ class RouteRecognizer {
   // See https://github.com/tildeio/route-recognizer/pull/55
   static ENCODE_AND_DECODE_PATH_SEGMENTS = true;
   static Normalizer = {
-    normalizeSegment, normalizePath, encodePathSegment
+    normalizeSegment,
+    normalizePath,
+    encodePathSegment
   };
 
   add(routes: Route[], options?: { as: string }) {
@@ -511,7 +562,9 @@ class RouteRecognizer {
       for (; j < allSegments.length; j++) {
         let segment = allSegments[j];
 
-        if (segment.type === SegmentType.Epsilon) { continue; }
+        if (segment.type === SegmentType.Epsilon) {
+          continue;
+        }
 
         isEmpty = false;
 
@@ -531,7 +584,7 @@ class RouteRecognizer {
     }
 
     if (isEmpty) {
-        currentState = currentState.put(CHARS.SLASH, false, false);
+      currentState = currentState.put(CHARS.SLASH, false, false);
       pattern += "/";
     }
 
@@ -559,7 +612,9 @@ class RouteRecognizer {
   handlersFor(name: string) {
     let route = this.names[name];
 
-    if (!route) { throw new Error("There is no route named " + name); }
+    if (!route) {
+      throw new Error("There is no route named " + name);
+    }
 
     let result = new Array(route.handlers.length);
 
@@ -578,7 +633,9 @@ class RouteRecognizer {
   generate(name: string, params?: Params | null) {
     let route = this.names[name];
     let output = "";
-    if (!route) { throw new Error("There is no route named " + name); }
+    if (!route) {
+      throw new Error("There is no route named " + name);
+    }
 
     let segments: Segment[] = route.segments;
 
@@ -593,7 +650,9 @@ class RouteRecognizer {
       output += generate[segment.type](segment, params);
     }
 
-    if (output.charAt(0) !== "/") { output = "/" + output; }
+    if (output.charAt(0) !== "/") {
+      output = "/" + output;
+    }
 
     if (params && params.queryParams) {
       output += this.generateQueryString(params.queryParams);
@@ -624,7 +683,9 @@ class RouteRecognizer {
       }
     }
 
-    if (pairs.length === 0) { return ""; }
+    if (pairs.length === 0) {
+      return "";
+    }
 
     return "?" + pairs.join("&");
   }
@@ -633,11 +694,11 @@ class RouteRecognizer {
     let pairs = queryString.split("&");
     let queryParams: QueryParams = {};
     for (let i = 0; i < pairs.length; i++) {
-      let pair      = pairs[i].split("="),
-          key       = decodeQueryParamPart(pair[0]),
-          keyLength = key.length,
-          isArray = false,
-          value;
+      let pair = pairs[i].split("="),
+        key = decodeQueryParamPart(pair[0]),
+        keyLength = key.length,
+        isArray = false,
+        value;
       if (pair.length === 1) {
         value = "true";
       } else {
@@ -662,7 +723,7 @@ class RouteRecognizer {
 
   recognize(path: string): Results | undefined {
     let results: Results | undefined;
-    let states: State[] = [ this.rootState ];
+    let states: State[] = [this.rootState];
     let queryParams = {};
     let isSlashDropped = false;
     let hashStart = path.indexOf("#");
@@ -677,7 +738,9 @@ class RouteRecognizer {
       queryParams = this.parseQueryString(queryString);
     }
 
-    if (path.charAt(0) !== "/") { path = "/" + path; }
+    if (path.charAt(0) !== "/") {
+      path = "/" + path;
+    }
     let originalPath = path;
 
     if (RouteRecognizer.ENCODE_AND_DECODE_PATH_SEGMENTS) {
@@ -696,12 +759,16 @@ class RouteRecognizer {
 
     for (let i = 0; i < path.length; i++) {
       states = recognizeChar(states, path.charCodeAt(i));
-      if (!states.length) { break; }
+      if (!states.length) {
+        break;
+      }
     }
 
     let solutions: State[] = [];
     for (let i = 0; i < states.length; i++) {
-      if (states[i].handlers) { solutions.push(states[i]); }
+      if (states[i].handlers) {
+        solutions.push(states[i]);
+      }
     }
 
     states = sortSolutions(solutions);
@@ -711,7 +778,11 @@ class RouteRecognizer {
     if (state && state.handlers) {
       // if a trailing slash was dropped and a star segment is the last segment
       // specified, put the trailing slash back
-      if (isSlashDropped && state.pattern && state.pattern.slice(-5) === "(.+)$") {
+      if (
+        isSlashDropped &&
+        state.pattern &&
+        state.pattern.slice(-5) === "(.+)$"
+      ) {
         originalPath = originalPath + "/";
       }
       results = findHandler(state, originalPath, queryParams);

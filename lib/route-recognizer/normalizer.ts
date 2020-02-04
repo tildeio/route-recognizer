@@ -3,9 +3,10 @@
 // chars are "/" and "%".
 // Safe to call multiple times on the same path.
 export function normalizePath(path: string): string {
-  return path.split("/")
-             .map(normalizeSegment)
-             .join("/");
+  return path
+    .split("/")
+    .map(normalizeSegment)
+    .join("/");
 }
 
 // We want to ensure the characters "%" and "/" remain in percent-encoded
@@ -14,7 +15,10 @@ export function normalizePath(path: string): string {
 const SEGMENT_RESERVED_CHARS = /%|\//g;
 export function normalizeSegment(segment: string) {
   if (segment.length < 3 || segment.indexOf("%") === -1) return segment;
-  return decodeURIComponent(segment).replace(SEGMENT_RESERVED_CHARS, encodeURIComponent);
+  return decodeURIComponent(segment).replace(
+    SEGMENT_RESERVED_CHARS,
+    encodeURIComponent
+  );
 }
 
 // We do not want to encode these characters when generating dynamic path segments
@@ -30,5 +34,8 @@ export function normalizeSegment(segment: string) {
 const PATH_SEGMENT_ENCODINGS = /%(?:2(?:4|6|B|C)|3(?:B|D|A)|40)/g;
 
 export function encodePathSegment(str: string) {
-  return encodeURIComponent(str).replace(PATH_SEGMENT_ENCODINGS, decodeURIComponent);
+  return encodeURIComponent(str).replace(
+    PATH_SEGMENT_ENCODINGS,
+    decodeURIComponent
+  );
 }
