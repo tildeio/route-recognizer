@@ -1,5 +1,7 @@
+/* eslint-env node */
+
 module.exports = function() {
-    return {
-      rootURL: '/dist',
-    }
+  return {
+    rootURL: "/dist"
   };
+};

@@ -1,7 +1,11 @@
 const createObject = Object.create;
 
-export function createMap<T>() {
-  const map: { [key: string]: T | undefined } = createObject(null);
+export interface MapLike<T> {
+  [key: string]: T | undefined;
+}
+
+export function createMap<T>(): MapLike<T> {
+  const map: MapLike<T> = createObject(null);
   map["__"] = undefined;
   delete map["__"];
   return map;

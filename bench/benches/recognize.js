@@ -1,4 +1,5 @@
-var RouteRecognizer = require('../../dist/route-recognizer');
+/* eslint-env node */
+var RouteRecognizer = require("../../dist/route-recognizer");
 
 var router = new RouteRecognizer();
 var i = 1000;
@@ -8,8 +9,8 @@ while (i--) {
 }
 
 module.exports = {
-  name: 'Recognize',
+  name: "Recognize",
   fn: function() {
-    router.recognize('/foo/1');
+    router.recognize("/foo/1");
   }
 };

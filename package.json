@@ -2,13 +2,38 @@
   "name": "route-recognizer",
   "version": "0.3.4",
   "description": "A lightweight JavaScript library that matches paths against registered routes.",
-  "author": "Yehuda Katz",
+  "homepage": "https://github.com/tildeio/route-recognizer",
+  "bugs": {
+    "url": "https://github.com/tildeio/route-recognizer/issues"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/tildeio/route-recognizer.git"
   },
+  "license": "MIT",
+  "author": "Yehuda Katz",
+  "files": [
+    "dist/*",
+    "!dist/tests"
+  ],
+  "main": "dist/route-recognizer.js",
+  "module": "dist/route-recognizer.es.js",
+  "types": "dist/route-recognizer.d.ts",
+  "scripts": {
+    "bench": "ember build && node ./bench/index.js",
+    "build": "ember build",
+    "lintfix": "eslint --ext --fix .js,.ts .",
+    "lint": "eslint --ext .js,.ts .",
+    "prepublish": "ember build --environment=production",
+    "start": "ember test --server",
+    "test": "ember test",
+    "tsc": "tsc"
+  },
   "devDependencies": {
+    "@types/node": "^13.7.0",
     "@types/qunit": "^2.9.0",
+    "@typescript-eslint/eslint-plugin": "^2.10.0",
+    "@typescript-eslint/parser": "^2.10.0",
     "broccoli-debug": "^0.6.5",
     "broccoli-funnel": "^2",
     "broccoli-merge-trees": "^4.1.0",
@@ -16,34 +41,19 @@
     "broccoli-rollup": "^4.1.1",
     "broccoli-string-replace": "^0.1.1",
     "broccoli-typescript-compiler": "^4.2.0",
-    "do-you-even-bench": "^1.0.5",
     "ember-cli": "^3.15.2",
+    "eslint": "^6.7.2",
+    "eslint-config-prettier": "^6.7.0",
+    "eslint-plugin-import": "^2.18.2",
+    "eslint-plugin-prettier": "^3.1.1",
+    "eslint-plugin-simple-import-sort": "^5.0.0",
+    "express": "^4.17.1",
     "glob": "^7.1.6",
-    "jshint": "^2.11.0",
+    "prettier": "^1.19.1",
     "qunit": "^2.9.3",
+    "rollup": "^1.31.0",
     "rollup-plugin-sourcemaps": "^0.5.0",
     "tree-sync": "^2.0.0",
-    "tslint": "^6.0.0"
-  },
-  "main": "dist/route-recognizer.js",
-  "module": "dist/route-recognizer.es.js",
-  "types": "dist/route-recognizer.d.ts",
-  "files": [
-    "dist/*",
-    "!dist/tests"
-  ],
-  "bugs": {
-    "url": "https://github.com/tildeio/route-recognizer/issues"
-  },
-  "homepage": "https://github.com/tildeio/route-recognizer",
-  "scripts": {
-    "test": "ember test",
-    "start": "ember test --server",
-    "build": "ember build",
-    "prepublish": "ember build --environment=production",
-    "tsc": "tsc",
-    "bench": "ember build && node ./bench/index.js",
-    "lint": "tslint lib/**/*.ts tests/**/*.ts && jshint ember-cli-build.js"
-  },
-  "license": "MIT"
+    "typescript": "^3.5.3"
+  }
 }

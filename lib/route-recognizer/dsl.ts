@@ -1,47 +1,49 @@
 import { createMap } from "./util";
 
-export interface Delegate {
-  contextEntered?(context: string, route: MatchDSL): void;
-  willAddRoute?(context: string | undefined, route: string): string;
+export interface Delegate<THandler> {
+  contextEntered?(context: THandler, route: MatchDSL<THandler>): void;
+  willAddRoute?(context: THandler | undefined, route: THandler): THandler;
 }
 
-export interface Route {
+export interface Route<THandler> {
   path: string;
-  handler: unknown;
+  handler: THandler;
   queryParams?: string[];
 }
 
-export interface RouteRecognizer {
-  delegate: Delegate | undefined;
-  add(routes: Route[]): void;
+export interface RouteRecognizer<THandler> {
+  delegate: Delegate<THandler> | undefined;
+  add(routes: Route<THandler>[]): void;
 }
 
-export interface MatchCallback {
-  (match: MatchDSL): void;
+export type MatchCallback<THandler> = (match: MatchDSL<THandler>) => void;
+
+export interface MatchDSL<THandler> {
+  (path: string): ToDSL<THandler>;
+  (path: string, callback: MatchCallback<THandler>): void;
 }
 
-export interface MatchDSL {
-  (path: string): ToDSL;
-  (path: string, callback: MatchCallback): void;
+export interface ToDSL<THandler> {
+  to(name: THandler, callback?: MatchCallback<THandler>): void;
 }
 
-export interface ToDSL {
-  to(name: string, callback?: MatchCallback): void;
-}
-
-class Target implements ToDSL {
+class Target<THandler> implements ToDSL<THandler> {
   path: string;
-  matcher: Matcher;
-  delegate: Delegate | undefined;
+  matcher: Matcher<THandler>;
+  delegate: Delegate<THandler> | undefined;
 
-  constructor(path: string, matcher: Matcher, delegate: Delegate | undefined) {
+  constructor(
+    path: string,
+    matcher: Matcher<THandler>,
+    delegate: Delegate<THandler> | undefined
+  ) {
     this.path = path;
     this.matcher = matcher;
     this.delegate = delegate;
   }
 
-  to(target: string, callback: MatchCallback) {
-    let delegate = this.delegate;
+  to(target: THandler, callback: MatchCallback<THandler>): void {
+    const delegate = this.delegate;
 
     if (delegate && delegate.willAddRoute) {
       target = delegate.willAddRoute(this.matcher.target, target);
@@ -60,35 +62,35 @@ class Target implements ToDSL {
   }
 }
 
-export class Matcher {
+export class Matcher<THandler> {
   routes: {
-    [path: string]: string | undefined;
+    [path: string]: THandler | undefined;
   };
   children: {
-    [path: string]: Matcher | undefined;
+    [path: string]: Matcher<THandler> | undefined;
   };
-  target: string | undefined;
+  target: THandler | undefined;
 
-  constructor(target?: string) {
-    this.routes = createMap<string>();
-    this.children = createMap<Matcher>();
+  constructor(target?: THandler) {
+    this.routes = createMap<THandler>();
+    this.children = createMap<Matcher<THandler>>();
     this.target = target;
   }
 
-  add(path: string, target: string) {
+  add(path: string, target: THandler): void {
     this.routes[path] = target;
   }
 
   addChild(
     path: string,
-    target: string,
-    callback: MatchCallback,
-    delegate: Delegate | undefined
-  ) {
-    let matcher = new Matcher(target);
+    target: THandler,
+    callback: MatchCallback<THandler>,
+    delegate: Delegate<THandler> | undefined
+  ): void {
+    const matcher = new Matcher<THandler>(target);
     this.children[path] = matcher;
 
-    let match = generateMatch(path, matcher, delegate);
+    const match = generateMatch(path, matcher, delegate);
 
     if (delegate && delegate.contextEntered) {
       delegate.contextEntered(target, match);
@@ -98,15 +100,18 @@ export class Matcher {
   }
 }
 
-function generateMatch(
+function generateMatch<THandler>(
   startingPath: string,
-  matcher: Matcher,
-  delegate: Delegate | undefined
-): MatchDSL {
-  function match(path: string): ToDSL;
-  function match(path: string, callback: MatchCallback): void;
-  function match(path: string, callback?: MatchCallback): ToDSL | void {
-    let fullPath = startingPath + path;
+  matcher: Matcher<THandler>,
+  delegate: Delegate<THandler> | undefined
+): MatchDSL<THandler> {
+  function match(path: string): ToDSL<THandler>;
+  function match(path: string, callback: MatchCallback<THandler>): void;
+  function match(
+    path: string,
+    callback?: MatchCallback<THandler>
+  ): ToDSL<THandler> | void {
+    const fullPath = startingPath + path;
     if (callback) {
       callback(generateMatch(fullPath, matcher, delegate));
     } else {
@@ -116,30 +121,34 @@ function generateMatch(
   return match;
 }
 
-function addRoute(routeArray: Route[], path: string, handler: any) {
+function addRoute<THandler>(
+  routeArray: Route<THandler>[],
+  path: string,
+  handler: THandler
+): void {
   let len = 0;
   for (let i = 0; i < routeArray.length; i++) {
     len += routeArray[i].path.length;
   }
 
   path = path.substr(len);
-  let route = { path: path, handler: handler };
+  const route = { path, handler };
   routeArray.push(route);
 }
 
-function eachRoute<T>(
-  baseRoute: Route[],
-  matcher: Matcher,
-  callback: (this: T, routes: Route[]) => void,
-  binding: T
-) {
-  let routes = matcher.routes;
-  let paths = Object.keys(routes);
+function eachRoute<TThis, THanlder>(
+  baseRoute: Route<THanlder>[],
+  matcher: Matcher<THanlder>,
+  callback: (this: TThis, routes: Route<THanlder>[]) => void,
+  binding: TThis
+): void {
+  const routes = matcher.routes;
+  const paths = Object.keys(routes);
   for (let i = 0; i < paths.length; i++) {
-    let path = paths[i];
-    let routeArray = baseRoute.slice();
+    const path = paths[i];
+    const routeArray = baseRoute.slice();
     addRoute(routeArray, path, routes[path]);
-    let nested = matcher.children[path];
+    const nested = matcher.children[path];
     if (nested) {
       eachRoute(routeArray, nested, callback, binding);
     } else {
@@ -148,19 +157,25 @@ function eachRoute<T>(
   }
 }
 
-export default function<T extends RouteRecognizer>(
-  this: T,
-  callback: MatchCallback,
-  addRouteCallback?: (routeRecognizer: T, routes: Route[]) => void
-) {
-  let matcher = new Matcher();
+export default function map<
+  TRouteRecognizer extends RouteRecognizer<THandler>,
+  THandler
+>(
+  this: TRouteRecognizer,
+  callback: MatchCallback<THandler>,
+  addRouteCallback?: (
+    routeRecognizer: TRouteRecognizer,
+    routes: Route<THandler>[]
+  ) => void
+): void {
+  const matcher = new Matcher<THandler>();
 
   callback(generateMatch("", matcher, this.delegate));
 
   eachRoute(
     [],
     matcher,
-    function(routes: Route[]) {
+    function(routes: Route<THandler>[]) {
       if (addRouteCallback) {
         addRouteCallback(this, routes);
       } else {
