@@ -1,4 +1,4 @@
-/* globals __dirname */
+/* eslint-env node */
 const path = require("path");
 const Rollup = require("broccoli-rollup");
 const funnel = require("broccoli-funnel");

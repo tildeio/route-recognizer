@@ -8,8 +8,5 @@
     "outDir": "dist",
     "sourceMap": true
   },
-  "files": [
-    "lib/route-recognizer.ts",
-    "tests/index.ts"
-  ]
+  "include": ["lib/route-recognizer.ts", "tests/*.ts"]
 }
