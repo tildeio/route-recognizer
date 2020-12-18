@@ -1,7 +1,7 @@
 [![Build Status](https://travis-ci.org/tildeio/route-recognizer.svg)](https://travis-ci.org/tildeio/route-recognizer)
 
 # About
-`route-recognizer` is a lightweight JavaScript library (under 2k!) that
+`route-recognizer` is a lightweight JavaScript library (under 4kB gzipped!) that
 can be used as the recognizer for a more comprehensive router system
 (such as [`router.js`](https://github.com/tildeio/router.js)).
 
