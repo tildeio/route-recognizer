@@ -178,7 +178,7 @@ type EmptyObject = typeof EmptyObject;
 const EmptyArray = Object.freeze([]) as ReadonlyArray<unknown>;
 type EmptyArray = typeof EmptyArray;
 
-// The `names` will be populated with the paramter name for each dynamic/star
+// The `names` will be populated with the parameter name for each dynamic/star
 // segment. `shouldDecodes` will be populated with a boolean for each dyanamic/star
 // segment, indicating whether it should be decoded during recognition.
 function parse(
