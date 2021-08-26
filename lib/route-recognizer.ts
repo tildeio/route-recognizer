@@ -690,7 +690,6 @@ class RouteRecognizer<THandler = string> {
   generateQueryString(params: Params): string {
     const pairs: string[] = [];
     const keys: string[] = Object.keys(params);
-    keys.sort();
     for (let i = 0; i < keys.length; i++) {
       const key = keys[i];
       const value = params[key];

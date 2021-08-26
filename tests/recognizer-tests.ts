@@ -1666,28 +1666,28 @@ QUnit.module("Route Generation", hooks => {
         id: 1,
         queryParams: { format: "markdown", editor: "ace" }
       }),
-      "/posts/1/edit?editor=ace&format=markdown"
+      "/posts/1/edit?format=markdown&editor=ace"
     );
     assert.equal(
       router.generate("edit_post", {
         id: 1,
         queryParams: { format: "markdown", editor: "ace" }
       }),
-      "/posts/1/edit?editor=ace&format=markdown"
+      "/posts/1/edit?format=markdown&editor=ace"
     );
     assert.equal(
       router.generate("edit_post", {
         id: 1,
         queryParams: { format: true, editor: "ace" }
       }),
-      "/posts/1/edit?editor=ace&format=true"
+      "/posts/1/edit?format=true&editor=ace"
     );
     assert.equal(
       router.generate("edit_post", {
         id: 1,
         queryParams: { format: "markdown", editor: true }
       }),
-      "/posts/1/edit?editor=true&format=markdown"
+      "/posts/1/edit?format=markdown&editor=true"
     );
     assert.equal(
       router.generate("foo", { bar: 9, bat: 10, queryParams: { a: 1 } }),
