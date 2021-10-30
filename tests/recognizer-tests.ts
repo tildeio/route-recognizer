@@ -817,6 +817,16 @@ QUnit.test(
   }
 );
 
+QUnit.test("Deserialize query param nested object", (assert: Assert) => {
+  const handler = {};
+  const router = new RouteRecognizer<{}>();
+  router.add([{ path: "/foo/bar", handler }]);
+
+  const results = router.recognize("/foo/bar?filter=[user][name][$contains]=nick");
+  const p = results && results.queryParams;
+  assert.deepEqual(p, { filter: { user: { name: { $contains: 'scoot' } } } });
+});
+
 QUnit.test("Multiple `/` routes recognize", (assert: Assert) => {
   const handler1 = { handler: 1 };
   const handler2 = { handler: 2 };
@@ -1637,7 +1647,7 @@ QUnit.module("Route Generation", hooks => {
     }
   );
 
-  QUnit.test("Generation works with query params", (assert: Assert) => {
+  QUnit.only("Generation works with query params", (assert: Assert) => {
     assert.equal(
       router.generate("index", { queryParams: { filter: "date" } }),
       "/?filter=date"
@@ -1720,6 +1730,10 @@ QUnit.module("Route Generation", hooks => {
     assert.equal(
       router.generate("index", { queryParams: { filter: "date", sort: 0 } }),
       "/?filter=date&sort=0"
+    );
+    assert.equal(
+      router.generate("index", { queryParams: { filter: { user: { name: { $contains: 'scoot' } } }, sort: 0 } }),
+      "/?filter=[user][name][$contains]=scoot"
     );
   });
 

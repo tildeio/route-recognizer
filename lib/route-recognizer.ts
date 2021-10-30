@@ -430,7 +430,7 @@ function recognizeChar<THandler>(
 }
 
 export interface QueryParams {
-  [param: string]: string[] | string | null | undefined;
+  [param: string]: Record<string, any> | string[] | string | null | undefined;
 }
 
 export interface Result<THandler> {
