@@ -688,32 +688,47 @@ class RouteRecognizer<THandler = string> {
   }
 
   generateQueryString(params: Params): string {
-    const pairs: string[] = [];
-    const keys: string[] = Object.keys(params);
-    keys.sort();
-    for (let i = 0; i < keys.length; i++) {
-      const key = keys[i];
-      const value = params[key];
-      if (value == null) {
-        continue;
+    const reducer = (obj: Params, parentPrefix: string | null = null) => (prev: string[], key: string) => {
+      const val = obj[key];
+      if (val === null || val === undefined) {
+        return prev;
       }
-      let pair = encodeURIComponent(key);
-      if (isArray(value)) {
-        for (let j = 0; j < value.length; j++) {
-          const arrayPair = key + "[]" + "=" + encodeURIComponent(value[j]);
-          pairs.push(arrayPair);
+
+      const prefix = parentPrefix ? `${parentPrefix}[${key}]` : key;
+  
+      if (val == null || typeof val === 'function') {
+        prev.push(`${prefix}=`);
+        return prev;
+      }
+  
+      if (isArray(val)) {
+        for (let j = 0; j < val.length; j++) {
+          // handle array query params. array format brackets. (Other options are indices a[0]=b&a[1]=c or repeat a=b&a=c)
+          if (['string', 'number', 'boolean'].includes(typeof val[j])) {
+            const arrayPair = key + "[]" + "=" + encodeURIComponent(val[j]);
+            prev.push(arrayPair);
+          } else {
+            prev.push(Object.keys(val[j] as Params).sort().reduce(reducer(val[j] as Params, prefix + `[${j}]`), []).join('&'));
+          }
         }
-      } else {
-        pair += "=" + encodeURIComponent(value as string);
-        pairs.push(pair);
+
+        return prev;
+      } else if (['string', 'number', 'boolean'].includes(typeof val)) {
+        prev.push(`${prefix}=${encodeURIComponent(val as string)}`);
+        return prev;
       }
+  
+      prev.push(Object.keys(val as Params).sort().reduce(reducer(val as Params, parentPrefix ? prefix : `${prefix}=`), []).join('&'));
+      return prev;
+    };
+  
+    const sortedKeys = Object.keys(params).sort();
+    // avoid appending unnecessary '?'
+    if (!sortedKeys.length || sortedKeys.every((k) => params[k] === undefined || params[k] === null)) {
+      return '';
     }
 
-    if (pairs.length === 0) {
-      return "";
-    }
-
-    return "?" + pairs.join("&");
+    return '?' + sortedKeys.reduce(reducer(params), []).join('&');
   }
 
   parseQueryString(queryString: string): QueryParams {

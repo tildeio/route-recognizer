@@ -822,9 +822,16 @@ QUnit.test("Deserialize query param nested object", (assert: Assert) => {
   const router = new RouteRecognizer<{}>();
   router.add([{ path: "/foo/bar", handler }]);
 
-  const results = router.recognize("/foo/bar?filter=[user][name][$contains]=nick");
-  const p = results && results.queryParams;
-  assert.deepEqual(p, { filter: { user: { name: { $contains: 'scoot' } } } });
+  const results = queryParams(router.recognize("/foo/bar?filter=[user][name][$contains]=nick"));
+  assert.deepEqual(results, { 
+    filter: { 
+      user: { 
+        name: { 
+          $contains: 'nick' 
+        } 
+      } 
+    } 
+  });
 });
 
 QUnit.test("Multiple `/` routes recognize", (assert: Assert) => {
@@ -1639,7 +1646,7 @@ QUnit.module("Route Generation", hooks => {
   QUnit.test(
     "Parsing and generation results into the same input string",
     (assert: Assert) => {
-      const query = "filter%20data=date";
+      const query = "filter data=date";
       assert.equal(
         router.generateQueryString(router.parseQueryString(query)),
         "?" + query
@@ -1647,7 +1654,7 @@ QUnit.module("Route Generation", hooks => {
     }
   );
 
-  QUnit.only("Generation works with query params", (assert: Assert) => {
+  QUnit.test("Generation works with query params", (assert: Assert) => {
     assert.equal(
       router.generate("index", { queryParams: { filter: "date" } }),
       "/?filter=date"
@@ -1732,8 +1739,16 @@ QUnit.module("Route Generation", hooks => {
       "/?filter=date&sort=0"
     );
     assert.equal(
-      router.generate("index", { queryParams: { filter: { user: { name: { $contains: 'scoot' } } }, sort: 0 } }),
-      "/?filter=[user][name][$contains]=scoot"
+      router.generate("index", { queryParams: { filter: { age: 10, user: { name: { $contains: 'scoot' } } }, sort: 0 } }),
+      "/?filter=[age]=10&filter=[user][name][$contains]=scoot&sort=0"
+    );
+    assert.equal(
+      router.generate("index", { queryParams: { sort: 0, filter: { age: 0, user: { name: { $contains: 'scoot' } } } } }),
+      "/?filter=[age]=0&filter=[user][name][$contains]=scoot&sort=0"
+    );
+    assert.equal(
+      router.generate("index", { queryParams: { sort: 0, filter: { name: 'bike', children: [{ name: { $contains: 'scoot' } }, { name: { $contains: 'er' }}] } }, sort: 0 }),
+      "/?filter=[children][0][name][$contains]=scoot&filter=[children][1][name][$contains]=er&filter=[name]=bike&sort=0"
     );
   });
 
