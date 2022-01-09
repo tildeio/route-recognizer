@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+  pull_request: {}
+
+jobs:
+
+  test:
+    name: 'Tests'
+    env:
+      CI: true
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install node
+      uses: actions/setup-node@v2
+      with:
+        node-version: 14.x
+        cache: 'yarn'
+    - name: Install Dependencies
+      run: yarn install
+    - name: Lint JS
+      run: yarn lint
+    - name: Run Test
+      run: yarn test
