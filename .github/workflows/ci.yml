@@ -6,10 +6,20 @@ on:
       - master
   pull_request: {}
 
-jobs:
+concurrency:
+  group: ci-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
 
+jobs:
   test:
-    name: 'Tests'
+    strategy:
+      matrix:
+        node: [12, 14, 16]
+        yarn-args: ["--frozen-lockfile"]
+        include:
+          - node: 17
+            yarn-args: --no-lockfile
+    name: 'Tests - Node ${{ matrix.node }}'
     env:
       CI: true
     runs-on: ubuntu-latest
@@ -18,8 +28,8 @@ jobs:
     - name: Install node
       uses: actions/setup-node@v2
       with:
-        node-version: 14.x
-        cache: 'yarn'
+        node-version: ${{ matrix.node }}
+        cache: yarn
     - name: Install Dependencies
       run: yarn install
     - name: Lint JS
