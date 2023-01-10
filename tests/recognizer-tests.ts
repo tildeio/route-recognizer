@@ -252,6 +252,24 @@ QUnit.test("Query params without '='", (assert: Assert) => {
   });
 });
 
+QUnit.test("Query params with '=' in value", (assert: Assert) => {
+  const handler = {};
+  const router = new RouteRecognizer<{}>();
+  router.add([{ path: "/foo/bar", handler }]);
+
+  assert.deepEqual(queryParams(router.recognize("/foo/bar?filter=a=b")), {
+    filter: "a=b"
+  });
+  assert.deepEqual(
+    queryParams(
+      router.recognize(
+        `/foo/bar?filter=genres=in=(comedy);actor=="Ryan Reynolds"`
+      )
+    ),
+    { filter: `genres=in=(comedy);actor=="Ryan Reynolds"` }
+  );
+});
+
 QUnit.test(
   "Query params with = and without value are empty string",
   (assert: Assert) => {

@@ -720,7 +720,7 @@ class RouteRecognizer<THandler = string> {
     const pairs = queryString.split("&");
     const queryParams: QueryParams = {};
     for (let i = 0; i < pairs.length; i++) {
-      const pair = pairs[i].split("=");
+      const pair = pairs[i].split(/=(.*)/, 2);
       let key = decodeQueryParamPart(pair[0]);
       const keyLength = key.length;
       let isArray = false;
